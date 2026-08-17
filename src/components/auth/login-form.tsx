@@ -34,7 +34,7 @@ export function LoginForm(): ReactNode {
 
     const result = await loginRequest(email, password);
     if (!result.ok) {
-      setError(t("login.invalid"));
+      setError(result.error === "Invalid credentials." ? t("login.invalid") : result.error);
       setWorking(false);
       return;
     }
@@ -84,8 +84,9 @@ export function LoginForm(): ReactNode {
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-muted-foreground">{t("login.email")}</span>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
+                  inputMode="email"
                   autoComplete="username"
                   required
                   value={email}

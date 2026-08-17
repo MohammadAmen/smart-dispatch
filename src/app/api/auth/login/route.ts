@@ -3,8 +3,16 @@ import { NextResponse } from "next/server";
 import { DEMO_PASSWORD, SESSION_COOKIE } from "@/lib/auth/constants";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { encodeSession } from "@/lib/auth/session-cookie";
-import { bootstrapDispatchData } from "@/lib/dispatch/bootstrap";
+import { ensureDemoStaffUsers } from "@/lib/dispatch/bootstrap";
 import { prisma } from "@/lib/db";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const DEMO_EMAILS = new Set([
+  "dana@fleet.smart-dispatch.local",
+  "admin@fleet.smart-dispatch.local",
+]);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,9 +40,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    await bootstrapDispatchData();
+    await ensureDemoStaffUsers();
   } catch {
-    // Login can still succeed against existing users.
+    // Existing users can still sign in if seeding is blocked.
   }
 
   const user = await prisma.user.findUnique({
@@ -46,9 +54,12 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "Invalid credentials." }, { status: 401 });
   }
 
-  const passwordOk = user.passwordHash
-    ? verifyPassword(password, user.passwordHash)
-    : password === DEMO_PASSWORD;
+  const demoLogin = DEMO_EMAILS.has(email) && password === DEMO_PASSWORD;
+  const passwordOk = demoLogin
+    ? true
+    : user.passwordHash
+      ? verifyPassword(password, user.passwordHash)
+      : password === DEMO_PASSWORD;
 
   if (!passwordOk) {
     return NextResponse.json({ ok: false, error: "Invalid credentials." }, { status: 401 });

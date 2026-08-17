@@ -153,6 +153,10 @@ async function seedOrders(): Promise<void> {
   }
 }
 
+export async function ensureDemoStaffUsers(): Promise<void> {
+  await seedStaffUsers();
+}
+
 async function seedStaffUsers(): Promise<void> {
   const passwordHash = hashPassword(DEMO_PASSWORD);
   const staff = [
@@ -175,7 +179,6 @@ async function seedStaffUsers(): Promise<void> {
       where: { email: person.email },
       update: {
         role: person.role,
-        passwordHash,
       },
       create: {
         ...person,
