@@ -1,0 +1,10 @@
+export const OFFLINE_DB_NAME = "sd-offline";
+export const OFFLINE_DB_VERSION = 1;
+export const OUTBOX_STORE = "outbox";
+export const OUTBOX_SYNC_TAG = "sd-outbox";
+export const SYNC_API_PATH = "/api/sync";
+export const SW_PATH = "/sw.js";
+export const SW_DEV_CLEARED_KEY = "sd-dev-sw-cleared";
+export const SW_MESSAGE_FLUSHED = "OUTBOX_FLUSHED";
+export const SW_MESSAGE_FLUSH = "FLUSH_OUTBOX";
+export const SW_MESSAGE_PLEASE_FLUSH = "PLEASE_FLUSH";

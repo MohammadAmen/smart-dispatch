@@ -1,0 +1,441 @@
+{
+  "brand": {
+    "name": "Smart Dispatch",
+    "tagline": "Logistics OS"
+  },
+  "nav": {
+    "overview": "Overview",
+    "dispatch": "Live dispatch",
+    "orders": "Orders",
+    "fleet": "Fleet",
+    "routes": "Routes",
+    "analytics": "Analytics",
+    "users": "Users",
+    "zones": "Zones",
+    "vehicleTypes": "Vehicle types",
+    "settings": "Settings",
+    "operations": "Operations",
+    "workspace": "Workspace"
+  },
+  "aria": {
+    "mainNav": "Main",
+    "sidebar": "Sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "openNav": "Open navigation",
+    "closeNav": "Close navigation",
+    "notifications": "Notifications",
+    "theme": "Theme: {value}. Click to change.",
+    "muteAlerts": "Mute sound alerts",
+    "unmuteAlerts": "Unmute sound alerts"
+  },
+  "navbar": {
+    "searchPlaceholder": "Search orders, vehicles, zones…",
+    "activeOrders": "Active orders",
+    "dispatcher": "Dispatcher",
+    "userName": "Dana Khalil",
+    "logout": "Sign out"
+  },
+  "connection": {
+    "online": "Live",
+    "degraded": "Weak link",
+    "offline": "Offline"
+  },
+  "common": {
+    "live": "Live",
+    "liveFeed": "Live feed",
+    "today": "Today",
+    "ready": "Ready",
+    "newDispatch": "New dispatch",
+    "collapse": "Collapse",
+    "language": "Language",
+    "arabic": "العربية",
+    "english": "English",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "add": "Add",
+    "unassigned": "Unassigned"
+  },
+  "status": {
+    "order": {
+      "queued": "Queued",
+      "in-transit": "In transit",
+      "delivered": "Delivered",
+      "delayed": "Delayed",
+      "PENDING": "Pending",
+      "ASSIGNED": "Assigned",
+      "IN_TRANSIT": "In transit",
+      "DELIVERED": "Delivered",
+      "CANCELED": "Canceled"
+    },
+    "vehicle": {
+      "en-route": "En route",
+      "idle": "Idle",
+      "loading": "Loading",
+      "offline": "Offline",
+      "ACTIVE": "Active",
+      "MAINTENANCE": "Maintenance",
+      "INACTIVE": "Inactive"
+    },
+    "route": {
+      "OPTIMIZED": "Optimized",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed"
+    },
+    "role": {
+      "ADMIN": "Admin",
+      "DISPATCHER": "Dispatcher",
+      "DRIVER": "Driver"
+    },
+    "driver": {
+      "AVAILABLE": "Available",
+      "BUSY": "Busy",
+      "OFFLINE": "Offline"
+    }
+  },
+  "overview": {
+    "title": "Command overview",
+    "description": "Live snapshot of fleet health, active dispatches, and delivery reliability.",
+    "activeShipments": "Active shipments",
+    "activeShipmentsHint": "Highest-priority lanes this hour",
+    "liveActivity": "Live activity",
+    "throughput": "Throughput",
+    "throughputHint": "Parcels cleared by hour",
+    "fleetLoad": "Fleet load",
+    "fleetLoadHint": "Capacity by vehicle",
+    "table": {
+      "order": "Order",
+      "destination": "Destination",
+      "courier": "Courier",
+      "eta": "ETA",
+      "status": "Status"
+    },
+    "kpi": {
+      "active": { "label": "Active orders", "hint": "vs yesterday" },
+      "transit": { "label": "In transit", "hint": "live fleet" },
+      "ontime": { "label": "On-time rate", "hint": "7-day rolling" },
+      "fleet": { "label": "Fleet online", "hint": "vehicles ready" }
+    }
+  },
+  "orders": {
+    "title": "Orders",
+    "description": "Track queued, live, delayed, and completed dispatches across every zone.",
+    "weight": "Weight",
+    "actions": "Actions",
+    "markDelivered": "Mark delivered",
+    "pendingSync": "Pending sync"
+  },
+  "sync": {
+    "pending": "Pending sync",
+    "pendingCount": "{count} queued",
+    "dismiss": "Dismiss",
+    "toast": {
+      "queued": "Saved on this device",
+      "queuedDetail": "{entityId} will sync when you are back online.",
+      "syncing": "Syncing queued actions…",
+      "synced": "Synced {count} queued action(s)",
+      "offline": "You are offline. New actions stay on this device.",
+      "error": "Could not sync. Will retry when the network returns.",
+      "incoming": "New order on the live board",
+      "incomingDetail": "{entityId} arrived from WhatsApp and is waiting for a courier."
+    }
+  },
+  "fleet": {
+    "title": "Fleet",
+    "description": "Vehicle availability, zone assignment, and live load across the network.",
+    "zone": "Zone",
+    "load": "Load",
+    "model": "Model",
+    "type": "Type",
+    "capacity": "Capacity",
+    "driver": "Driver",
+    "empty": "No vehicles in the fleet yet. Register one to start assigning couriers.",
+    "cycleStatus": "Cycle status",
+    "add": "Add vehicle",
+    "addTitle": "Register vehicle",
+    "addHint": "Plate, model, type, capacity, and operating zone.",
+    "plate": "Plate number",
+    "vehicleType": "Vehicle type",
+    "creating": "Saving…",
+    "saving": "Saving…",
+    "edit": "Edit vehicle",
+    "editTitle": "Edit vehicle",
+    "editHint": "Update plate, type, capacity, zone, and status.",
+    "delete": "Delete vehicle",
+    "deleteTitle": "Remove vehicle",
+    "deleteHint": "Any mapped driver is unassigned before the vehicle is removed.",
+    "deleteConfirm": "Delete {plate}?",
+    "deleteAssigned": "{name} will be unassigned from this vehicle.",
+    "deleteBusy": "This courier is on an active route. The vehicle will be unassigned and set inactive instead of deleted.",
+    "deleting": "Removing…",
+    "changeStatus": "Change status",
+    "plateTaken": "That plate number is already registered.",
+    "invalidZone": "Choose an active delivery zone.",
+    "invalidType": "Choose an active vehicle type.",
+    "invalidCapacity": "Capacity must be greater than zero.",
+    "invalidModel": "Model is required.",
+    "notFound": "Vehicle was not found.",
+    "deleted": "Vehicle removed.",
+    "deactivated": "Vehicle set inactive because a driver is on an active route."
+  },
+  "routes": {
+    "title": "Routes",
+    "description": "Group pending orders by zone and assign them to active vehicles.",
+    "optimize": "Optimize routes",
+    "optimizing": "Building routes…",
+    "empty": "No optimized routes yet. Run optimize to assign pending orders by zone.",
+    "distance": "Distance",
+    "eta": "ETA",
+    "stops": "Stops"
+  },
+  "login": {
+    "title": "Sign in",
+    "description": "Use your dispatch account to open the command floor or driver app.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "working": "Signing in…",
+    "invalid": "Email or password is incorrect.",
+    "demo": "Demo accounts",
+    "demoPassword": "Password"
+  },
+  "users": {
+    "title": "Users & fleet mapping",
+    "description": "Add operators, assign Admin / Dispatcher / Driver roles, and map vehicles to couriers.",
+    "add": "Add user",
+    "edit": "Edit user",
+    "manage": "Manage",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "language": "Language",
+    "password": "Password",
+    "passwordHint": "Leave blank to keep the current password",
+    "vehicle": "Vehicle",
+    "unassigned": "No vehicle",
+    "vehicleHint": "Pick an unassigned vehicle or register a new one for this driver.",
+    "newVehicle": "New vehicle",
+    "empty": "No users yet.",
+    "confirmDelete": "Delete this user? Assigned vehicles will be released."
+  },
+  "map": {
+    "liveOrders": "Live orders",
+    "activeCount": "{count} active routes",
+    "focusRoute": "Focus map on route",
+    "eta": "ETA",
+    "loading": "Loading map"
+  },
+  "dispatch": {
+    "kicker": "Command floor",
+    "title": "Live dispatch",
+    "autoDispatch": "Auto-Dispatch",
+    "autoDispatching": "Assigning couriers…",
+    "queue": "Order queue",
+    "queueCount": "{count} orders",
+    "collapseQueue": "Collapse order queue",
+    "expandQueue": "Expand order queue",
+    "expandMap": "Maximize map",
+    "tabs": {
+      "ALL": "All",
+      "PENDING": "Pending",
+      "ASSIGNED": "Assigned",
+      "IN_TRANSIT": "In transit",
+      "DELIVERED": "Delivered"
+    },
+    "empty": "No orders in this lane.",
+    "autoAssign": "Auto assign",
+    "cancel": "Cancel",
+    "viewDetails": "View details",
+    "hideDetails": "Hide details",
+    "driver": "Driver",
+    "phone": "Customer",
+    "coordinates": "Route coordinates"
+  },
+  "driver": {
+    "kicker": "Courier",
+    "title": "Driver",
+    "chooseProfile": "Who is driving?",
+    "chooseHint": "Pick your profile. This device will keep it for the next shift.",
+    "available": "Available",
+    "offline": "Offline",
+    "onDuty": "On duty",
+    "offDuty": "Off duty",
+    "toggleDuty": "Toggle duty status",
+    "waitingTitle": "Waiting for a job",
+    "waitingBody": "Stay on this screen. New assignments appear here as soon as dispatch sends them.",
+    "offlineTitle": "You are offline",
+    "offlineBody": "Switch to Available to receive orders. Location sharing stays paused until you go on duty.",
+    "assignment": "Active assignment",
+    "customer": "Customer",
+    "phone": "Phone",
+    "call": "Call customer",
+    "address": "Delivery address",
+    "items": "Order items",
+    "itemQty": "×{qty}",
+    "accept": "Accept Order",
+    "inTransit": "In Transit",
+    "delivered": "Mark Delivered",
+    "working": "Updating…",
+    "gps": "GPS",
+    "gpsLive": "Live location",
+    "gpsDenied": "Location is blocked. Enable GPS to draw your route.",
+    "gpsUnsupported": "This phone cannot share GPS.",
+    "queuedHint": "Saved on this phone. It will sync when the network returns.",
+    "switchDriver": "Switch driver",
+    "enableAlerts": "Enable alerts",
+    "alertTitle": "New job {orderNumber}",
+    "alertBody": "{address}",
+    "noVehicleTitle": "No vehicle assigned",
+    "noVehicleBody": "No vehicle assigned to your account. Please contact an administrator."
+  },
+  "audio": {
+    "mute": "Mute sound alerts",
+    "unmute": "Unmute sound alerts",
+    "muted": "Sound alerts muted",
+    "unmuted": "Sound alerts on",
+    "mutedDetail": "New orders still appear on the board. Chimes stay off.",
+    "unmutedDetail": "You will hear a chime when WhatsApp and API orders arrive."
+  },
+  "analytics": {
+    "title": "Analytics & finance",
+    "description": "Cash-on-delivery collections, courier performance, and demand across the last two weeks.",
+    "kicker": "Performance",
+    "loading": "Loading analytics",
+    "error": "Could not load analytics. Check the database connection and retry.",
+    "retry": "Retry",
+    "minutes": "{count} min",
+    "range": {
+      "daily": "Daily",
+      "weekly": "Weekly"
+    },
+    "kpi": {
+      "revenue": {
+        "label": "COD revenue",
+        "detail": "Settled {collected}",
+        "hint": "Delivered cash-on-delivery total"
+      },
+      "volume": {
+        "label": "Delivered vs canceled",
+        "detail": "Completed / canceled",
+        "hint": "Last 14 days"
+      },
+      "duration": {
+        "label": "Avg. delivery time",
+        "detail": "Pickup to proof of delivery",
+        "hint": "Completed jobs only"
+      },
+      "utilization": {
+        "label": "Driver utilization",
+        "detail": "{busy} busy of {duty} on duty",
+        "hint": "Share of on-duty couriers currently assigned"
+      }
+    },
+    "trend": {
+      "title": "Revenue & order volume",
+      "revenue": "Revenue",
+      "orders": "Orders"
+    },
+    "peak": {
+      "title": "Peak hours",
+      "orders": "Orders"
+    },
+    "leaderboard": {
+      "title": "Driver performance",
+      "hint": "Completed jobs, collected cash, and speed over the reporting window.",
+      "driver": "Driver",
+      "completed": "Completed",
+      "cash": "Cash collected",
+      "avgTime": "Avg. time",
+      "rating": "Rating",
+      "empty": "No completed deliveries in this window."
+    },
+    "cash": {
+      "title": "Cash reconciliation",
+      "description": "Couriers still holding COD payments. Mark settled when cash is handed to management.",
+      "driver": "Driver",
+      "orders": "Open drops",
+      "due": "Amount due",
+      "lastDrop": "Last delivery",
+      "action": "Action",
+      "settle": "Mark cash settled",
+      "working": "Settling…",
+      "empty": "All COD cash has been handed over."
+    },
+    "hourly": "Hourly clearance",
+    "insights": {
+      "dwell": { "label": "Avg. dwell", "note": "Depot staging" },
+      "scans": { "label": "Failed scans", "note": "Last 24h" },
+      "fuel": { "label": "Fuel index", "note": "Vs weekly baseline" },
+      "sla": { "label": "SLA risk", "note": "North + Harbor" }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Workspace preferences for dispatchers on unreliable networks.",
+    "theme": { "label": "Theme", "detail": "Cycles light, dark, and system." },
+    "language": { "label": "Language", "detail": "Arabic is default; English is secondary with dynamic text direction." },
+    "offline": { "label": "Offline cache", "detail": "Driver actions are stored in IndexedDB and sync automatically when the connection returns." },
+    "bandwidth": { "label": "Low-bandwidth mode", "detail": "Prefers status chips over heavy map tiles." },
+    "alerts": { "label": "Alerts", "detail": "Delay and geofence events surface in the top bar." },
+    "users": { "label": "Users & roles", "detail": "Create accounts, assign RBAC roles, and map vehicles to drivers." },
+    "zones": { "label": "Delivery zones", "detail": "Create, edit, and activate operational areas such as الشعلان and المزة." },
+    "vehicleTypes": { "label": "Vehicle types", "detail": "Manage categories like فان صغير, دراجة نارية, and شاحنة تبريد." }
+  },
+  "catalog": {
+    "zonesTitle": "Delivery zones",
+    "zonesDescription": "Operational areas used for vehicle assignment and route optimization.",
+    "addZone": "Add zone",
+    "editZone": "Edit zone",
+    "zonesEmpty": "No zones yet. Add one to start assigning vehicles.",
+    "confirmDeleteZone": "Delete this zone? Vehicles using it will keep a detached zone until reassigned.",
+    "typesTitle": "Vehicle types",
+    "typesDescription": "Fleet categories with max payload and an icon for dispatch screens.",
+    "addType": "Add type",
+    "editType": "Edit type",
+    "typesEmpty": "No vehicle types yet. Add one before registering vehicles.",
+    "confirmDeleteType": "Delete this vehicle type? Vehicles using it will keep a detached type until reassigned.",
+    "name": "Name",
+    "code": "Code",
+    "codeAuto": "Generated from the first two English letters of the city plus the area (e.g. Damascus + Shaalan → DASH).",
+    "city": "City",
+    "maxWeight": "Max weight (kg)",
+    "icon": "Icon",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "toggle": "Toggle active",
+    "vehicleCount": "{count} vehicles",
+    "needCatalog": "Add at least one active zone and vehicle type in Settings first.",
+    "icons": {
+      "truck": "Van / truck",
+      "bike": "Motorcycle",
+      "car": "Pickup / car",
+      "snowflake": "Reefer",
+      "package": "Cargo",
+      "bus": "Bus"
+    }
+  },
+  "zones": {
+    "west": "West",
+    "north": "North",
+    "core": "Core",
+    "east": "East",
+    "airport": "Airport",
+    "depot": "Depot"
+  },
+  "places": {
+    "westHarbor": "West Harbor Hub",
+    "northRidge": "North Ridge Clinic",
+    "cityMarket": "City Market L3",
+    "eastPark": "East Logistics Park",
+    "airportCargo": "Airport Cargo A2"
+  },
+  "activity": {
+    "a1": { "title": "VAN-07 geofenced Harbor Hub", "detail": "ETA tightened to 14:20" },
+    "a2": { "title": "SD-10479 flagged delay", "detail": "North Ridge traffic +14 min" },
+    "a3": { "title": "VAN-03 started loading", "detail": "8 parcels staged at Core" },
+    "a4": { "title": "SD-10468 delivered", "detail": "Signed by East Park dock" }
+  }
+}

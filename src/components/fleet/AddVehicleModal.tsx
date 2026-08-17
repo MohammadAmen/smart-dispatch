@@ -1,0 +1,232 @@
+"use client";
+
+import { AnimatePresence, m } from "framer-motion";
+import { Truck, X } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+
+import { useLocale } from "@/components/providers/locale-provider";
+import { Button } from "@/components/ui/button";
+import { GlassCard } from "@/components/ui/glass-card";
+import { fetchCatalogLists } from "@/lib/catalog/client";
+import type { CatalogVehicleType, DeliveryZone } from "@/lib/catalog/types";
+import { createFleetVehicleRequest, fleetErrorMessage } from "@/lib/fleet/client";
+import type { FleetVehicle } from "@/lib/fleet/types";
+
+const fieldClass =
+  "h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+interface AddVehicleModalProps {
+  open: boolean;
+  onClose: () => void;
+  onCreated: (vehicle: FleetVehicle) => void;
+}
+
+export function AddVehicleModal({
+  open,
+  onClose,
+  onCreated,
+}: AddVehicleModalProps): ReactNode {
+  const { t } = useLocale();
+  const [plateNumber, setPlateNumber] = useState("");
+  const [model, setModel] = useState("");
+  const [vehicleTypeId, setVehicleTypeId] = useState("");
+  const [zoneId, setZoneId] = useState("");
+  const [capacityKg, setCapacityKg] = useState("");
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [types, setTypes] = useState<CatalogVehicleType[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setPlateNumber("");
+    setModel("");
+    setError(null);
+    setWorking(false);
+
+    void fetchCatalogLists(true).then((catalog) => {
+      const nextZones = catalog?.zones ?? [];
+      const nextTypes = catalog?.vehicleTypes ?? [];
+      setZones(nextZones);
+      setTypes(nextTypes);
+      const firstType = nextTypes[0];
+      const firstZone = nextZones[0];
+      setVehicleTypeId(firstType?.id ?? "");
+      setZoneId(firstZone?.id ?? "");
+      setCapacityKg(firstType ? String(firstType.maxWeightKg) : "");
+    });
+  }, [open]);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    setWorking(true);
+    setError(null);
+
+    const capacity = Number.parseFloat(capacityKg);
+    const result = await createFleetVehicleRequest({
+      plateNumber,
+      model,
+      vehicleTypeId,
+      zoneId,
+      capacityKg: Number.isFinite(capacity) ? capacity : undefined,
+    });
+
+    setWorking(false);
+
+    if (!result.ok) {
+      const key = fleetErrorMessage(result.error);
+      setError(key.startsWith("fleet.") ? t(key) : result.error);
+      return;
+    }
+
+    onCreated(result.vehicle);
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <m.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-background/55 backdrop-blur-sm"
+            aria-label={t("common.cancel")}
+            onClick={onClose}
+          />
+          <m.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-vehicle-title"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 w-full max-w-md"
+          >
+            <GlassCard hover={false}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <Truck className="size-4" />
+                  </span>
+                  <div>
+                    <h2 id="add-vehicle-title" className="text-sm font-semibold">
+                      {t("fleet.addTitle")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">{t("fleet.addHint")}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon-sm" aria-label={t("common.cancel")} onPress={onClose}>
+                  <X />
+                </Button>
+              </div>
+
+              <form className="mt-4 grid gap-3" onSubmit={(event) => void onSubmit(event)}>
+                <label className="space-y-1.5">
+                  <span className="text-xs text-muted-foreground">{t("fleet.plate")}</span>
+                  <input
+                    required
+                    className={fieldClass}
+                    value={plateNumber}
+                    onChange={(event) => setPlateNumber(event.target.value)}
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-xs text-muted-foreground">{t("fleet.model")}</span>
+                  <input
+                    required
+                    className={fieldClass}
+                    value={model}
+                    onChange={(event) => setModel(event.target.value)}
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-muted-foreground">{t("fleet.vehicleType")}</span>
+                    <select
+                      required
+                      className={fieldClass}
+                      value={vehicleTypeId}
+                      onChange={(event) => {
+                        const nextId = event.target.value;
+                        setVehicleTypeId(nextId);
+                        const selected = types.find((row) => row.id === nextId);
+                        if (selected) {
+                          setCapacityKg(String(selected.maxWeightKg));
+                        }
+                      }}
+                    >
+                      {types.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-muted-foreground">{t("fleet.capacity")}</span>
+                    <input
+                      required
+                      type="number"
+                      min={1}
+                      step="1"
+                      className={fieldClass}
+                      value={capacityKg}
+                      onChange={(event) => setCapacityKg(event.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="space-y-1.5">
+                  <span className="text-xs text-muted-foreground">{t("fleet.zone")}</span>
+                  <select
+                    required
+                    className={fieldClass}
+                    value={zoneId}
+                    onChange={(event) => setZoneId(event.target.value)}
+                  >
+                    {zones.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.name} · {zone.city}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {types.length === 0 || zones.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t("catalog.needCatalog")}</p>
+                ) : null}
+
+                {error ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    isDisabled={working || types.length === 0 || zones.length === 0}
+                  >
+                    {working ? t("fleet.creating") : t("fleet.add")}
+                  </Button>
+                  <Button type="button" variant="ghost" onPress={onClose}>
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </form>
+            </GlassCard>
+          </m.div>
+        </m.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}

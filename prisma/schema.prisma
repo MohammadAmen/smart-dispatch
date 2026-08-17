@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  DISPATCHER
+  DRIVER
+}
+
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELED
+}
+
+enum DriverStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum RouteStatus {
+  OPTIMIZED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String   @unique
+  role         Role     @default(DISPATCHER)
+  language     String   @default("ar") // "ar" or "en"
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  driver    Driver?
+  auditLogs AuditLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Driver {
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      DriverStatus @default(OFFLINE)
+  vehicleType String
+  latitude    Float?
+  longitude   Float?
+  lastActive  DateTime     @updatedAt
+
+  orders  Order[]
+  vehicle Vehicle?
+  routes  Route[]
+
+  @@index([latitude, longitude])
+  @@index([status])
+  @@map("drivers")
+}
+
+model Vehicle {
+  id             String        @id @default(uuid())
+  plateNumber    String        @unique
+  model          String
+  type           String
+  capacityKg     Float
+  currentLoadPct Float         @default(0)
+  status         VehicleStatus @default(ACTIVE)
+  zone           String        @default("core")
+  zoneId         String?
+  deliveryZone   Zone?         @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  vehicleTypeId  String?
+  fleetType      VehicleType?  @relation(fields: [vehicleTypeId], references: [id], onDelete: SetNull)
+  driverId       String?       @unique
+  driver         Driver?       @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status])
+  @@index([zone])
+  @@index([zoneId])
+  @@index([vehicleTypeId])
+  @@map("vehicles")
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  city      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicles Vehicle[]
+  routes   Route[]
+
+  @@index([active])
+  @@map("zones")
+}
+
+model VehicleType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  maxWeightKg Float
+  icon        String   @default("truck")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicles Vehicle[]
+
+  @@index([active])
+  @@map("vehicle_types")
+}
+
+model Route {
+  id               String      @id @default(uuid())
+  driverId         String
+  driver           Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  status           RouteStatus @default(OPTIMIZED)
+  waypoints        Json
+  totalDistanceKm  Float
+  estimatedMinutes Int
+  zone             String?
+  zoneId           String?
+  deliveryZone     Zone?       @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([driverId, status])
+  @@index([status])
+  @@index([zoneId])
+  @@map("routes")
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   String      @unique
+  status        OrderStatus @default(PENDING)
+  customerPhone String
+  addressText   String
+
+  pickupLat   Float?
+  pickupLng   Float?
+  deliveryLat Float
+  deliveryLng Float
+
+  codAmount     Float?
+  cashSettledAt DateTime?
+
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+
+  @@index([deliveryLat, deliveryLng])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, cashSettledAt])
+  @@map("orders")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@map("audit_logs")
+}

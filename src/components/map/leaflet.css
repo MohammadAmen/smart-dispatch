@@ -1,0 +1,166 @@
+.sd-live-map {
+  --sd-route: color-mix(in oklch, var(--primary) 82%, white 8%);
+  --sd-route-active: color-mix(in oklch, var(--glow) 70%, var(--primary) 30%);
+}
+
+.sd-live-map .leaflet-pane img,
+.sd-live-map .leaflet-tile {
+  max-width: none !important;
+}
+
+.sd-live-map .leaflet-container,
+.sd-live-map .sd-map-canvas {
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+  font-family: inherit;
+  border-radius: inherit;
+}
+
+.sd-live-map .leaflet-control-attribution {
+  background: color-mix(in oklch, var(--card) 78%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+}
+
+.sd-live-map .leaflet-control-zoom a {
+  background: color-mix(in oklch, var(--card) 82%, transparent);
+  color: var(--foreground);
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.sd-live-map .leaflet-control-zoom a:hover {
+  background: var(--muted);
+}
+
+[dir="ltr"] .sd-live-map .leaflet-top.leaflet-left {
+  left: auto;
+  right: 12px;
+}
+
+.sd-marker {
+  background: transparent;
+  border: none;
+}
+
+.sd-marker-pulse,
+.sd-dest-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+}
+
+.sd-marker-ring {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--primary) 42%, transparent);
+  animation: sd-marker-glow 2s ease-out infinite;
+}
+
+.sd-marker-selected .sd-marker-ring {
+  background: color-mix(in oklch, var(--glow) 55%, transparent);
+  animation-duration: 1.35s;
+}
+
+.sd-marker-delayed .sd-marker-ring {
+  background: color-mix(in oklch, var(--warning) 50%, transparent);
+}
+
+.sd-marker-core {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--card) 88%, transparent),
+    0 0 18px color-mix(in oklch, var(--primary) 55%, transparent);
+}
+
+.sd-marker-delayed .sd-marker-core {
+  background: var(--warning);
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--card) 88%, transparent),
+    0 0 18px color-mix(in oklch, var(--warning) 50%, transparent);
+}
+
+.sd-marker-delivered .sd-marker-ring {
+  background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  animation: none;
+}
+
+.sd-marker-delivered .sd-marker-core {
+  background: var(--muted-foreground);
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--card) 88%, transparent),
+    0 0 10px color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+}
+
+.sd-dest-core {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px 2px 2px 8px;
+  transform: rotate(45deg);
+  background: var(--info);
+  box-shadow: 0 0 14px color-mix(in oklch, var(--info) 45%, transparent);
+}
+
+.sd-route-path {
+  stroke: var(--primary) !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--primary) 45%, transparent));
+  stroke-dasharray: 10 14;
+  animation: sd-route-flow 1.4s linear infinite;
+}
+
+.sd-route-path.sd-route-active {
+  stroke: var(--glow) !important;
+  stroke-dasharray: 1;
+  animation: sd-route-draw 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  filter: drop-shadow(0 0 10px color-mix(in oklch, var(--glow) 55%, transparent));
+}
+
+@keyframes sd-marker-glow {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+@keyframes sd-route-flow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
+@keyframes sd-route-draw {
+  from {
+    stroke-dasharray: 8 900;
+    stroke-dashoffset: 420;
+  }
+  to {
+    stroke-dasharray: 14 10;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-marker-ring,
+  .sd-route-path,
+  .sd-route-path.sd-route-active {
+    animation: none;
+  }
+}
