@@ -195,3 +195,16 @@ model AuditLog {
   @@index([orderId])
   @@map("audit_logs")
 }
+
+model WhatsappSession {
+  id         String   @id @default(uuid())
+  sessionKey String   @unique @default("default")
+  creds      Json
+  keys       Json
+  me         String?
+  registered Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("whatsapp_sessions")
+}

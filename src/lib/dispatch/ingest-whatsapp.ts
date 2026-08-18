@@ -6,7 +6,10 @@ import { prisma } from "@/lib/db";
 import { getDepotPoint } from "@/lib/dispatch/depot";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
 import { orderWithDriver, toLiveOrder } from "@/lib/dispatch/order-mapper";
-import type { ParsedWhatsAppMessage } from "@/lib/dispatch/whatsapp";
+import {
+  parseInboundTextMessage,
+  type ParsedWhatsAppMessage,
+} from "@/lib/dispatch/whatsapp";
 import type { LiveOrder } from "@/lib/live-map";
 
 const globalForWhatsApp = globalThis as typeof globalThis & {
@@ -128,4 +131,14 @@ export async function createOrderFromWhatsApp(
   } catch {
     return null;
   }
+}
+
+export async function ingestWhatsAppMessage(input: {
+  messageId: string;
+  from: string;
+  text: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<LiveOrder | null> {
+  return createOrderFromWhatsApp(parseInboundTextMessage(input));
 }

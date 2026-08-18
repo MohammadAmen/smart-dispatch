@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: [
+    "@whiskeysockets/baileys",
+    "qrcode-terminal",
+    "pino",
+    "@hapi/boom",
+    "whatsapp-rust-bridge",
+    "ws",
+    "libsignal",
+    "qrcode",
+  ],
   async headers() {
     return [
       {

@@ -4,7 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /** Bump when Prisma schema fields change so the HMR singleton is recreated. */
-const PRISMA_SCHEMA_REV = "neon-pg-v1";
+const PRISMA_SCHEMA_REV = "whatsapp-session-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

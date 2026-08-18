@@ -46,7 +46,7 @@ function asNumber(value: unknown): number | null {
   return null;
 }
 
-function normalizePhone(from: string): string {
+export function normalizePhone(from: string): string {
   const compact = from.replace(/[^\d+]/g, "");
   if (compact.startsWith("+")) {
     return compact;
@@ -207,6 +207,29 @@ export function parseWhatsAppMessages(payload: unknown): ParsedWhatsAppMessage[]
   }
 
   return parsed;
+}
+
+export function parseInboundTextMessage(input: {
+  messageId: string;
+  from: string;
+  text: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}): ParsedWhatsAppMessage {
+  const coordsFromText = parseCoordinatesFromText(input.text);
+  const latitude = input.latitude ?? coordsFromText?.latitude ?? null;
+  const longitude = input.longitude ?? coordsFromText?.longitude ?? null;
+
+  return {
+    messageId: input.messageId,
+    from: normalizePhone(input.from),
+    type: latitude != null && longitude != null ? "location" : "text",
+    text: input.text,
+    transcript: null,
+    addressText: input.text,
+    latitude,
+    longitude,
+  };
 }
 
 export function verifyWhatsAppToken(token: string | null): boolean {
