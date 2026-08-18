@@ -13,6 +13,7 @@ import makeWASocket, {
   makeCacheableSignalKeyStore,
   type AuthenticationCreds,
   type WAMessage,
+  type WASocket,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
 import qrcodeTerminal from "qrcode-terminal";
@@ -202,7 +203,26 @@ function printQr(qr: string): void {
   qrcodeTerminal.generate(qr, { small: true });
 }
 
-async function handleInboundMessage(message: WAMessage): Promise<void> {
+function replyJid(message: WAMessage, phone: string): string {
+  return message.key.remoteJid ?? `${phone}@s.whatsapp.net`;
+}
+
+function orderConfirmationText(orderNumber: string): string {
+  return [
+    `أهلاً بك، تم استلام طلبك بنجاح وجارٍ معالجته برقم مرجعي ${orderNumber}.`,
+    `Hello, your order was received and is being processed. Reference: ${orderNumber}.`,
+  ].join("\n");
+}
+
+async function sendOrderConfirmation(
+  sock: WASocket,
+  jid: string,
+  orderNumber: string,
+): Promise<void> {
+  await sock.sendMessage(jid, { text: orderConfirmationText(orderNumber) });
+}
+
+async function handleInboundMessage(sock: WASocket, message: WAMessage): Promise<void> {
   if (message.key.fromMe) {
     return;
   }
@@ -229,8 +249,19 @@ async function handleInboundMessage(message: WAMessage): Promise<void> {
 
   try {
     const order = await ingestWhatsAppMessage({ messageId, from, text });
-    if (order) {
-      logger.warn({ messageId, orderNumber: order.id }, "Ingested WhatsApp order");
+    if (!order) {
+      return;
+    }
+
+    logger.warn({ messageId, orderNumber: order.id }, "Ingested WhatsApp order");
+
+    try {
+      await sendOrderConfirmation(sock, replyJid(message, from), order.id);
+    } catch (error) {
+      logger.error(
+        { err: error, messageId, orderNumber: order.id },
+        "Failed to send WhatsApp order confirmation",
+      );
     }
   } catch (error) {
     logger.error({ err: error, messageId, from }, "Failed to ingest WhatsApp message");
@@ -350,7 +381,7 @@ async function runSocketSession(): Promise<{
       }
 
       for (const message of messages) {
-        void handleInboundMessage(message);
+        void handleInboundMessage(sock, message);
       }
     });
   });
