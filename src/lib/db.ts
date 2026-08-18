@@ -1,10 +1,10 @@
 import "server-only";
 
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /** Bump when Prisma schema fields change so the HMR singleton is recreated. */
-const PRISMA_SCHEMA_REV = "zones-auto-code-v1";
+const PRISMA_SCHEMA_REV = "neon-pg-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -18,7 +18,7 @@ function createPrismaClient(): PrismaClient {
     throw new Error("DATABASE_URL is not set");
   }
 
-  const adapter = new PrismaMariaDb(connectionString);
+  const adapter = new PrismaPg(connectionString);
   return new PrismaClient({ adapter });
 }
 

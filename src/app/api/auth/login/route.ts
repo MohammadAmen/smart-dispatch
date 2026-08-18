@@ -14,9 +14,6 @@ const DEMO_EMAILS = new Set([
   "admin@fleet.smart-dispatch.local",
 ]);
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)
