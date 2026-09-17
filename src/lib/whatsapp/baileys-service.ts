@@ -11,6 +11,7 @@ import makeWASocket, {
   isJidStatusBroadcast,
   jidDecode,
   makeCacheableSignalKeyStore,
+  proto,
   type AuthenticationCreds,
   type WAMessage,
   type WASocket,
@@ -364,7 +365,8 @@ async function runSocketSession(): Promise<{
       browser: Browsers.ubuntu("Chrome"),
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      shouldSyncHistoryMessage: () => false,
+      shouldSyncHistoryMessage: ({ syncType }) =>
+        syncType !== proto.HistorySync.HistorySyncType.FULL,
       emitOwnEvents: false,
       shouldIgnoreJid: shouldIgnoreChat,
     });

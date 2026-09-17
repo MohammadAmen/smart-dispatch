@@ -34,6 +34,10 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
+  if (pathname.startsWith("/api/uploads")) {
+    return true;
+  }
+
   if (pathname === "/api/cron/scheduled-dispatch") {
     return true;
   }

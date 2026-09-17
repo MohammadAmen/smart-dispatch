@@ -1,10 +1,10 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 
 import { STORY_IMAGE_SECONDS, STORY_MAX_SECONDS, type StoryMediaType } from "@/lib/stores/story-types";
+import { deletePersistedUpload, persistUpload } from "@/lib/uploads";
 
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -66,11 +66,19 @@ export async function saveStoryMedia(
     }
   }
 
-  const directory = path.join(process.cwd(), "public", "uploads", "stories");
-  await mkdir(directory, { recursive: true });
-  const filename = `${randomUUID()}.${extension}`;
-  await writeFile(path.join(directory, filename), Buffer.from(await file.arrayBuffer()));
-  return `/uploads/stories/${filename}`;
+  try {
+    return await persistUpload({
+      folder: "stories",
+      mimeType: file.type,
+      bytes: Buffer.from(await file.arrayBuffer()),
+    });
+  } catch {
+    throw new Error(
+      mediaType === "IMAGE"
+        ? "Could not save the image. Try a smaller JPG or PNG."
+        : "Could not save the video. Try a smaller MP4.",
+    );
+  }
 }
 
 export function defaultMediaDuration(mediaType: StoryMediaType, duration: number): number {
@@ -81,6 +89,8 @@ export function defaultMediaDuration(mediaType: StoryMediaType, duration: number
 }
 
 export async function deleteStoryVideo(videoUrl: string | null | undefined): Promise<void> {
+  await deletePersistedUpload(videoUrl);
+
   const relative = videoUrl?.trim();
   if (!relative || !relative.startsWith("/uploads/stories/")) {
     return;

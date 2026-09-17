@@ -1,8 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { persistUpload, type UploadFolder } from "@/lib/uploads";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -19,7 +17,7 @@ export function isImageFile(value: FormDataEntryValue | null): value is File {
 
 export async function saveUploadedImage(
   file: File,
-  folder: "products" | "stores" | "offers" | "custom",
+  folder: Exclude<UploadFolder, "stories">,
 ): Promise<string> {
   const extension = EXTENSION_BY_TYPE[file.type];
   if (!extension) {
@@ -30,14 +28,15 @@ export async function saveUploadedImage(
     throw new Error("Image must be 4 MB or smaller.");
   }
 
-  const directory = path.join(process.cwd(), "public", "uploads", folder);
-  await mkdir(directory, { recursive: true });
-
-  const filename = `${randomUUID()}.${extension}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(directory, filename), buffer);
-
-  return `/uploads/${folder}/${filename}`;
+  try {
+    return await persistUpload({
+      folder,
+      mimeType: file.type,
+      bytes: Buffer.from(await file.arrayBuffer()),
+    });
+  } catch {
+    throw new Error("Could not save the image. Try a smaller JPG or PNG.");
+  }
 }
 
 export async function saveProductImage(file: File): Promise<string> {

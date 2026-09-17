@@ -524,3 +524,14 @@ model OrderItem {
   @@index([productId])
   @@map("order_items")
 }
+
+model Upload {
+  id        String   @id @default(uuid())
+  folder    String
+  mimeType  String
+  bytes     Bytes
+  createdAt DateTime @default(now())
+
+  @@index([folder])
+  @@map("uploads")
+}
