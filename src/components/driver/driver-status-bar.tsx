@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, Languages, Truck } from "lucide-react";
+import { BellRing, Languages, Truck, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DriverDutySwitch } from "@/components/driver/driver-duty-switch";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PulseDot } from "@/components/ui/pulse-dot";
 import type { DriverDutyStatus } from "@/lib/driver/types";
 import type { BrowserNotificationPermission } from "@/lib/notify";
+import { formatMoney, PRICE_CURRENCY } from "@/lib/stores/pricing";
 import { cn } from "@/lib/utils";
 
 interface DriverStatusBarProps {
@@ -21,6 +22,7 @@ interface DriverStatusBarProps {
   onSwitchDriver?: () => void;
   alertsPermission?: BrowserNotificationPermission;
   onEnableAlerts?: () => void;
+  dailyEarnings?: number;
 }
 
 export function DriverStatusBar({
@@ -32,6 +34,7 @@ export function DriverStatusBar({
   onSwitchDriver,
   alertsPermission = "unsupported",
   onEnableAlerts,
+  dailyEarnings = 0,
 }: DriverStatusBarProps): ReactNode {
   const { t, locale, setLocale } = useLocale();
   const nextLocale = locale === "ar" ? "en" : "ar";
@@ -55,6 +58,16 @@ export function DriverStatusBar({
           </p>
         </div>
         <DriverDutySwitch status={dutyStatus} onChange={onDutyChange} />
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+        <span className="flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+          <Wallet className="size-4" />
+          {t("driver.dailyEarnings")}
+        </span>
+        <span className="font-heading text-base font-bold text-emerald-800 dark:text-emerald-100">
+          {formatMoney(dailyEarnings)} {PRICE_CURRENCY}
+        </span>
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">

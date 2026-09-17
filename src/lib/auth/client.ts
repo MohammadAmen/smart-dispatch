@@ -32,7 +32,12 @@ export async function loginRequest(
     if (!body || body.ok !== true) {
       return {
         ok: false,
-        error: body && "error" in body && body.error ? body.error : "Invalid credentials.",
+        error:
+          body && "error" in body && body.error
+            ? body.error
+            : response.status >= 500
+              ? "Could not reach the database."
+              : "Invalid credentials.",
       };
     }
 

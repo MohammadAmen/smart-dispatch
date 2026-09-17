@@ -6,6 +6,8 @@ import type {
   SyncResponseBody,
 } from "@/lib/offline/types";
 import { isQueuedAction } from "@/lib/offline/types";
+import { notifyCustomerOrderUpdate } from "@/lib/stores/order-notify";
+import { ensureOrderTrackingToken } from "@/lib/stores/order-token";
 
 const orderStatusByAction: Partial<Record<DriverActionType, OrderStatus>> = {
   ORDER_DELIVERED: "DELIVERED",
@@ -64,11 +66,35 @@ async function persistAction(action: QueuedAction): Promise<void> {
       where: {
         OR: [{ id: action.entityId }, { orderNumber: action.entityId }],
       },
-      select: { id: true, driverId: true, orderNumber: true },
+      select: {
+        id: true,
+        driverId: true,
+        orderNumber: true,
+        customerPhone: true,
+        bundleRole: true,
+        parentOrderId: true,
+      },
     });
 
     if (!order) {
       return;
+    }
+
+    if (order.bundleRole === "PARENT") {
+      await prisma.order.updateMany({
+        where: { parentOrderId: order.id, status: { not: "CANCELED" } },
+        data: { status: nextStatus, ...(order.driverId ? { driverId: order.driverId } : {}) },
+      });
+    }
+
+    if (order.bundleRole === "CHILD" && order.parentOrderId) {
+      await prisma.order.updateMany({
+        where: {
+          OR: [{ id: order.parentOrderId }, { parentOrderId: order.parentOrderId }],
+          status: { not: "CANCELED" },
+        },
+        data: { status: nextStatus, ...(order.driverId ? { driverId: order.driverId } : {}) },
+      });
     }
 
     await prisma.auditLog.create({
@@ -105,6 +131,12 @@ async function persistAction(action: QueuedAction): Promise<void> {
         where: { id: order.driverId },
         data: { status: "BUSY" },
       });
+      void notifyCustomerOrderUpdate({
+        phone: order.customerPhone,
+        orderNumber: order.orderNumber,
+        trackingToken: await ensureOrderTrackingToken(order.id),
+        kind: "transit",
+      }).catch(() => undefined);
     }
 
     if (nextStatus === "DELIVERED") {

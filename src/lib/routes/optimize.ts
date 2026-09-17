@@ -225,7 +225,13 @@ export async function optimizePendingRoutes(): Promise<RouteOptimizeResult> {
   await bootstrapDispatchData();
 
   const pending = await prisma.order.findMany({
-    where: { status: "PENDING" },
+    where: {
+      status: "PENDING",
+      bundleRole: { notIn: ["CHILD", "PARENT"] },
+      orderType: { not: "SPECIAL_CUSTOM" },
+      fulfillment: { not: "DINE_IN" },
+      source: { not: "DINE_IN" },
+    },
     orderBy: { createdAt: "asc" },
     select: {
       id: true,

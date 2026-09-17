@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { DEMO_PASSWORD, homePathForRole } from "@/lib/auth/constants";
+import { homePathForRole } from "@/lib/auth/constants";
 import { loginRequest } from "@/lib/auth/client";
 import { isSafeInternalPath } from "@/lib/paths";
 
@@ -22,8 +22,8 @@ export function LoginForm(): ReactNode {
   const { t, locale } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("dana@fleet.smart-dispatch.local");
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
 
@@ -119,15 +119,6 @@ export function LoginForm(): ReactNode {
                 {working ? t("login.working") : t("login.submit")}
               </Button>
             </form>
-
-            <div className="mt-5 rounded-xl bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">{t("login.demo")}</p>
-              <p className="mt-1 font-mono">dana@fleet.smart-dispatch.local</p>
-              <p className="font-mono">admin@fleet.smart-dispatch.local</p>
-              <p className="mt-1">
-                {t("login.demoPassword")}: <span className="font-mono">{DEMO_PASSWORD}</span>
-              </p>
-            </div>
           </GlassCard>
         </m.div>
       </div>

@@ -70,6 +70,7 @@ async function runBootstrap(): Promise<void> {
 
   await seedCatalog();
   await seedStaffUsers();
+  await seedDemoStore();
   await seedMissingPasswords();
   await seedMissingVehicles();
 }
@@ -170,23 +171,115 @@ async function seedStaffUsers(): Promise<void> {
       name: "Nour Admin",
       email: `admin@${DEMO_EMAIL_DOMAIN}`,
       phone: "+962790009000",
-      role: "ADMIN" as const,
+      role: "SUPER_ADMIN" as const,
+    },
+    {
+      name: "Lina Vendor",
+      email: `owner@${DEMO_EMAIL_DOMAIN}`,
+      phone: "+962790009002",
+      role: "STORE_OWNER" as const,
     },
   ];
 
   for (const person of staff) {
-    await prisma.user.upsert({
-      where: { email: person.email },
-      update: {
-        role: person.role,
-      },
-      create: {
-        ...person,
-        language: "ar",
-        passwordHash,
-      },
-    });
+    try {
+      await prisma.user.upsert({
+        where: { email: person.email },
+        update: {
+          role: person.role,
+          passwordHash,
+        },
+        create: {
+          ...person,
+          language: "ar",
+          passwordHash,
+        },
+      });
+    } catch {
+      if (person.role !== "SUPER_ADMIN") {
+        continue;
+      }
+
+      await prisma.user.upsert({
+        where: { email: person.email },
+        update: {
+          role: "ADMIN",
+          passwordHash,
+        },
+        create: {
+          ...person,
+          role: "ADMIN",
+          language: "ar",
+          passwordHash,
+        },
+      });
+    }
   }
+}
+
+async function seedDemoStore(): Promise<void> {
+  const existing = await prisma.store.count();
+  if (existing > 0) {
+    return;
+  }
+
+  const owner = await prisma.user.findUnique({
+    where: { email: `owner@${DEMO_EMAIL_DOMAIN}` },
+    select: { id: true },
+  });
+
+  const store = await prisma.store.create({
+    data: {
+      name: "سوق النسيم",
+      slug: "naseem-market",
+      phone: "+962790009002",
+      city: "Amman",
+      address: "الشميساني",
+      active: true,
+      ownerId: owner?.id ?? null,
+    },
+  });
+
+  const drinks = await prisma.category.create({
+    data: { storeId: store.id, name: "مشروبات", sortOrder: 1 },
+  });
+  const staples = await prisma.category.create({
+    data: { storeId: store.id, name: "مواد غذائية", sortOrder: 2 },
+  });
+
+  await prisma.product.createMany({
+    data: [
+      {
+        storeId: store.id,
+        categoryId: drinks.id,
+        name: "مياه معدنية 1.5ل",
+        description: "عبوة مفردة باردة",
+        price: 0.35,
+        available: true,
+        sortOrder: 1,
+      },
+      {
+        storeId: store.id,
+        categoryId: drinks.id,
+        name: "غازي عائلي",
+        description: "1.25 لتر",
+        price: 0.85,
+        hasDiscount: true,
+        discountPrice: 0.65,
+        available: true,
+        sortOrder: 2,
+      },
+      {
+        storeId: store.id,
+        categoryId: staples.id,
+        name: "خبز طابون",
+        description: "ربطة طازجة",
+        price: 0.4,
+        available: true,
+        sortOrder: 1,
+      },
+    ],
+  });
 }
 
 async function seedMissingPasswords(): Promise<void> {
@@ -311,6 +404,17 @@ async function seedMissingVehicles(): Promise<void> {
 
 export async function listOrdersWithDrivers() {
   return prisma.order.findMany({
+    where: {
+      bundleRole: { not: "CHILD" },
+      fulfillment: { not: "DINE_IN" },
+      source: { not: "DINE_IN" },
+      NOT: {
+        AND: [
+          { orderType: "SPECIAL_CUSTOM" },
+          { status: { in: ["PENDING_QUOTE", "QUOTE_ACCEPTED", "PENDING", "PREPARING"] } },
+        ],
+      },
+    },
     include: orderWithDriver,
     orderBy: { createdAt: "desc" },
   });

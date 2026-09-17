@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { AssignmentCard } from "@/components/driver/assignment-card";
@@ -9,11 +10,14 @@ import { DriverMiniMap } from "@/components/driver/driver-mini-map";
 import { DriverPicker } from "@/components/driver/driver-picker";
 import { DriverStatusBar } from "@/components/driver/driver-status-bar";
 import { DriverUnassigned } from "@/components/driver/driver-unassigned";
+import { IncomingOrderOverlay } from "@/components/driver/incoming-order-overlay";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useDriverAlerts } from "@/hooks/use-driver-alerts";
 import { useDriverGeolocation } from "@/hooks/use-driver-geolocation";
-import { playDeliverySuccessSound } from "@/lib/audio";
+import { playDeliverySuccessSound, stopIncomingRingtone } from "@/lib/audio";
+import { respondToDriverOffer } from "@/lib/driver/client";
 import type { DriverAccess, DriverAssignment, DriverDutyStatus } from "@/lib/driver/types";
+import { stopIncomingVibrate } from "@/lib/notify";
 import { latestQueuedStatus, useSyncStore } from "@/stores/sync-store";
 import { useDriverStore } from "@/stores/driver-store";
 
@@ -27,6 +31,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
   const locationError = useDriverStore((state) => state.locationError);
   const assignment = useDriverStore((state) => state.assignment);
   const accepted = useDriverStore((state) => state.accepted);
+  const dailyEarnings = useDriverStore((state) => state.dailyEarnings);
   const drivers = useDriverStore((state) => state.drivers);
   const isHydrated = useDriverStore((state) => state.isHydrated);
   const hydrate = useDriverStore((state) => state.hydrate);
@@ -148,6 +153,51 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
     [enqueue, locationPayload, setDutyStatus],
   );
 
+  const respondToOffer = useCallback(
+    async (action: "accept" | "reject" | "timeout"): Promise<void> => {
+      const current = useDriverStore.getState().assignment;
+      const id = useDriverStore.getState().driverId;
+      if (!current || !id) {
+        return;
+      }
+
+      stopIncomingRingtone();
+      stopIncomingVibrate();
+      setBusy(true);
+
+      try {
+        const ok = await respondToDriverOffer({
+          driverId: id,
+          orderId: current.orderId,
+          action,
+        });
+
+        if (action === "accept") {
+          if (ok) {
+            acceptAssignment();
+          }
+          await hydrate();
+          return;
+        }
+
+        if (action === "timeout") {
+          setDutyStatus("OFFLINE");
+          await enqueue({
+            type: "DRIVER_OFFLINE",
+            entityId: id,
+            payload: locationPayload(),
+          });
+        }
+
+        clearAssignment();
+        await hydrate();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [acceptAssignment, clearAssignment, enqueue, hydrate, locationPayload, setDutyStatus],
+  );
+
   const onAction = useCallback(
     async (kind: DriverActionKind): Promise<void> => {
       const current = useDriverStore.getState().assignment;
@@ -156,7 +206,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
       }
 
       if (kind === "accept") {
-        acceptAssignment();
+        await respondToOffer("accept");
         return;
       }
 
@@ -182,7 +232,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         setBusy(false);
       }
     },
-    [acceptAssignment, clearAssignment, enqueue, locationPayload],
+    [clearAssignment, enqueue, locationPayload, respondToOffer],
   );
 
   if (access.kind === "unassigned") {
@@ -218,6 +268,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         vehicleType={vehicleType}
         dutyStatus={visibleDuty}
         online={online}
+        dailyEarnings={dailyEarnings}
         onDutyChange={(status) => {
           void onDutyChange(status);
         }}
@@ -255,16 +306,36 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         )}
       </main>
 
-      {visibleAssignment ? (
+      {visibleAssignment && (accepted || visibleAssignment.status === "IN_TRANSIT") ? (
         <DriverActionBar
           assignment={visibleAssignment}
-          accepted={accepted || visibleAssignment.status === "IN_TRANSIT"}
+          accepted
           busy={busy}
           onAction={(kind) => {
             void onAction(kind);
           }}
         />
       ) : null}
+
+      <AnimatePresence>
+        {visibleAssignment && visibleAssignment.status === "ASSIGNED" && !accepted ? (
+          <IncomingOrderOverlay
+            key={visibleAssignment.orderId}
+            assignment={visibleAssignment}
+            driverPoint={location}
+            busy={busy}
+            onAccept={() => {
+              void respondToOffer("accept");
+            }}
+            onReject={() => {
+              void respondToOffer("reject");
+            }}
+            onTimeout={() => {
+              void respondToOffer("timeout");
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

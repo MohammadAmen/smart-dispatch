@@ -59,6 +59,10 @@ export function ThemeToggle({ className }: { className?: string }): ReactNode {
   );
 
   useEffect(() => {
+    applyTheme(preference);
+  }, [preference]);
+
+  useEffect(() => {
     if (preference !== "system") {
       return;
     }

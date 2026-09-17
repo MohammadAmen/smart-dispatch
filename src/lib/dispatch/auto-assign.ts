@@ -9,7 +9,10 @@ import type {
   AutoAssignResult,
   UnmatchedOrder,
 } from "@/lib/dispatch/types";
+import { parseDeclinedDriverIds } from "@/lib/driver/declined";
 import { calculateDistance, roundDistanceKm } from "@/lib/geo";
+import { ensureOrderBundleSchema } from "@/lib/stores/order-bundle";
+import type { OrderStatus } from "@/generated/prisma/enums";
 
 interface AutoAssignOptions {
   orderId?: string;
@@ -95,6 +98,23 @@ async function loadAvailableDrivers(): Promise<CandidateDriver[]> {
   });
 }
 
+const QUOTE_STATUSES: OrderStatus[] = ["PENDING_QUOTE", "QUOTE_ACCEPTED"];
+
+const ASSIGNABLE_WHERE = {
+  AND: [
+    { bundleRole: { not: "CHILD" } },
+    { fulfillment: { not: "DINE_IN" } },
+    { source: { not: "DINE_IN" } },
+    { status: { notIn: QUOTE_STATUSES } },
+    {
+      OR: [
+        { storeId: null, status: "PENDING" as const, bundleRole: { not: "PARENT" } },
+        { status: "READY_FOR_PICKUP" as const },
+      ],
+    },
+  ],
+};
+
 async function assignPair(
   orderId: string,
   driverId: string,
@@ -103,8 +123,22 @@ async function assignPair(
   try {
     return await prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
-        where: { id: orderId, status: "PENDING" },
-        select: { id: true },
+        where: {
+          id: orderId,
+          AND: [
+            { bundleRole: { not: "CHILD" } },
+            { fulfillment: { not: "DINE_IN" } },
+            { source: { not: "DINE_IN" } },
+            { status: { notIn: QUOTE_STATUSES } },
+            {
+              OR: [
+                { storeId: null, status: "PENDING", bundleRole: { not: "PARENT" } },
+                { status: "READY_FOR_PICKUP" },
+              ],
+            },
+          ],
+        },
+        select: { id: true, bundleRole: true },
       });
 
       if (!order) {
@@ -120,13 +154,23 @@ async function assignPair(
         return "driver_gone";
       }
 
+      const now = new Date();
       await tx.order.update({
         where: { id: orderId },
         data: {
           status: "ASSIGNED",
           driverId,
+          offeredAt: now,
+          driverAcceptedAt: null,
         },
       });
+
+      if (order.bundleRole === "PARENT") {
+        await tx.order.updateMany({
+          where: { parentOrderId: orderId, status: { not: "CANCELED" } },
+          data: { status: "ASSIGNED", driverId, offeredAt: now, driverAcceptedAt: null },
+        });
+      }
 
       await tx.driver.update({
         where: { id: driverId },
@@ -156,14 +200,17 @@ export async function runAutoAssign(
   options: AutoAssignOptions = {},
 ): Promise<AutoAssignResult> {
   await bootstrapDispatchData();
+  await ensureOrderBundleSchema();
 
   const pending = await prisma.order.findMany({
     where: options.orderId
       ? {
-          status: "PENDING",
-          OR: [{ id: options.orderId }, { orderNumber: options.orderId }],
+          AND: [
+            ASSIGNABLE_WHERE,
+            { OR: [{ id: options.orderId }, { orderNumber: options.orderId }] },
+          ],
         }
-      : { status: "PENDING" },
+      : ASSIGNABLE_WHERE,
     include: orderWithDriver,
     orderBy: { createdAt: "asc" },
   });
@@ -184,9 +231,11 @@ export async function runAutoAssign(
     }
 
     let assigned = false;
+    const declined = parseDeclinedDriverIds(order.declinedDriverIds);
 
     while (remainingDrivers.length > 0) {
-      const nearest = nearestDriver(anchor, remainingDrivers);
+      const pool = remainingDrivers.filter((driver) => !declined.includes(driver.id));
+      const nearest = nearestDriver(anchor, pool);
       if (!nearest) {
         break;
       }
@@ -241,7 +290,7 @@ export async function runAutoAssign(
   }
 
   const [pendingRemaining, availableDriversRemaining] = await Promise.all([
-    prisma.order.count({ where: { status: "PENDING" } }),
+    prisma.order.count({ where: ASSIGNABLE_WHERE }),
     prisma.driver.count({
       where: {
         status: "AVAILABLE",

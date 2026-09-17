@@ -46,9 +46,9 @@ export async function POST(request: Request): Promise<Response> {
     const createdOrderNumbers: string[] = [];
 
     for (const message of messages) {
-      const order = await createOrderFromWhatsApp(message);
-      if (order) {
-        createdOrderNumbers.push(order.id);
+      const ingested = await createOrderFromWhatsApp(message);
+      if (ingested) {
+        createdOrderNumbers.push(ingested.live.id);
       }
     }
 

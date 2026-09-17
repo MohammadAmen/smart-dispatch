@@ -1,0 +1,2 @@
+export const DRIVER_OFFER_SECONDS = 30;
+export const DRIVER_OFFER_STALE_MS = (DRIVER_OFFER_SECONDS + 5) * 1000;

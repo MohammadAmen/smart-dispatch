@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import type { ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
@@ -31,24 +30,27 @@ export function DriverDutySwitch({
       disabled={disabled}
       onClick={() => onChange(available ? "OFFLINE" : "AVAILABLE")}
       className={cn(
-        "relative flex h-14 w-[9.5rem] shrink-0 touch-manipulation items-center rounded-full border-2 px-1.5 transition-colors",
+        "relative flex h-12 w-[11.5rem] shrink-0 touch-manipulation items-center rounded-full border-2 px-1.5 transition-colors",
         available
-          ? "border-success/80 bg-success/20 shadow-[0_0_28px_-6px_oklch(0.72_0.19_155/0.85)]"
-          : "border-border bg-muted/80",
+          ? "border-emerald-500/80 bg-emerald-500/18 shadow-[0_0_28px_-6px_oklch(0.72_0.19_155/0.85)]"
+          : "border-rose-400/50 bg-rose-500/10",
       )}
     >
-      <m.span
-        layout
-        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+      <span
         className={cn(
-          "flex size-11 items-center justify-center rounded-full",
-          available ? "ms-auto bg-success" : "me-auto bg-muted-foreground",
+          "pointer-events-none absolute inset-x-3 text-[11px] font-bold tracking-wide uppercase",
+          available ? "start-3 text-emerald-800 dark:text-emerald-200" : "end-3 text-rose-700 dark:text-rose-200",
         )}
       >
-        <PulseDot tone={available ? "success" : "muted"} className="size-3" />
-      </m.span>
-      <span className="sr-only">
         {available ? t("driver.available") : t("driver.offline")}
+      </span>
+      <span
+        className={cn(
+          "relative z-10 flex size-9 items-center justify-center rounded-full transition-transform duration-300",
+          available ? "ms-auto bg-emerald-500" : "me-auto bg-rose-400",
+        )}
+      >
+        <PulseDot tone={available ? "success" : "destructive"} className="size-3" />
       </span>
     </button>
   );

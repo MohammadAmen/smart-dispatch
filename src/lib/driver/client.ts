@@ -36,6 +36,27 @@ export async function fetchDriverSession(
   }
 }
 
+export async function respondToDriverOffer(input: {
+  driverId: string;
+  orderId: string;
+  action: "accept" | "reject" | "timeout";
+}): Promise<boolean> {
+  try {
+    const response = await fetch("/api/driver/offer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) {
+      return false;
+    }
+    const body = (await readJson(response)) as { ok?: boolean } | null;
+    return body?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function patchDriver(body: DriverPatchBody): Promise<boolean> {
   try {
     const response = await fetch("/api/driver", {

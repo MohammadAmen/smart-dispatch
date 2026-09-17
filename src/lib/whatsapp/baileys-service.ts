@@ -19,6 +19,7 @@ import pino from "pino";
 import qrcodeTerminal from "qrcode-terminal";
 
 import { ingestWhatsAppMessage } from "@/lib/dispatch/ingest-whatsapp";
+import { customerMenuUrl, customerOrderTrackingUrl } from "@/lib/stores/public-url";
 import {
   readWhatsAppPersistedIdentity,
   usePrismaAuthState,
@@ -52,6 +53,7 @@ export interface WhatsAppRuntimeSnapshot {
 type GlobalBaileys = typeof globalThis & {
   __smartDispatchBaileys?: Promise<void>;
   __smartDispatchBaileysRuntime?: WhatsAppRuntimeSnapshot;
+  __smartDispatchBaileysSock?: WASocket | null;
 };
 
 function emptyRuntime(): WhatsAppRuntimeSnapshot {
@@ -74,8 +76,37 @@ function runtime(): WhatsAppRuntimeSnapshot {
   return globalForBaileys.__smartDispatchBaileysRuntime;
 }
 
+function currentSocket(): WASocket | null {
+  return (globalThis as GlobalBaileys).__smartDispatchBaileysSock ?? null;
+}
+
+function setCurrentSocket(sock: WASocket | null): void {
+  (globalThis as GlobalBaileys).__smartDispatchBaileysSock = sock;
+}
+
 function patchRuntime(update: Partial<WhatsAppRuntimeSnapshot>): void {
   Object.assign(runtime(), update);
+}
+
+export async function sendWhatsAppText(phone: string, text: string): Promise<boolean> {
+  const sock = currentSocket();
+  if (!sock || runtime().status !== "connected") {
+    logger.warn({ phone }, "WhatsApp is not connected; outbound message skipped");
+    return false;
+  }
+
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 8) {
+    return false;
+  }
+
+  try {
+    await sock.sendMessage(`${digits}@s.whatsapp.net`, { text });
+    return true;
+  } catch (error) {
+    logger.error({ err: error, phone }, "Failed to send outbound WhatsApp text");
+    return false;
+  }
 }
 
 export function getWhatsAppRuntimeSnapshot(): WhatsAppRuntimeSnapshot {
@@ -207,19 +238,38 @@ function replyJid(message: WAMessage, phone: string): string {
   return message.key.remoteJid ?? `${phone}@s.whatsapp.net`;
 }
 
-function orderConfirmationText(orderNumber: string): string {
+function inboundReplyText(
+  phone: string,
+  orderNumber: string | null,
+  trackingToken: string | null,
+): string {
+  const menuUrl = customerMenuUrl(phone);
+  if (orderNumber) {
+    const trackingUrl = trackingToken ? customerOrderTrackingUrl(trackingToken) : null;
+    return [
+      `أهلاً بك، تم استلام طلبك بنجاح وجارٍ معالجته برقم مرجعي ${orderNumber}.`,
+      `Hello, your order was received and is being processed. Reference: ${orderNumber}.`,
+      ...(trackingUrl ? ["تتبع طلبك / Track your order:", trackingUrl] : []),
+      "تصفح المنيو واطلب مباشرة / Browse the menu:",
+      menuUrl,
+    ].join("\n");
+  }
+
   return [
-    `أهلاً بك، تم استلام طلبك بنجاح وجارٍ معالجته برقم مرجعي ${orderNumber}.`,
-    `Hello, your order was received and is being processed. Reference: ${orderNumber}.`,
+    "أهلاً بك، يمكنك تصفح المنيو وتقديم طلبك من الرابط التالي:",
+    "Welcome, browse the menu and place your order here:",
+    menuUrl,
   ].join("\n");
 }
 
-async function sendOrderConfirmation(
+async function sendCustomerReply(
   sock: WASocket,
   jid: string,
-  orderNumber: string,
+  phone: string,
+  orderNumber: string | null,
+  trackingToken: string | null,
 ): Promise<void> {
-  await sock.sendMessage(jid, { text: orderConfirmationText(orderNumber) });
+  await sock.sendMessage(jid, { text: inboundReplyText(phone, orderNumber, trackingToken) });
 }
 
 async function handleInboundMessage(sock: WASocket, message: WAMessage): Promise<void> {
@@ -247,24 +297,27 @@ async function handleInboundMessage(sock: WASocket, message: WAMessage): Promise
     return;
   }
 
+  let orderNumber: string | null = null;
+  let trackingToken: string | null = null;
+
   try {
-    const order = await ingestWhatsAppMessage({ messageId, from, text });
-    if (!order) {
-      return;
-    }
-
-    logger.warn({ messageId, orderNumber: order.id }, "Ingested WhatsApp order");
-
-    try {
-      await sendOrderConfirmation(sock, replyJid(message, from), order.id);
-    } catch (error) {
-      logger.error(
-        { err: error, messageId, orderNumber: order.id },
-        "Failed to send WhatsApp order confirmation",
-      );
+    const ingested = await ingestWhatsAppMessage({ messageId, from, text });
+    if (ingested) {
+      orderNumber = ingested.live.id;
+      trackingToken = ingested.trackingToken;
+      logger.warn({ messageId, orderNumber }, "Ingested WhatsApp order");
     }
   } catch (error) {
     logger.error({ err: error, messageId, from }, "Failed to ingest WhatsApp message");
+  }
+
+  try {
+    await sendCustomerReply(sock, replyJid(message, from), from, orderNumber, trackingToken);
+  } catch (error) {
+    logger.error(
+      { err: error, messageId, orderNumber },
+      "Failed to send WhatsApp auto-reply",
+    );
   }
 }
 
@@ -315,6 +368,7 @@ async function runSocketSession(): Promise<{
       emitOwnEvents: false,
       shouldIgnoreJid: shouldIgnoreChat,
     });
+    setCurrentSocket(sock);
 
     sock.ev.on("creds.update", persist);
 
@@ -356,6 +410,9 @@ async function runSocketSession(): Promise<{
           qr: loggedOut || badSession ? null : runtime().qr,
           lastDisconnectAt: Date.now(),
         });
+        if (currentSocket() === sock) {
+          setCurrentSocket(null);
+        }
 
         if (loggedOut || badSession) {
           finish({ reconnect: true, delayMs: 1_000, wipeAuth: true });

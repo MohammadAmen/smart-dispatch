@@ -44,6 +44,12 @@ export function calculateDistance(
   return EARTH_RADIUS_KM * c;
 }
 
+export function osmEmbedUrl(latitude: number, longitude: number): string {
+  const pad = 0.008;
+  const bbox = [longitude - pad, latitude - pad, longitude + pad, latitude + pad].join(",");
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+}
+
 export function roundDistanceKm(distanceKm: number, digits = 3): number {
   if (!Number.isFinite(distanceKm)) {
     return distanceKm;

@@ -13,11 +13,14 @@ import {
   type LiveOrder,
 } from "@/lib/live-map";
 import { pickLocalized } from "@/lib/localized";
+import { isDispatchAssignable } from "@/lib/stores/order-status";
 import { cn } from "@/lib/utils";
 import { useDispatchStore } from "@/stores/dispatch-store";
 
 const orderTone: Record<DispatchStatus, BadgeTone> = {
   PENDING: "info",
+  PREPARING: "warning",
+  READY_FOR_PICKUP: "success",
   ASSIGNED: "warning",
   IN_TRANSIT: "success",
   DELIVERED: "muted",
@@ -41,9 +44,11 @@ export function OrderQueueCard({
   const autoAssign = useDispatchStore((state) => state.autoAssign);
   const cancelOrder = useDispatchStore((state) => state.cancelOrder);
   const isAutoDispatching = useDispatchStore((state) => state.isAutoDispatching);
-  const canAssign = order.status === "PENDING";
+  const canAssign = isDispatchAssignable(order.status, order.storeId);
   const canCancel =
     order.status === "PENDING" ||
+    order.status === "PREPARING" ||
+    order.status === "READY_FOR_PICKUP" ||
     order.status === "ASSIGNED" ||
     order.status === "IN_TRANSIT";
 

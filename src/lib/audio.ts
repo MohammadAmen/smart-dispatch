@@ -6,7 +6,7 @@ interface WindowWithWebkitAudio extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
 
-type SoundKind = "new-order" | "assigned" | "delivered";
+type SoundKind = "new-order" | "dine-in" | "assigned" | "delivered";
 
 interface Tone {
   frequency: number;
@@ -110,6 +110,14 @@ function patternFor(kind: SoundKind): Tone[] {
     ];
   }
 
+  if (kind === "dine-in") {
+    return [
+      { frequency: 988, start: 0, duration: 0.12, gain: 0.2, type: "triangle" },
+      { frequency: 1319, start: 0.16, duration: 0.12, gain: 0.2, type: "triangle" },
+      { frequency: 1568, start: 0.32, duration: 0.22, gain: 0.22, type: "sine" },
+    ];
+  }
+
   if (kind === "assigned") {
     return [
       { frequency: 659.25, start: 0, duration: 0.14, gain: 0.14, type: "sine" },
@@ -126,8 +134,8 @@ function patternFor(kind: SoundKind): Tone[] {
   ];
 }
 
-async function playPattern(kind: SoundKind): Promise<void> {
-  if (muted) {
+async function playPattern(kind: SoundKind, ignoreMute = false): Promise<void> {
+  if (muted && !ignoreMute) {
     return;
   }
 
@@ -178,10 +186,66 @@ export function playNewOrderSound(): void {
   void playPattern("new-order");
 }
 
+export function playDineInOrderSound(): void {
+  void playPattern("dine-in");
+}
+
 export function playAssignedSound(): void {
   void playPattern("assigned");
 }
 
 export function playDeliverySuccessSound(): void {
   void playPattern("delivered");
+}
+
+let ringtoneElement: HTMLAudioElement | null = null;
+let ringtoneFallbackTimer: number | null = null;
+
+function stopRingtoneFallback(): void {
+  if (ringtoneFallbackTimer != null) {
+    window.clearInterval(ringtoneFallbackTimer);
+    ringtoneFallbackTimer = null;
+  }
+}
+
+function startRingtoneFallback(): void {
+  stopRingtoneFallback();
+  void playPattern("assigned", true);
+  ringtoneFallbackTimer = window.setInterval(() => {
+    void playPattern("assigned", true);
+  }, 1400);
+}
+
+export function startIncomingRingtone(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  stopIncomingRingtone();
+
+  void (async () => {
+    await resumeContext();
+    for (const src of ["/ringtone.mp3", "/ringtone.wav"]) {
+      const audio = new Audio(src);
+      audio.loop = true;
+      audio.preload = "auto";
+      try {
+        await audio.play();
+        ringtoneElement = audio;
+        return;
+      } catch {
+        audio.src = "";
+      }
+    }
+    startRingtoneFallback();
+  })();
+}
+
+export function stopIncomingRingtone(): void {
+  stopRingtoneFallback();
+  if (ringtoneElement) {
+    ringtoneElement.pause();
+    ringtoneElement.src = "";
+    ringtoneElement = null;
+  }
 }

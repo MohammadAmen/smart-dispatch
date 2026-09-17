@@ -1,19 +1,40 @@
+import {
+  homePathForRole,
+  isDispatchRole,
+  isSuperAdminRole,
+  type SessionRole,
+} from "@/lib/auth/constants";
 import { stripLocalePrefix } from "@/lib/paths";
-import type { SessionRole } from "@/lib/auth/constants";
 
 export type AccessDecision =
   | { action: "allow" }
   | { action: "login"; next: string }
   | { action: "redirect"; to: string };
 
-const PUBLIC_EXACT = new Set(["/login"]);
+const PUBLIC_EXACT = new Set(["/login", "/menu"]);
 
 function isPublicPath(pathname: string): boolean {
-  if (PUBLIC_EXACT.has(pathname)) {
+  if (PUBLIC_EXACT.has(pathname) || pathname.startsWith("/menu/")) {
     return true;
   }
 
   if (pathname.startsWith("/api/auth/")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/menu/")) {
+    return true;
+  }
+
+  if (pathname === "/api/orders/create") {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/stories")) {
+    return true;
+  }
+
+  if (pathname === "/api/cron/scheduled-dispatch") {
     return true;
   }
 
@@ -26,6 +47,14 @@ function isPublicPath(pathname: string): boolean {
 
 function isDriverAppPath(pathname: string): boolean {
   return pathname === "/driver" || pathname.startsWith("/driver/");
+}
+
+function isVendorPath(pathname: string): boolean {
+  return pathname === "/vendor" || pathname.startsWith("/vendor/");
+}
+
+function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
 function isStaffRestrictedPath(pathname: string): boolean {
@@ -48,7 +77,12 @@ function isStaffRestrictedPath(pathname: string): boolean {
 }
 
 function isStaffAppPath(pathname: string): boolean {
-  if (isDriverAppPath(pathname) || isPublicPath(pathname)) {
+  if (
+    isDriverAppPath(pathname) ||
+    isPublicPath(pathname) ||
+    isVendorPath(pathname) ||
+    isAdminPath(pathname)
+  ) {
     return false;
   }
 
@@ -71,7 +105,7 @@ export function decideAccess(
     if (role && pathname === "/login") {
       return {
         action: "redirect",
-        to: role === "DRIVER" ? `${localePrefix}/driver` : `${localePrefix}/dashboard`,
+        to: homePathForRole(role, localePrefix.replace("/", "")),
       };
     }
 
@@ -83,28 +117,44 @@ export function decideAccess(
     return { action: "login", next };
   }
 
-  if (isDriverAppPath(pathname)) {
-    if (role === "DRIVER" || role === "ADMIN") {
+  if (isVendorPath(pathname)) {
+    if (role === "STORE_OWNER" || isSuperAdminRole(role)) {
       return { action: "allow" };
     }
 
-    return { action: "redirect", to: `${localePrefix}/dashboard` };
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
+  }
+
+  if (isAdminPath(pathname)) {
+    if (isSuperAdminRole(role)) {
+      return { action: "allow" };
+    }
+
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
+  }
+
+  if (isDriverAppPath(pathname)) {
+    if (role === "DRIVER" || isSuperAdminRole(role)) {
+      return { action: "allow" };
+    }
+
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
   }
 
   if (isStaffRestrictedPath(pathname)) {
-    if (role === "ADMIN" || role === "DISPATCHER") {
+    if (isDispatchRole(role)) {
       return { action: "allow" };
     }
 
-    return { action: "redirect", to: `${localePrefix}/driver` };
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
   }
 
   if (pathname.startsWith("/api/driver")) {
-    if (role === "DRIVER" || role === "ADMIN") {
+    if (role === "DRIVER" || isSuperAdminRole(role)) {
       return { action: "allow" };
     }
 
-    return { action: "redirect", to: `${localePrefix}/dashboard` };
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
   }
 
   if (
@@ -116,11 +166,19 @@ export function decideAccess(
     pathname.startsWith("/api/vehicle-types") ||
     pathname.startsWith("/api/catalog")
   ) {
-    if (role === "ADMIN" || role === "DISPATCHER") {
+    if (isDispatchRole(role)) {
       return { action: "allow" };
     }
 
-    return { action: "redirect", to: `${localePrefix}/driver` };
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
+  }
+
+  if (role === "STORE_OWNER") {
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
+  }
+
+  if (role === "CUSTOMER") {
+    return { action: "redirect", to: `${localePrefix}/menu` };
   }
 
   if (isStaffAppPath(pathname) && role === "DRIVER") {

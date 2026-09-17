@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { playAssignedSound, unlockAudio } from "@/lib/audio";
+import { unlockAudio } from "@/lib/audio";
 import { subscribeDispatchStream } from "@/lib/dispatch/client";
 import {
   notificationPermission,
@@ -47,7 +47,6 @@ export function useDriverAlerts(): {
     }
 
     primedOrderRef.current = assignment.orderNumber;
-    playAssignedSound();
     vibrateAssigned();
     showBrowserNotification({
       title: t("driver.alertTitle", { orderNumber: assignment.orderNumber }),

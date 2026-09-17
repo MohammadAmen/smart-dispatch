@@ -4,27 +4,50 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 enum Role {
+  SUPER_ADMIN
+  STORE_OWNER
+  DRIVER
+  CUSTOMER
   ADMIN
   DISPATCHER
-  DRIVER
 }
 
 enum OrderStatus {
   PENDING
+  PENDING_QUOTE
+  QUOTE_ACCEPTED
+  PREPARING
+  READY_FOR_PICKUP
   ASSIGNED
   IN_TRANSIT
   DELIVERED
   CANCELED
 }
 
+enum OrderType {
+  STANDARD
+  SPECIAL_CUSTOM
+}
+
 enum DriverStatus {
   AVAILABLE
   BUSY
   OFFLINE
+}
+
+enum MediaType {
+  VIDEO
+  IMAGE
+}
+
+enum StoryActionType {
+  ORDER_PRODUCT
+  CONTACT_US
+  EXTERNAL_LINK
 }
 
 enum VehicleStatus {
@@ -50,8 +73,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  driver    Driver?
-  auditLogs AuditLog[]
+  driver           Driver?
+  ownedStores      Store[]
+  customerOrders   Order[]   @relation("CustomerOrders")
+  auditLogs        AuditLog[]
+  storyLikes       StoryLike[]
 
   @@index([role])
   @@map("users")
@@ -170,6 +196,37 @@ model Order {
   driverId String?
   driver   Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
 
+  customerId String?
+  customer   User?   @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: SetNull)
+
+  storeId String?
+  store   Store?  @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  parentOrderId String?
+  parent        Order?  @relation("OrderBundle", fields: [parentOrderId], references: [id], onDelete: SetNull)
+  children      Order[] @relation("OrderBundle")
+  bundleRole    String  @default("SINGLE")
+  deliveryFee   Float   @default(0)
+  storeNotes    String? @db.VarChar(500)
+  fulfillment   String  @default("DELIVERY")
+  tableId       String?
+  tableLabel    String? @db.VarChar(64)
+
+  cancelReason String? @db.VarChar(500)
+  source String @default("whatsapp")
+  trackingToken String? @db.VarChar(64)
+  items  OrderItem[]
+
+  orderType     OrderType @default(STANDARD)
+  customImage   String?   @db.VarChar(2048)
+  customNotes   String?   @db.Text
+  scheduledDate DateTime?
+  quotedPrice   Float?
+
+  declinedDriverIds String?   @db.Text
+  offeredAt         DateTime?
+  driverAcceptedAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -179,7 +236,54 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([status, cashSettledAt])
+  @@index([storeId])
+  @@index([customerId])
+  @@index([trackingToken])
+  @@index([parentOrderId])
+  @@index([bundleRole])
+  @@index([orderType, status])
+  @@index([scheduledDate])
+  @@index([fulfillment])
   @@map("orders")
+}
+
+model SearchLog {
+  id        String   @id @default(uuid())
+  query     String
+  storeId   String?
+  city      String?
+  results   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([city, createdAt])
+  @@index([query, createdAt])
+  @@map("search_logs")
+}
+
+model CartIntent {
+  id        String   @id @default(uuid())
+  storeId   String
+  productId String
+  createdAt DateTime @default(now())
+
+  @@index([storeId, productId, createdAt])
+  @@map("cart_intents")
+}
+
+model StoreTable {
+  id        String   @id @default(uuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  capacity  Int      @default(2)
+  token     String   @unique
+  kind      String   @default("TABLE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@map("store_tables")
 }
 
 model AuditLog {
@@ -207,4 +311,216 @@ model WhatsappSession {
   updatedAt  DateTime @updatedAt
 
   @@map("whatsapp_sessions")
+}
+
+model StoreType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String   @default("store")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stores Store[]
+
+  @@index([sortOrder])
+  @@map("store_types")
+}
+
+model Store {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  storeTypeId String?
+  storeType   StoreType? @relation(fields: [storeTypeId], references: [id], onDelete: Restrict)
+  phone       String?
+  address     String?
+  city        String?
+  logoUrl     String?   @db.VarChar(2048)
+  coverImage  String?   @db.VarChar(2048)
+  receiptFooterNote String? @db.VarChar(255)
+  latitude    Float?
+  longitude   Float?
+  rating      Float     @default(0)
+  active      Boolean   @default(true)
+  ownerId     String?
+  owner       User?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  categories Category[]
+  products   Product[]
+  orders     Order[]
+  offers     Offer[]
+  stories    StoreStory[]
+  tables     StoreTable[]
+
+  @@index([active])
+  @@index([ownerId])
+  @@index([storeTypeId])
+  @@index([latitude, longitude])
+  @@map("stores")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+  offers   Offer[]
+
+  @@index([storeId, sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name          String
+  description   String   @default("")
+  price         Float
+  hasDiscount   Boolean  @default(false)
+  discountPrice Float?
+  imageUrl      String?  @db.VarChar(2048)
+  images        Json?
+  available     Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  optionGroups ProductOptionGroup[]
+  orderItems   OrderItem[]
+  offers       Offer[]
+  stories      StoreStory[]
+
+  @@index([storeId, available])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductOptionGroup {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   @default("SINGLE")
+  required  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  values    ProductOptionValue[]
+
+  @@index([productId, sortOrder])
+  @@map("product_option_groups")
+}
+
+model ProductOptionValue {
+  id         String             @id @default(uuid())
+  groupId    String
+  group      ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name       String
+  extraPrice Float              @default(0)
+  colorHex   String?            @db.VarChar(16)
+  imageUrl   String?            @db.VarChar(2048)
+  sortOrder  Int                @default(0)
+
+  @@index([groupId, sortOrder])
+  @@map("product_option_values")
+}
+
+model Offer {
+  id              String    @id @default(uuid())
+  storeId         String
+  store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title           String
+  description     String    @default("") @db.Text
+  image           String?   @db.VarChar(2048)
+  startDate       DateTime
+  endDate         DateTime
+  isActive        Boolean   @default(true)
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  productId       String?
+  product         Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  discountType    String    @default("PERCENT")
+  discountVal     Float
+  endedNotifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([storeId, isActive, endDate])
+  @@index([endDate])
+  @@index([categoryId])
+  @@index([productId])
+  @@map("offers")
+}
+
+model StoreStory {
+  id            String          @id @default(uuid())
+  storeId       String?
+  store         Store?          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title         String
+  description   String          @default("") @db.Text
+  videoUrl      String          @db.VarChar(2048)
+  mediaType     MediaType       @default(VIDEO)
+  duration      Int
+  isOrderable   Boolean         @default(false)
+  isAdminAd     Boolean         @default(false)
+  actionType    StoryActionType @default(ORDER_PRODUCT)
+  contactNumber String?
+  externalLink  String?         @db.VarChar(2048)
+  productId     String?
+  product       Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  price         Float?
+  viewsCount    Int             @default(0)
+  likesCount    Int             @default(0)
+  expiresAt     DateTime
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  likes StoryLike[]
+
+  @@index([storeId, expiresAt])
+  @@index([expiresAt, createdAt])
+  @@index([productId])
+  @@index([isAdminAd, expiresAt])
+  @@map("store_stories")
+}
+
+model StoryLike {
+  id        String     @id @default(uuid())
+  storyId   String
+  story     StoreStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestKey  String
+  createdAt DateTime   @default(now())
+
+  @@unique([storyId, guestKey])
+  @@index([storyId])
+  @@index([userId])
+  @@map("story_likes")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int      @default(1)
+  unitPrice Float
+  name      String
+  status    String   @default("PENDING")
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
 }

@@ -34,5 +34,3 @@ export function applyLocale(locale: Locale): void {
   localStorage.setItem(LOCALE_STORAGE_KEY, locale);
   document.cookie = `${LOCALE_COOKIE}=${encodeURIComponent(locale)}; path=/; max-age=31536000; SameSite=Lax`;
 }
-
-export const LOCALE_BOOTSTRAP_SCRIPT = `(function(){try{var k=${JSON.stringify(LOCALE_STORAGE_KEY)};var stored=localStorage.getItem(k);var cookie=document.cookie.match(/(?:^|; )${LOCALE_COOKIE}=([^;]*)/);var fromCookie=cookie?decodeURIComponent(cookie[1]):null;var loc=stored==="en"||stored==="ar"?stored:(fromCookie==="en"||fromCookie==="ar"?fromCookie:${JSON.stringify(DEFAULT_LOCALE)});var r=document.documentElement;r.lang=loc;r.dir=loc==="ar"?"rtl":"ltr";}catch(e){}})();`;

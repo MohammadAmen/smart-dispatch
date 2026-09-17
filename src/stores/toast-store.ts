@@ -11,6 +11,9 @@ export type ToastKind =
   | "offline"
   | "error"
   | "incoming"
+  | "vendorIncoming"
+  | "vendorDineIn"
+  | "offerExpired"
   | "audio";
 
 export interface SyncToast {

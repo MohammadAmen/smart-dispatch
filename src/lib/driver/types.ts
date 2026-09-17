@@ -18,6 +18,13 @@ export interface DriverOrderItem {
   qty: number;
 }
 
+export interface DriverStop {
+  kind: "pickup" | "dropoff";
+  title: LocalizedText;
+  detail: string;
+  point: LatLngTuple | null;
+}
+
 export interface DriverAssignment {
   orderId: string;
   orderNumber: string;
@@ -28,6 +35,12 @@ export interface DriverAssignment {
   status: DriverJobStatus;
   pickup: LatLngTuple | null;
   destination: LatLngTuple;
+  stops: DriverStop[];
+  storeName: string | null;
+  distanceKm: number | null;
+  expectedEarnings: number;
+  offeredAt: string | null;
+  acceptedAt: string | null;
 }
 
 export interface DriverSessionResponse {
@@ -35,6 +48,7 @@ export interface DriverSessionResponse {
   drivers: DriverProfile[];
   driver: DriverProfile | null;
   assignment: DriverAssignment | null;
+  dailyEarnings: number;
 }
 
 export interface DriverPatchBody {

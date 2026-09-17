@@ -36,7 +36,13 @@ export interface UserWriteInput {
   vehicleId?: string | null;
 }
 
-export const USER_ROLES: SessionRole[] = ["ADMIN", "DISPATCHER", "DRIVER"];
+export const USER_ROLES: SessionRole[] = [
+  "SUPER_ADMIN",
+  "STORE_OWNER",
+  "DISPATCHER",
+  "DRIVER",
+  "CUSTOMER",
+];
 
 export function isUserRole(value: string): value is SessionRole {
   return (USER_ROLES as string[]).includes(value);

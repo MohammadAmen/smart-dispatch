@@ -1,10 +1,16 @@
 export const THEME_STORAGE_KEY = "sd-theme";
+export const THEME_COOKIE = "sd-theme";
+export const THEME_RESOLVED_COOKIE = "sd-theme-resolved";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
-export function isThemePreference(value: string | null): value is ThemePreference {
+export function isThemePreference(value: string | null | undefined): value is ThemePreference {
   return value === "light" || value === "dark" || value === "system";
+}
+
+export function isResolvedTheme(value: string | null | undefined): value is ResolvedTheme {
+  return value === "light" || value === "dark";
 }
 
 export function resolveTheme(preference: ThemePreference): ResolvedTheme {
@@ -16,9 +22,12 @@ export function resolveTheme(preference: ThemePreference): ResolvedTheme {
     return "light";
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function writeThemeCookies(preference: ThemePreference, resolved: ResolvedTheme): void {
+  document.cookie = `${THEME_COOKIE}=${encodeURIComponent(preference)}; path=/; max-age=31536000; SameSite=Lax`;
+  document.cookie = `${THEME_RESOLVED_COOKIE}=${encodeURIComponent(resolved)}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
 export function applyTheme(preference: ThemePreference): ResolvedTheme {
@@ -28,8 +37,22 @@ export function applyTheme(preference: ThemePreference): ResolvedTheme {
   root.setAttribute("data-theme", resolved);
   root.classList.toggle("dark", resolved === "dark");
   localStorage.setItem(THEME_STORAGE_KEY, preference);
+  writeThemeCookies(preference, resolved);
 
   return resolved;
 }
 
-export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var stored=localStorage.getItem(k);var pref=stored==="light"||stored==="dark"||stored==="system"?stored:"system";var dark=pref==="dark"||(pref!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var t=dark?"dark":"light";var r=document.documentElement;r.setAttribute("data-theme",t);r.classList.toggle("dark",dark);}catch(e){}})();`;
+export function themeFromCookies(
+  preference: string | undefined,
+  resolved: string | undefined,
+): ResolvedTheme {
+  if (isResolvedTheme(resolved)) {
+    return resolved;
+  }
+
+  if (preference === "dark" || preference === "light") {
+    return preference;
+  }
+
+  return "light";
+}

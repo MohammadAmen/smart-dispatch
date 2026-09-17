@@ -15,6 +15,7 @@ import { registerOutboxSync } from "@/lib/offline/register-sync";
 import type { NewDriverAction } from "@/lib/offline/types";
 import { useSyncStore } from "@/stores/sync-store";
 import { useToastStore } from "@/stores/toast-store";
+import { isDispatchAssignable } from "@/lib/stores/order-status";
 
 interface DispatchState {
   orders: LiveOrder[];
@@ -181,7 +182,7 @@ export const useDispatchStore = create<DispatchState>()((set, get) => ({
 
   autoAssign: async (orderId) => {
     const current = get().orders.find((order) => order.id === orderId);
-    if (!current || current.status !== "PENDING") {
+    if (!current || !isDispatchAssignable(current.status, current.storeId)) {
       return false;
     }
 
@@ -263,7 +264,9 @@ export const useDispatchStore = create<DispatchState>()((set, get) => ({
       return;
     }
 
-    const pending = get().orders.filter((order) => order.status === "PENDING");
+    const pending = get().orders.filter((order) =>
+      isDispatchAssignable(order.status, order.storeId),
+    );
     if (pending.length === 0) {
       return;
     }
@@ -365,5 +368,7 @@ export function selectFilteredOrders(state: DispatchState): LiveOrder[] {
 }
 
 export function selectPendingAssignCount(state: DispatchState): number {
-  return state.orders.filter((order) => order.status === "PENDING").length;
+  return state.orders.filter((order) =>
+    isDispatchAssignable(order.status, order.storeId),
+  ).length;
 }

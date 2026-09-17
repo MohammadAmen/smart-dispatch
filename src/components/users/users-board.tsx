@@ -27,10 +27,13 @@ import { useToastStore } from "@/stores/toast-store";
 const fieldClass =
   "h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-const roleTone: Record<SessionRole, BadgeTone> = {
+const roleTone: Record<string, BadgeTone> = {
+  SUPER_ADMIN: "destructive",
   ADMIN: "destructive",
+  STORE_OWNER: "warning",
   DISPATCHER: "info",
   DRIVER: "success",
+  CUSTOMER: "muted",
 };
 
 interface UserFormState {
@@ -60,7 +63,7 @@ function formFromUser(user: ManagedUser): UserFormState {
     name: user.name,
     email: user.email,
     phone: user.phone,
-    role: user.role,
+    role: user.role === "ADMIN" ? "SUPER_ADMIN" : user.role,
     language: user.language,
     password: "",
     vehicleType: user.driver?.vehicleType ?? "",
@@ -426,7 +429,7 @@ export function UsersBoard({
                     <td className="px-5 py-3">
                       <StatusBadge
                         label={t(`status.role.${user.role}`)}
-                        tone={roleTone[user.role]}
+                        tone={roleTone[user.role] ?? "muted"}
                       />
                     </td>
                     <td className="px-5 py-3 font-mono text-xs">{user.email}</td>

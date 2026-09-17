@@ -12,8 +12,9 @@ export async function GET(): Promise<Response> {
     const counts = emptyStatusCounts();
 
     const orders = rows.map((row) => {
-      counts[row.status] += 1;
-      return toLiveOrder(row);
+      const live = toLiveOrder(row);
+      counts[live.status] += 1;
+      return live;
     });
 
     return Response.json({

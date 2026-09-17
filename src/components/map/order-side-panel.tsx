@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 
 const orderTone: Record<DispatchStatus, BadgeTone> = {
   PENDING: "info",
+  PREPARING: "warning",
+  READY_FOR_PICKUP: "success",
   ASSIGNED: "warning",
   IN_TRANSIT: "success",
   DELIVERED: "muted",

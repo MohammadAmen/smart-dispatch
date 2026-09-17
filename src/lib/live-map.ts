@@ -4,6 +4,8 @@ export type LatLngTuple = [number, number];
 
 export const DISPATCH_STATUSES = [
   "PENDING",
+  "PREPARING",
+  "READY_FOR_PICKUP",
   "ASSIGNED",
   "IN_TRANSIT",
   "DELIVERED",
@@ -31,6 +33,7 @@ export interface LiveOrder {
   progress: number;
   customerPhone: string;
   weight: string;
+  storeId?: string | null;
 }
 
 export interface CourierPoolItem {

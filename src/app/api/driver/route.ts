@@ -1,14 +1,21 @@
 import { bootstrapDispatchData } from "@/lib/dispatch/bootstrap";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
-import { isDriverJobStatus, toDriverAssignment } from "@/lib/driver/map-assignment";
+import { expireStaleDriverOffer } from "@/lib/driver/offer";
+import {
+  isDriverJobStatus,
+  toDriverAssignment,
+  type AssignmentExtras,
+} from "@/lib/driver/map-assignment";
 import type {
   DriverDutyStatus,
   DriverPatchBody,
   DriverProfile,
   DriverSessionResponse,
 } from "@/lib/driver/types";
+import { calculateDistance, roundDistanceKm } from "@/lib/geo";
 import { prisma } from "@/lib/db";
 import { readSession } from "@/lib/auth/server";
+import { ensureOrderBundleSchema } from "@/lib/stores/order-bundle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,35 +54,129 @@ async function listProfiles(): Promise<DriverProfile[]> {
   }));
 }
 
+function startOfLocalDay(now = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 async function loadSession(driverId: string | null): Promise<DriverSessionResponse> {
   await bootstrapDispatchData();
+  await ensureOrderBundleSchema();
   const drivers = await listProfiles();
   const driver = driverId ? (drivers.find((row) => row.id === driverId) ?? null) : null;
 
   if (!driver) {
-    return { ok: true, drivers, driver: null, assignment: null };
+    return { ok: true, drivers, driver: null, assignment: null, dailyEarnings: 0 };
   }
 
-    const orders = await prisma.order.findMany({
+  await expireStaleDriverOffer(driver.id);
+
+  const dayStart = startOfLocalDay();
+  const [orders, driverRow, earnings] = await Promise.all([
+    prisma.order.findMany({
       where: {
         driverId: driver.id,
         status: { in: ["ASSIGNED", "IN_TRANSIT"] },
       },
+      include: {
+        items: { select: { name: true, quantity: true } },
+        store: { select: { name: true, address: true } },
+      },
       orderBy: { createdAt: "asc" },
-    });
+    }),
+    prisma.driver.findUnique({
+      where: { id: driver.id },
+      select: { latitude: true, longitude: true },
+    }),
+    prisma.order.aggregate({
+      where: {
+        driverId: driver.id,
+        status: "DELIVERED",
+        updatedAt: { gte: dayStart },
+      },
+      _sum: { deliveryFee: true },
+    }),
+  ]);
 
-    const active =
-      orders.find((row) => row.status === "IN_TRANSIT") ?? orders[0] ?? null;
+  const visible = orders.filter((row) => row.bundleRole !== "CHILD");
+  const active = visible.find((row) => row.status === "IN_TRANSIT") ?? visible[0] ?? null;
+  const dailyEarnings = Math.max(0, Number(earnings._sum.deliveryFee ?? 0));
 
-    return {
-      ok: true,
-      drivers,
-      driver,
-      assignment:
-        active && isDriverJobStatus(active.status)
-          ? toDriverAssignment(active)
-          : null,
+  let assignment = null;
+  if (active && isDriverJobStatus(active.status)) {
+    const anchorLat = active.pickupLat ?? active.deliveryLat;
+    const anchorLng = active.pickupLng ?? active.deliveryLng;
+    const driverLat = driverRow?.latitude;
+    const driverLng = driverRow?.longitude;
+    const distanceKm =
+      driverLat != null && driverLng != null
+        ? roundDistanceKm(calculateDistance(driverLat, driverLng, anchorLat, anchorLng), 1)
+        : null;
+
+    let extras: AssignmentExtras = {
+      items: active.items.map((item) => ({
+        name: { ar: item.name, en: item.name },
+        qty: item.quantity,
+      })),
+      storeName: active.store?.name ?? null,
+      distanceKm: Number.isFinite(distanceKm) ? distanceKm : null,
     };
+
+    if (active.bundleRole === "PARENT") {
+      const children = await prisma.order.findMany({
+        where: { parentOrderId: active.id, status: { not: "CANCELED" } },
+        include: {
+          items: { select: { name: true, quantity: true } },
+          store: { select: { name: true, address: true, latitude: true, longitude: true } },
+        },
+        orderBy: { orderNumber: "asc" },
+      });
+      extras = {
+        items: children.flatMap((child) =>
+          child.items.map((item) => ({
+            name: {
+              ar: child.store?.name ? `${item.name} · ${child.store.name}` : item.name,
+              en: child.store?.name ? `${item.name} · ${child.store.name}` : item.name,
+            },
+            qty: item.quantity,
+          })),
+        ),
+        storeName: children.find((child) => child.store?.name)?.store?.name ?? extras.storeName,
+        distanceKm: extras.distanceKm,
+        stops: [
+          ...children.map((child) => ({
+            kind: "pickup" as const,
+            title: {
+              ar: child.store?.name ?? "استلام",
+              en: child.store?.name ?? "Pickup",
+            },
+            detail: child.store?.address ?? child.storeNotes ?? "",
+            point:
+              child.pickupLat != null && child.pickupLng != null
+                ? ([child.pickupLat, child.pickupLng] as [number, number])
+                : child.store?.latitude != null && child.store.longitude != null
+                  ? ([child.store.latitude, child.store.longitude] as [number, number])
+                  : null,
+          })),
+          {
+            kind: "dropoff" as const,
+            title: { ar: "تسليم العميل", en: "Customer drop-off" },
+            detail: active.addressText,
+            point: [active.deliveryLat, active.deliveryLng] as [number, number],
+          },
+        ],
+      };
+    }
+
+    assignment = toDriverAssignment(active, extras);
+  }
+
+  return {
+    ok: true,
+    drivers,
+    driver,
+    assignment,
+    dailyEarnings,
+  };
 }
 
 export async function GET(request: Request): Promise<Response> {

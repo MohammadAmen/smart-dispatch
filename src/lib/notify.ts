@@ -59,3 +59,28 @@ export function vibrateAssigned(): void {
 
   navigator.vibrate([200, 100, 200]);
 }
+
+let incomingVibrateTimer: number | null = null;
+
+export function startIncomingVibrate(): void {
+  stopIncomingVibrate();
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") {
+    return;
+  }
+
+  navigator.vibrate([400, 160, 400, 160, 400, 700]);
+  incomingVibrateTimer = window.setInterval(() => {
+    navigator.vibrate([400, 160, 400, 160, 400, 700]);
+  }, 2200);
+}
+
+export function stopIncomingVibrate(): void {
+  if (incomingVibrateTimer != null) {
+    window.clearInterval(incomingVibrateTimer);
+    incomingVibrateTimer = null;
+  }
+
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(0);
+  }
+}

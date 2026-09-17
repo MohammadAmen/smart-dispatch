@@ -42,3 +42,15 @@ next-env.d.ts
 
 # prisma generated client
 /src/generated
+
+# vendor product uploads
+/public/uploads/products/*
+!/public/uploads/products/.gitkeep
+/public/uploads/custom/*
+!/public/uploads/custom/.gitkeep
+/public/uploads/stories/*
+!/public/uploads/stories/.gitkeep
+/public/uploads/offers/*
+!/public/uploads/offers/.gitkeep
+/public/uploads/stores/*
+!/public/uploads/stores/.gitkeep

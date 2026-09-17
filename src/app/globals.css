@@ -184,6 +184,26 @@
   .pulse-dot {
     animation: pulse-dot 2.2s ease-in-out infinite;
   }
+
+  .menu-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in oklch, var(--muted) 92%, var(--primary) 8%);
+  }
+
+  .menu-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--foreground) 10%, transparent),
+      transparent
+    );
+    animation: menu-shimmer 1.35s ease-in-out infinite;
+  }
 }
 
 @keyframes pulse-ring {
@@ -210,9 +230,131 @@
   }
 }
 
+@keyframes menu-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes custom-order-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 15px -3px rgb(20 184 166 / 0.3),
+      0 4px 6px -4px rgb(20 184 166 / 0.3),
+      0 0 0 0 rgb(20 184 166 / 0.4);
+  }
+  50% {
+    box-shadow:
+      0 10px 15px -3px rgb(20 184 166 / 0.3),
+      0 4px 6px -4px rgb(20 184 166 / 0.3),
+      0 0 0 8px rgb(20 184 166 / 0);
+  }
+}
+
+.custom-order-glow {
+  animation: custom-order-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes custom-order-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.custom-order-story-spin {
+  animation: custom-order-spin 5s linear infinite;
+}
+
+@keyframes albal-pulse-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgb(20 184 166 / 0.45),
+      0 8px 20px -8px rgb(16 185 129 / 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 10px rgb(20 184 166 / 0),
+      0 12px 28px -6px rgb(6 182 212 / 0.45);
+    transform: scale(1.05);
+  }
+}
+
+.albal-pulse-glow {
+  animation: albal-pulse-glow 1.1s ease-in-out 4;
+}
+
+@keyframes albal-ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.albal-ken-burns {
+  animation: albal-ken-burns 7s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pulse-ring,
-  .pulse-dot {
+  .pulse-dot,
+  .menu-skeleton::after,
+  .custom-order-glow,
+  .custom-order-story-spin,
+  .albal-pulse-glow,
+  .albal-ken-burns {
     animation: none;
+  }
+}
+
+.thermal-receipt {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    height: auto !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .thermal-receipt,
+  .thermal-receipt * {
+    visibility: visible !important;
+  }
+
+  .thermal-receipt {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 80mm !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .thermal-receipt[data-paper="58"] {
+    width: 58mm !important;
+  }
+
+  .ambient-mesh,
+  .glass,
+  .glass-strong {
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
 }

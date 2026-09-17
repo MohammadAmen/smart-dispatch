@@ -28,6 +28,7 @@ interface DriverState {
   locationError: string | null;
   assignment: DriverAssignment | null;
   accepted: boolean;
+  dailyEarnings: number;
   drivers: DriverProfile[];
   isHydrated: boolean;
   isBusy: boolean;
@@ -56,6 +57,7 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
   locationError: null,
   assignment: null,
   accepted: false,
+  dailyEarnings: 0,
   drivers: [],
   isHydrated: false,
   isBusy: false,
@@ -82,6 +84,8 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
     const acceptedStored = readAcceptedOrderNumber();
     const accepted =
       assignment?.status === "IN_TRANSIT" ||
+      Boolean(assignment?.acceptedAt) ||
+      (assignment?.status === "ASSIGNED" && !assignment.offeredAt) ||
       (assignment != null && acceptedStored === assignment.orderNumber);
 
     set({
@@ -92,6 +96,7 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
       dutyStatus: dutyFromServer(driver?.status),
       assignment,
       accepted,
+      dailyEarnings: session.dailyEarnings ?? 0,
       location: storedLocation ?? get().location,
       isHydrated: true,
     });
@@ -121,6 +126,7 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
       vehicleType: "",
       assignment: null,
       accepted: false,
+      dailyEarnings: 0,
       dutyStatus: "OFFLINE",
     });
   },

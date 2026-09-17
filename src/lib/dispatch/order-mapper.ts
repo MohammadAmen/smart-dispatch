@@ -12,6 +12,7 @@ export interface OrderRecord {
   pickupLng: number | null;
   deliveryLat: number;
   deliveryLng: number;
+  storeId: string | null;
   driver: {
     id: string;
     status: DriverStatus;
@@ -25,9 +26,13 @@ export interface OrderRecord {
 }
 
 const progressByStatus: Record<OrderStatus, number> = {
-  PENDING: 0,
-  ASSIGNED: 0.05,
-  IN_TRANSIT: 0.4,
+  PENDING: 0.08,
+  PENDING_QUOTE: 0.04,
+  QUOTE_ACCEPTED: 0.1,
+  PREPARING: 0.22,
+  READY_FOR_PICKUP: 0.38,
+  ASSIGNED: 0.52,
+  IN_TRANSIT: 0.74,
   DELIVERED: 1,
   CANCELED: 0,
 };
@@ -45,6 +50,8 @@ export const orderWithDriver = {
 export function emptyStatusCounts(): Record<DispatchStatus, number> {
   return {
     PENDING: 0,
+    PREPARING: 0,
+    READY_FOR_PICKUP: 0,
     ASSIGNED: 0,
     IN_TRANSIT: 0,
     DELIVERED: 0,
@@ -66,14 +73,22 @@ export function toLiveOrder(order: OrderRecord): LiveOrder {
     driverName: order.driver?.user.name ?? "—",
     destination: { ar: order.addressText, en: order.addressText },
     eta: etaLabel(order.status),
-    status: order.status,
+    status: toDispatchStatus(order.status),
     delayed: false,
     driver: [driverLat, driverLng],
     destinationPoint: [order.deliveryLat, order.deliveryLng],
     progress: progressByStatus[order.status],
     customerPhone: order.customerPhone,
     weight: "—",
+    storeId: order.storeId,
   };
+}
+
+function toDispatchStatus(status: OrderStatus): DispatchStatus {
+  if (status === "PENDING_QUOTE" || status === "QUOTE_ACCEPTED") {
+    return "PENDING";
+  }
+  return status;
 }
 
 function etaLabel(status: OrderStatus): string {
@@ -81,7 +96,13 @@ function etaLabel(status: OrderStatus): string {
     return "—";
   }
 
-  if (status === "PENDING") {
+  if (
+    status === "PENDING" ||
+    status === "PREPARING" ||
+    status === "READY_FOR_PICKUP" ||
+    status === "PENDING_QUOTE" ||
+    status === "QUOTE_ACCEPTED"
+  ) {
     return "—";
   }
 

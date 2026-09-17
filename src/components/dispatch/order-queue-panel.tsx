@@ -17,6 +17,8 @@ import {
 const TABS: DispatchFilter[] = [
   "ALL",
   "PENDING",
+  "PREPARING",
+  "READY_FOR_PICKUP",
   "ASSIGNED",
   "IN_TRANSIT",
   "DELIVERED",

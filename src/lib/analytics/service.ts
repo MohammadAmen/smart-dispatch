@@ -165,7 +165,7 @@ export async function getAnalyticsPayload(locale: string): Promise<AnalyticsPayl
 
   const [orders, drivers] = await Promise.all([
     prisma.order.findMany({
-      where: { createdAt: { gte: from } },
+      where: { createdAt: { gte: from }, bundleRole: { not: "CHILD" } },
       select: {
         id: true,
         orderNumber: true,
@@ -391,6 +391,7 @@ export async function settleDriverCash(
       driverId,
       status: "DELIVERED",
       cashSettledAt: null,
+      bundleRole: { not: "CHILD" },
     },
     select: { id: true, codAmount: true },
   });

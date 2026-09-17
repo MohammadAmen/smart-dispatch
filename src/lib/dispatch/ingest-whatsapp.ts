@@ -5,12 +5,19 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getDepotPoint } from "@/lib/dispatch/depot";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
+import { nextOrderNumber } from "@/lib/dispatch/order-number";
 import { orderWithDriver, toLiveOrder } from "@/lib/dispatch/order-mapper";
 import {
   parseInboundTextMessage,
   type ParsedWhatsAppMessage,
 } from "@/lib/dispatch/whatsapp";
+import { persistOrderTrackingToken, createTrackingToken } from "@/lib/stores/order-token";
 import type { LiveOrder } from "@/lib/live-map";
+
+export interface WhatsAppIngestResult {
+  live: LiveOrder;
+  trackingToken: string;
+}
 
 const globalForWhatsApp = globalThis as typeof globalThis & {
   __processedWhatsAppIds?: Set<string>;
@@ -22,15 +29,6 @@ function processedIds(): Set<string> {
   }
 
   return globalForWhatsApp.__processedWhatsAppIds;
-}
-
-function nextOrderNumber(): string {
-  const stamp = Date.now().toString(36).toUpperCase();
-  const salt = Math.floor(Math.random() * 36 ** 3)
-    .toString(36)
-    .toUpperCase()
-    .padStart(3, "0");
-  return `SD-${stamp}-${salt}`;
 }
 
 export function verifyWhatsAppSignature(
@@ -68,7 +66,7 @@ async function alreadyIngested(messageId: string): Promise<boolean> {
       where: {
         action: "ORDER_CREATED",
         details: {
-          path: ["whatsappMessageId"],
+          path: "$.whatsappMessageId",
           equals: messageId,
         },
       },
@@ -83,7 +81,7 @@ async function alreadyIngested(messageId: string): Promise<boolean> {
 
 export async function createOrderFromWhatsApp(
   message: ParsedWhatsAppMessage,
-): Promise<LiveOrder | null> {
+): Promise<WhatsAppIngestResult | null> {
   if (await alreadyIngested(message.messageId)) {
     return null;
   }
@@ -91,33 +89,46 @@ export async function createOrderFromWhatsApp(
   const depot = getDepotPoint();
   const deliveryLat = message.latitude ?? depot[0];
   const deliveryLng = message.longitude ?? depot[1];
+  const trackingToken = createTrackingToken();
 
   try {
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: nextOrderNumber(),
-        status: "PENDING",
-        customerPhone: message.from,
-        addressText: message.addressText,
-        pickupLat: depot[0],
-        pickupLng: depot[1],
-        deliveryLat,
-        deliveryLng,
-        auditLogs: {
-          create: {
-            action: "ORDER_CREATED",
-            details: {
-              source: "whatsapp",
-              whatsappMessageId: message.messageId,
-              messageType: message.type,
-              transcript: message.transcript,
-              text: message.text,
-            },
+    const baseData = {
+      orderNumber: nextOrderNumber(),
+      status: "PENDING" as const,
+      customerPhone: message.from,
+      addressText: message.addressText,
+      pickupLat: depot[0],
+      pickupLng: depot[1],
+      deliveryLat,
+      deliveryLng,
+      auditLogs: {
+        create: {
+          action: "ORDER_CREATED",
+          details: {
+            source: "whatsapp",
+            whatsappMessageId: message.messageId,
+            messageType: message.type,
+            transcript: message.transcript,
+            text: message.text,
           },
         },
       },
-      include: orderWithDriver,
-    });
+    };
+
+    let order;
+    try {
+      order = await prisma.order.create({
+        data: { ...baseData, trackingToken },
+        include: orderWithDriver,
+      });
+    } catch {
+      order = await prisma.order.create({
+        data: baseData,
+        include: orderWithDriver,
+      });
+    }
+
+    await persistOrderTrackingToken(order.id, trackingToken);
 
     processedIds().add(message.messageId);
     publishDispatchEvent({
@@ -127,7 +138,7 @@ export async function createOrderFromWhatsApp(
       source: "whatsapp",
     });
 
-    return toLiveOrder(order);
+    return { live: toLiveOrder(order), trackingToken };
   } catch {
     return null;
   }
@@ -139,6 +150,6 @@ export async function ingestWhatsAppMessage(input: {
   text: string;
   latitude?: number | null;
   longitude?: number | null;
-}): Promise<LiveOrder | null> {
+}): Promise<WhatsAppIngestResult | null> {
   return createOrderFromWhatsApp(parseInboundTextMessage(input));
 }

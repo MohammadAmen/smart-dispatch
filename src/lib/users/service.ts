@@ -257,8 +257,10 @@ export async function deleteManagedUser(
     return { ok: false, error: "User not found.", status: 404 };
   }
 
-  if (target.role === "ADMIN") {
-    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+  if (target.role === "ADMIN" || target.role === "SUPER_ADMIN") {
+    const adminCount = await prisma.user.count({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+    });
     if (adminCount <= 1) {
       return { ok: false, error: "The last admin cannot be deleted.", status: 400 };
     }

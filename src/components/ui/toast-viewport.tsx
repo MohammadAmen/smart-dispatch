@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CloudOff,
   CloudUpload,
+  Megaphone,
   PackagePlus,
   Volume2,
   VolumeX,
@@ -26,6 +27,9 @@ const toneClass: Record<ToastKind, string> = {
   offline: "text-muted-foreground",
   error: "text-destructive",
   incoming: "text-info",
+  vendorIncoming: "text-info",
+  vendorDineIn: "text-primary",
+  offerExpired: "text-warning-foreground dark:text-warning",
   audio: "text-primary",
 };
 
@@ -36,6 +40,9 @@ const iconByKind: Record<ToastKind, typeof CloudOff> = {
   offline: WifiOff,
   error: CloudOff,
   incoming: PackagePlus,
+  vendorIncoming: PackagePlus,
+  vendorDineIn: PackagePlus,
+  offerExpired: Megaphone,
   audio: Volume2,
 };
 
@@ -45,7 +52,7 @@ export function ToastViewport(): ReactNode {
   const { t } = useLocale();
 
   return (
-    <div className="pointer-events-none fixed top-20 end-4 z-[1100] flex w-[min(100%-2rem,22rem)] flex-col gap-2">
+    <div className="pointer-events-none fixed top-20 end-4 z-[1100] flex w-[min(100%-2rem,22rem)] flex-col gap-2 print:hidden">
       <AnimatePresence initial={false}>
         {toasts.map((toast) => {
           const Icon =
@@ -62,6 +69,12 @@ export function ToastViewport(): ReactNode {
               ? t("sync.toast.queuedDetail", { entityId: toast.entityId })
               : toast.kind === "incoming" && toast.entityId
                 ? t("sync.toast.incomingDetail", { entityId: toast.entityId })
+                : toast.kind === "vendorIncoming" && toast.entityId
+                  ? t("sync.toast.vendorIncomingDetail", { entityId: toast.entityId })
+                : toast.kind === "vendorDineIn" && toast.entityId
+                  ? t("sync.toast.vendorDineInDetail", { entityId: toast.entityId })
+                : toast.kind === "offerExpired" && toast.entityId
+                  ? t("sync.toast.offerExpiredDetail", { entityId: toast.entityId })
                 : toast.kind === "audio"
                   ? t(toast.muted ? "audio.mutedDetail" : "audio.unmutedDetail")
                   : undefined;

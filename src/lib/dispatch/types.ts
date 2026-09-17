@@ -41,7 +41,7 @@ export type DispatchRealtimeEvent =
       type: "order.created";
       orderId: string;
       orderNumber: string;
-      source: "whatsapp" | "system";
+      source: "whatsapp" | "system" | "menu";
     }
   | {
       type: "orders.assigned";
