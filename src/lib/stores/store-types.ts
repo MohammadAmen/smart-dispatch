@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/db";
+import { pgAddColumn, pgColumnExists, pgCreateIndex, pgDropColumn } from "@/lib/stores/sql-schema";
 import { isStoreTypeIcon } from "@/lib/stores/store-type-icon";
 import type { StoreTypeRecord, StoreTypeWriteInput } from "@/lib/stores/types";
 
@@ -22,45 +23,26 @@ const DEFAULT_STORE_TYPES: Array<{
 
 let directoryReady: Promise<void> | null = null;
 
-async function columnExists(table: string, column: string): Promise<boolean> {
-  const rows = await prisma.$queryRaw<{ count: bigint | number }[]>`
-    SELECT COUNT(*) AS count
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = ${table}
-      AND COLUMN_NAME = ${column}
-  `;
-  const count = Number(rows[0]?.count ?? 0);
-  return count > 0;
-}
-
-async function addColumnIfMissing(table: string, column: string, ddl: string): Promise<void> {
-  if (await columnExists(table, column)) {
-    return;
-  }
-  await prisma.$executeRawUnsafe(`ALTER TABLE \`${table}\` ADD COLUMN ${ddl}`);
-}
-
 async function migrateStoreDirectorySchema(): Promise<void> {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS store_types (
       id VARCHAR(191) NOT NULL,
       name VARCHAR(191) NOT NULL,
       icon VARCHAR(191) NOT NULL DEFAULT 'store',
-      sortOrder INT NOT NULL DEFAULT 0,
-      createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-      updatedAt DATETIME(3) NOT NULL,
-      PRIMARY KEY (id),
-      UNIQUE KEY store_types_name_key (name),
-      KEY store_types_sortOrder_idx (sortOrder)
+      "sortOrder" INT NOT NULL DEFAULT 0,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
     )
   `);
+  await pgCreateIndex("store_types_name_key", "store_types", "name", true);
+  await pgCreateIndex("store_types_sortOrder_idx", "store_types", `"sortOrder"`);
 
-  await addColumnIfMissing("stores", "storeTypeId", "`storeTypeId` VARCHAR(191) NULL");
-  await addColumnIfMissing("stores", "coverImage", "`coverImage` VARCHAR(2048) NULL");
-  await addColumnIfMissing("stores", "latitude", "`latitude` DOUBLE NULL");
-  await addColumnIfMissing("stores", "longitude", "`longitude` DOUBLE NULL");
-  await addColumnIfMissing("stores", "rating", "`rating` DOUBLE NOT NULL DEFAULT 0");
+  await pgAddColumn("stores", "storeTypeId", "VARCHAR(191) NULL");
+  await pgAddColumn("stores", "coverImage", "VARCHAR(2048) NULL");
+  await pgAddColumn("stores", "latitude", "DOUBLE PRECISION NULL");
+  await pgAddColumn("stores", "longitude", "DOUBLE PRECISION NULL");
+  await pgAddColumn("stores", "rating", "DOUBLE PRECISION NOT NULL DEFAULT 0");
 
   for (const type of DEFAULT_STORE_TYPES) {
     const existing = await prisma.$queryRaw<{ id: string }[]>`
@@ -71,38 +53,38 @@ async function migrateStoreDirectorySchema(): Promise<void> {
     }
     const id = crypto.randomUUID();
     await prisma.$executeRaw`
-      INSERT INTO store_types (id, name, icon, sortOrder, createdAt, updatedAt)
-      VALUES (${id}, ${type.name}, ${type.icon}, ${type.sortOrder}, NOW(3), NOW(3))
+      INSERT INTO store_types (id, name, icon, "sortOrder", "createdAt", "updatedAt")
+      VALUES (${id}, ${type.name}, ${type.icon}, ${type.sortOrder}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
   }
 
-  if (await columnExists("stores", "type")) {
+  if (await pgColumnExists("stores", "type")) {
     for (const type of DEFAULT_STORE_TYPES) {
       await prisma.$executeRaw`
         UPDATE stores
-        SET storeTypeId = (
+        SET "storeTypeId" = (
           SELECT id FROM store_types WHERE name = ${type.name} LIMIT 1
         )
-        WHERE type = ${type.legacy} AND (storeTypeId IS NULL OR storeTypeId = '')
+        WHERE type = ${type.legacy} AND ("storeTypeId" IS NULL OR "storeTypeId" = '')
       `;
     }
   }
 
   const fallback = await prisma.$queryRaw<{ id: string }[]>`
-    SELECT id FROM store_types ORDER BY sortOrder ASC LIMIT 1
+    SELECT id FROM store_types ORDER BY "sortOrder" ASC LIMIT 1
   `;
   const fallbackId = fallback[0]?.id;
   if (fallbackId) {
     await prisma.$executeRaw`
       UPDATE stores
-      SET storeTypeId = ${fallbackId}
-      WHERE storeTypeId IS NULL OR storeTypeId = ''
+      SET "storeTypeId" = ${fallbackId}
+      WHERE "storeTypeId" IS NULL OR "storeTypeId" = ''
     `;
   }
 
-  if (await columnExists("stores", "type")) {
+  if (await pgColumnExists("stores", "type")) {
     try {
-      await prisma.$executeRawUnsafe("ALTER TABLE `stores` DROP COLUMN `type`");
+      await pgDropColumn("stores", "type");
     } catch {
       // Prisma push may drop it later.
     }

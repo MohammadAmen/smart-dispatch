@@ -127,13 +127,13 @@ async function attachItems(rows: OrderRow[]): Promise<VendorOrderRecord[]> {
   >`
     SELECT
       id,
-      orderId,
+      "orderId",
       name,
       quantity,
-      unitPrice,
+      "unitPrice",
       COALESCE(status, 'PENDING') AS status
     FROM order_items
-    WHERE orderId IN (${Prisma.join(orderIds)})
+    WHERE "orderId" IN (${Prisma.join(orderIds)})
   `;
 
   const itemsByOrder = new Map<string, VendorOrderItemRecord[]>();
@@ -214,34 +214,34 @@ async function loadOrderRow(storeId: string, orderId: string): Promise<OrderRow 
   const rows = await prisma.$queryRaw<OrderRow[]>`
     SELECT
       o.id,
-      o.orderNumber,
+      o."orderNumber",
       CAST(o.status AS TEXT) AS status,
-      o.customerPhone,
-      o.addressText,
-      o.createdAt,
-      o.cancelReason,
-      o.trackingToken,
-      o.storeNotes,
-      COALESCE(o.bundleRole, 'SINGLE') AS bundleRole,
-      COALESCE(o.orderType, 'STANDARD') AS orderType,
-      o.customImage,
-      o.customNotes,
-      o.scheduledDate,
-      o.quotedPrice,
-      o.deliveryFee,
-      COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment,
-      o.tableLabel,
-      u.name AS customerName,
-      du.name AS driverName,
-      du.phone AS driverPhone,
-      s.phone AS storePhone
+      o."customerPhone",
+      o."addressText",
+      o."createdAt",
+      o."cancelReason",
+      o."trackingToken",
+      o."storeNotes",
+      COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
+      COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
+      o."customImage",
+      o."customNotes",
+      o."scheduledDate",
+      o."quotedPrice",
+      o."deliveryFee",
+      COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+      o."tableLabel",
+      u.name AS "customerName",
+      du.name AS "driverName",
+      du.phone AS "driverPhone",
+      s.phone AS "storePhone"
     FROM orders o
-    LEFT JOIN users u ON u.id = o.customerId
-    LEFT JOIN drivers d ON d.id = o.driverId
-    LEFT JOIN users du ON du.id = d.userId
-    LEFT JOIN stores s ON s.id = o.storeId
-    WHERE o.id = ${orderId} AND o.storeId = ${storeId}
-      AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+    LEFT JOIN users u ON u.id = o."customerId"
+    LEFT JOIN drivers d ON d.id = o."driverId"
+    LEFT JOIN users du ON du.id = d."userId"
+    LEFT JOIN stores s ON s.id = o."storeId"
+    WHERE o.id = ${orderId} AND o."storeId" = ${storeId}
+      AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
     LIMIT 1
   `;
   return rows[0] ?? null;
@@ -249,10 +249,10 @@ async function loadOrderRow(storeId: string, orderId: string): Promise<OrderRow 
 
 function fulfillmentFilter(source: VendorOrderSource): Prisma.Sql {
   if (source === "DINE_IN") {
-    return Prisma.sql`AND COALESCE(o.fulfillment, 'DELIVERY') = 'DINE_IN'`;
+    return Prisma.sql`AND COALESCE(o."fulfillment", 'DELIVERY') = 'DINE_IN'`;
   }
   if (source === "DELIVERY") {
-    return Prisma.sql`AND COALESCE(o.fulfillment, 'DELIVERY') <> 'DINE_IN'`;
+    return Prisma.sql`AND COALESCE(o."fulfillment", 'DELIVERY') <> 'DINE_IN'`;
   }
   return Prisma.sql``;
 }
@@ -266,27 +266,27 @@ function statusFilter(status: VendorOrderFilter): Prisma.Sql {
 
 const ORDER_SELECT = Prisma.sql`
   o.id,
-  o.orderNumber,
+  o."orderNumber",
   CAST(o.status AS TEXT) AS status,
-  o.customerPhone,
-  o.addressText,
-  o.createdAt,
-  o.cancelReason,
-  o.trackingToken,
-  o.storeNotes,
-  COALESCE(o.bundleRole, 'SINGLE') AS bundleRole,
-  COALESCE(o.orderType, 'STANDARD') AS orderType,
-  o.customImage,
-  o.customNotes,
-  o.scheduledDate,
-  o.quotedPrice,
-  o.deliveryFee,
-  COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment,
-  o.tableLabel,
-  u.name AS customerName,
-  du.name AS driverName,
-  du.phone AS driverPhone,
-  s.phone AS storePhone
+  o."customerPhone",
+  o."addressText",
+  o."createdAt",
+  o."cancelReason",
+  o."trackingToken",
+  o."storeNotes",
+  COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
+  COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
+  o."customImage",
+  o."customNotes",
+  o."scheduledDate",
+  o."quotedPrice",
+  o."deliveryFee",
+  COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+  o."tableLabel",
+  u.name AS "customerName",
+  du.name AS "driverName",
+  du.phone AS "driverPhone",
+  s.phone AS "storePhone"
 `;
 
 export interface VendorOrdersPageResult {
@@ -317,8 +317,8 @@ export async function countVendorOrderStatuses(
   const rows = await prisma.$queryRaw<{ status: string; count: bigint | number }[]>`
     SELECT CAST(o.status AS TEXT) AS status, COUNT(*) AS count
     FROM orders o
-    WHERE o.storeId = ${storeId}
-      AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+    WHERE o."storeId" = ${storeId}
+      AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
       ${fulfillmentFilter(source)}
     GROUP BY o.status
   `;
@@ -349,12 +349,12 @@ export async function countVendorOrderChannels(
 ): Promise<VendorChannelCounts> {
   await ensureVendorIntelSchema();
   const rows = await prisma.$queryRaw<{ fulfillment: string; count: bigint | number }[]>`
-    SELECT COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment, COUNT(*) AS count
+    SELECT COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment, COUNT(*) AS count
     FROM orders o
-    WHERE o.storeId = ${storeId}
-      AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+    WHERE o."storeId" = ${storeId}
+      AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
       ${statusFilter(status)}
-    GROUP BY COALESCE(o.fulfillment, 'DELIVERY')
+    GROUP BY COALESCE(o."fulfillment", 'DELIVERY')
   `;
   const counts = { ...EMPTY_VENDOR_CHANNEL_COUNTS };
   for (const row of rows) {
@@ -388,22 +388,22 @@ export async function listStoreOrdersPage(input: {
     prisma.$queryRaw<OrderRow[]>`
       SELECT ${ORDER_SELECT}
       FROM orders o
-      LEFT JOIN users u ON u.id = o.customerId
-      LEFT JOIN drivers d ON d.id = o.driverId
-      LEFT JOIN users du ON du.id = d.userId
-      LEFT JOIN stores s ON s.id = o.storeId
-      WHERE o.storeId = ${input.storeId}
-        AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+      LEFT JOIN users u ON u.id = o."customerId"
+      LEFT JOIN drivers d ON d.id = o."driverId"
+      LEFT JOIN users du ON du.id = d."userId"
+      LEFT JOIN stores s ON s.id = o."storeId"
+      WHERE o."storeId" = ${input.storeId}
+        AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
         ${fulfillmentFilter(source)}
         ${statusFilter(status)}
-      ORDER BY o.createdAt DESC
+      ORDER BY o."createdAt" DESC
       LIMIT ${VENDOR_ORDERS_PAGE_SIZE} OFFSET ${offset}
     `,
     prisma.$queryRaw<{ count: bigint | number }[]>`
       SELECT COUNT(*) AS count
       FROM orders o
-      WHERE o.storeId = ${input.storeId}
-        AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+      WHERE o."storeId" = ${input.storeId}
+        AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
         ${fulfillmentFilter(source)}
         ${statusFilter(status)}
     `,
@@ -414,32 +414,32 @@ export async function listStoreOrdersPage(input: {
       : prisma.$queryRaw<OrderRow[]>`
           SELECT ${ORDER_SELECT}
           FROM orders o
-          LEFT JOIN users u ON u.id = o.customerId
-          LEFT JOIN drivers d ON d.id = o.driverId
-          LEFT JOIN users du ON du.id = d.userId
-          LEFT JOIN stores s ON s.id = o.storeId
-          WHERE o.storeId = ${input.storeId}
-            AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+          LEFT JOIN users u ON u.id = o."customerId"
+          LEFT JOIN drivers d ON d.id = o."driverId"
+          LEFT JOIN users du ON du.id = d."userId"
+          LEFT JOIN stores s ON s.id = o."storeId"
+          WHERE o."storeId" = ${input.storeId}
+            AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
             ${fulfillmentFilter(source)}
             AND CAST(o.status AS TEXT) = 'PENDING_QUOTE'
-          ORDER BY o.createdAt DESC
+          ORDER BY o."createdAt" DESC
           LIMIT 8
         `,
     prisma.$queryRaw<OrderRow[]>`
       SELECT ${ORDER_SELECT}
       FROM orders o
-      LEFT JOIN users u ON u.id = o.customerId
-      LEFT JOIN drivers d ON d.id = o.driverId
-      LEFT JOIN users du ON du.id = d.userId
-      LEFT JOIN stores s ON s.id = o.storeId
-      WHERE o.storeId = ${input.storeId}
-        AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
-        AND COALESCE(o.orderType, 'STANDARD') = 'SPECIAL_CUSTOM'
-        AND o.scheduledDate IS NOT NULL
+      LEFT JOIN users u ON u.id = o."customerId"
+      LEFT JOIN drivers d ON d.id = o."driverId"
+      LEFT JOIN users du ON du.id = d."userId"
+      LEFT JOIN stores s ON s.id = o."storeId"
+      WHERE o."storeId" = ${input.storeId}
+        AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
+        AND COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') = 'SPECIAL_CUSTOM'
+        AND o."scheduledDate" IS NOT NULL
         AND CAST(o.status AS TEXT) NOT IN ('CANCELED', 'DELIVERED', 'PENDING_QUOTE')
-        AND o.scheduledDate > NOW()
-        AND o.scheduledDate <= NOW() + INTERVAL '3 hours'
-      ORDER BY o.scheduledDate ASC
+        AND o."scheduledDate" > NOW()
+        AND o."scheduledDate" <= NOW() + INTERVAL '3 hours'
+      ORDER BY o."scheduledDate" ASC
       LIMIT 8
     `,
   ]);
@@ -483,15 +483,15 @@ export async function listVendorOrderAlerts(storeId: string): Promise<VendorOrde
     SELECT
       o.id,
       CAST(o.status AS TEXT) AS status,
-      COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment,
-      o.tableLabel,
-      o.addressText,
-      o.orderNumber
+      COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+      o."tableLabel",
+      o."addressText",
+      o."orderNumber"
     FROM orders o
-    WHERE o.storeId = ${storeId}
-      AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
+    WHERE o."storeId" = ${storeId}
+      AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
       AND CAST(o.status AS TEXT) = 'PENDING'
-    ORDER BY o.createdAt DESC
+    ORDER BY o."createdAt" DESC
     LIMIT 200
   `;
   return rows.map((row) => ({
@@ -511,35 +511,35 @@ export async function listStoreOrders(storeId: string): Promise<VendorOrderRecor
   const rows = await prisma.$queryRaw<OrderRow[]>`
     SELECT
       o.id,
-      o.orderNumber,
+      o."orderNumber",
       CAST(o.status AS TEXT) AS status,
-      o.customerPhone,
-      o.addressText,
-      o.createdAt,
-      o.cancelReason,
-      o.trackingToken,
-      o.storeNotes,
-      COALESCE(o.bundleRole, 'SINGLE') AS bundleRole,
-      COALESCE(o.orderType, 'STANDARD') AS orderType,
-      o.customImage,
-      o.customNotes,
-      o.scheduledDate,
-      o.quotedPrice,
-      o.deliveryFee,
-      COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment,
-      o.tableLabel,
-      u.name AS customerName,
-      du.name AS driverName,
-      du.phone AS driverPhone,
-      s.phone AS storePhone
+      o."customerPhone",
+      o."addressText",
+      o."createdAt",
+      o."cancelReason",
+      o."trackingToken",
+      o."storeNotes",
+      COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
+      COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
+      o."customImage",
+      o."customNotes",
+      o."scheduledDate",
+      o."quotedPrice",
+      o."deliveryFee",
+      COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+      o."tableLabel",
+      u.name AS "customerName",
+      du.name AS "driverName",
+      du.phone AS "driverPhone",
+      s.phone AS "storePhone"
     FROM orders o
-    LEFT JOIN users u ON u.id = o.customerId
-    LEFT JOIN drivers d ON d.id = o.driverId
-    LEFT JOIN users du ON du.id = d.userId
-    LEFT JOIN stores s ON s.id = o.storeId
-    WHERE o.storeId = ${storeId}
-      AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
-    ORDER BY o.createdAt DESC
+    LEFT JOIN users u ON u.id = o."customerId"
+    LEFT JOIN drivers d ON d.id = o."driverId"
+    LEFT JOIN users du ON du.id = d."userId"
+    LEFT JOIN stores s ON s.id = o."storeId"
+    WHERE o."storeId" = ${storeId}
+      AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
+    ORDER BY o."createdAt" DESC
   `;
   return attachItems(rows);
 }
@@ -561,35 +561,35 @@ export async function getPublicOrdersByTokens(tokens: string[]): Promise<VendorO
   const rows = await prisma.$queryRaw<OrderRow[]>`
     SELECT
       o.id,
-      o.orderNumber,
+      o."orderNumber",
       CAST(o.status AS TEXT) AS status,
-      o.customerPhone,
-      o.addressText,
-      o.createdAt,
-      o.cancelReason,
-      o.trackingToken,
-      o.storeNotes,
-      COALESCE(o.bundleRole, 'SINGLE') AS bundleRole,
-      COALESCE(o.orderType, 'STANDARD') AS orderType,
-      o.customImage,
-      o.customNotes,
-      o.scheduledDate,
-      o.quotedPrice,
-      o.deliveryFee,
-      COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment,
-      o.tableLabel,
-      u.name AS customerName,
-      du.name AS driverName,
-      du.phone AS driverPhone,
-      s.phone AS storePhone
+      o."customerPhone",
+      o."addressText",
+      o."createdAt",
+      o."cancelReason",
+      o."trackingToken",
+      o."storeNotes",
+      COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
+      COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
+      o."customImage",
+      o."customNotes",
+      o."scheduledDate",
+      o."quotedPrice",
+      o."deliveryFee",
+      COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+      o."tableLabel",
+      u.name AS "customerName",
+      du.name AS "driverName",
+      du.phone AS "driverPhone",
+      s.phone AS "storePhone"
     FROM orders o
-    LEFT JOIN users u ON u.id = o.customerId
-    LEFT JOIN drivers d ON d.id = o.driverId
-    LEFT JOIN users du ON du.id = d.userId
-    LEFT JOIN stores s ON s.id = o.storeId
-    WHERE o.trackingToken IN (${tokenList})
-      AND COALESCE(o.bundleRole, 'SINGLE') <> 'CHILD'
-    ORDER BY o.createdAt DESC
+    LEFT JOIN users u ON u.id = o."customerId"
+    LEFT JOIN drivers d ON d.id = o."driverId"
+    LEFT JOIN users du ON du.id = d."userId"
+    LEFT JOIN stores s ON s.id = o."storeId"
+    WHERE o."trackingToken" IN (${tokenList})
+      AND COALESCE(o."bundleRole", 'SINGLE') <> 'CHILD'
+    ORDER BY o."createdAt" DESC
     LIMIT 40
   `;
   return attachPublicBundleItems(rows);
@@ -625,7 +625,7 @@ export async function advanceVendorOrderStatus(
   await prisma.$executeRaw`
     UPDATE orders
     SET status = ${nextStatus}
-    WHERE id = ${orderId} AND storeId = ${storeId}
+    WHERE id = ${orderId} AND "storeId" = ${storeId}
   `;
 
   const items = await prisma.orderItem.findMany({
@@ -693,8 +693,8 @@ export async function cancelVendorOrder(
   await prisma.$executeRaw`
     UPDATE orders
     SET status = ${"CANCELED"},
-        cancelReason = ${trimmedReason.slice(0, 500)}
-    WHERE id = ${orderId} AND storeId = ${storeId}
+        "cancelReason" = ${trimmedReason.slice(0, 500)}
+    WHERE id = ${orderId} AND "storeId" = ${storeId}
   `;
 
   const items = await prisma.orderItem.findMany({

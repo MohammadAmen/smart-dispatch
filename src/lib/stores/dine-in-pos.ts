@@ -69,7 +69,7 @@ export async function toggleDineInItem(
   await prisma.$executeRaw`
     UPDATE order_items
     SET status = ${next}
-    WHERE id = ${itemId} AND orderId = ${orderId}
+    WHERE id = ${itemId} AND "orderId" = ${orderId}
   `;
   return syncOrderCompletion(storeId, orderId);
 }
@@ -85,7 +85,7 @@ export async function serveAllDineInItems(
   await prisma.$executeRaw`
     UPDATE order_items
     SET status = 'SERVED'
-    WHERE orderId = ${orderId}
+    WHERE "orderId" = ${orderId}
   `;
   return syncOrderCompletion(storeId, orderId);
 }
@@ -126,12 +126,12 @@ export async function addDineInExtraItem(
   const itemName = name.slice(0, 120);
   if (productId) {
     await prisma.$executeRaw`
-      INSERT INTO order_items (id, orderId, productId, quantity, unitPrice, name, status)
+      INSERT INTO order_items (id, "orderId", "productId", quantity, "unitPrice", name, status)
       VALUES (${id}, ${orderId}, ${productId}, ${quantity}, ${unitPrice}, ${itemName}, 'PENDING')
     `;
   } else {
     await prisma.$executeRaw`
-      INSERT INTO order_items (id, orderId, productId, quantity, unitPrice, name, status)
+      INSERT INTO order_items (id, "orderId", "productId", quantity, "unitPrice", name, status)
       VALUES (${id}, ${orderId}, NULL, ${quantity}, ${unitPrice}, ${itemName}, 'PENDING')
     `;
   }

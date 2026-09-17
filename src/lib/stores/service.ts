@@ -136,7 +136,7 @@ async function attachReceiptFooterNotes(stores: StoreRecord[]): Promise<StoreRec
     return stores;
   }
   const rows = await prisma.$queryRaw<{ id: string; receiptFooterNote: string | null }[]>`
-    SELECT id, receiptFooterNote FROM stores WHERE id IN (${Prisma.join(stores.map((store) => store.id))})
+    SELECT id, "receiptFooterNote" FROM stores WHERE id IN (${Prisma.join(stores.map((store) => store.id))})
   `;
   const notes = new Map(rows.map((row) => [row.id, row.receiptFooterNote]));
   return stores.map((store) => ({
@@ -157,7 +157,7 @@ export async function updateStoreReceiptFooter(
   await ensureVendorIntelSchema();
   const saved = resolveReceiptFooterNote(note);
   await prisma.$executeRaw`
-    UPDATE stores SET receiptFooterNote = ${saved} WHERE id = ${storeId}
+    UPDATE stores SET "receiptFooterNote" = ${saved} WHERE id = ${storeId}
   `;
   return saved;
 }
@@ -522,8 +522,8 @@ async function persistProductDiscount(
 ): Promise<void> {
   await prisma.$executeRaw`
     UPDATE products
-    SET hasDiscount = ${hasDiscount ? 1 : 0},
-        discountPrice = ${discountPrice}
+    SET "hasDiscount" = ${hasDiscount},
+        "discountPrice" = ${discountPrice}
     WHERE id = ${id}
   `;
 }
@@ -535,12 +535,12 @@ export async function loadProductDiscountMap(
     ? await prisma.$queryRaw<
         { id: string; hasDiscount: number | boolean; discountPrice: number | null }[]
       >`
-        SELECT id, hasDiscount, discountPrice FROM products WHERE storeId = ${storeId}
+        SELECT id, "hasDiscount", "discountPrice" FROM products WHERE "storeId" = ${storeId}
       `
     : await prisma.$queryRaw<
         { id: string; hasDiscount: number | boolean; discountPrice: number | null }[]
       >`
-        SELECT id, hasDiscount, discountPrice FROM products
+        SELECT id, "hasDiscount", "discountPrice" FROM products
       `;
 
   return new Map(

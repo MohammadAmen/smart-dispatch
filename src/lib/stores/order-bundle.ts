@@ -3,36 +3,19 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
 import { notifyCustomerOrderUpdate } from "@/lib/stores/order-notify";
+import { pgAddColumn } from "@/lib/stores/sql-schema";
 import { ensureOrderTrackingToken } from "@/lib/stores/order-token";
 
 let bundleReady: Promise<void> | null = null;
 
-async function columnExists(column: string): Promise<boolean> {
-  const rows = await prisma.$queryRaw<{ count: bigint | number }[]>`
-    SELECT COUNT(*) AS count
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = "orders"
-      AND COLUMN_NAME = ${column}
-  `;
-  return Number(rows[0]?.count ?? 0) > 0;
-}
-
-async function addColumn(ddl: string, column: string): Promise<void> {
-  if (await columnExists(column)) {
-    return;
-  }
-  await prisma.$executeRawUnsafe(`ALTER TABLE \`orders\` ADD COLUMN ${ddl}`);
-}
-
 async function migrateOrderBundleSchema(): Promise<void> {
-  await addColumn("`parentOrderId` VARCHAR(191) NULL", "parentOrderId");
-  await addColumn("`bundleRole` VARCHAR(191) NOT NULL DEFAULT 'SINGLE'", "bundleRole");
-  await addColumn("`deliveryFee` DOUBLE NOT NULL DEFAULT 0", "deliveryFee");
-  await addColumn("`storeNotes` VARCHAR(500) NULL", "storeNotes");
-  await addColumn("`declinedDriverIds` TEXT NULL", "declinedDriverIds");
-  await addColumn("`offeredAt` DATETIME(3) NULL", "offeredAt");
-  await addColumn("`driverAcceptedAt` DATETIME(3) NULL", "driverAcceptedAt");
+  await pgAddColumn("orders", "parentOrderId", "VARCHAR(191) NULL");
+  await pgAddColumn("orders", "bundleRole", "VARCHAR(191) NOT NULL DEFAULT 'SINGLE'");
+  await pgAddColumn("orders", "deliveryFee", "DOUBLE PRECISION NOT NULL DEFAULT 0");
+  await pgAddColumn("orders", "storeNotes", "VARCHAR(500) NULL");
+  await pgAddColumn("orders", "declinedDriverIds", "TEXT NULL");
+  await pgAddColumn("orders", "offeredAt", "TIMESTAMP(3) NULL");
+  await pgAddColumn("orders", "driverAcceptedAt", "TIMESTAMP(3) NULL");
 }
 
 export async function ensureOrderBundleSchema(): Promise<void> {

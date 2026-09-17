@@ -11,7 +11,7 @@ export function createTrackingToken(): string {
 export async function persistOrderTrackingToken(orderId: string, token: string): Promise<void> {
   await prisma.$executeRaw`
     UPDATE orders
-    SET trackingToken = ${token}
+    SET "trackingToken" = ${token}
     WHERE id = ${orderId}
   `;
 }
@@ -19,7 +19,7 @@ export async function persistOrderTrackingToken(orderId: string, token: string):
 export async function loadOrderTrackingToken(orderId: string): Promise<string | null> {
   try {
     const rows = await prisma.$queryRaw<{ trackingToken: string | null }[]>`
-      SELECT trackingToken
+      SELECT "trackingToken"
       FROM orders
       WHERE id = ${orderId}
       LIMIT 1

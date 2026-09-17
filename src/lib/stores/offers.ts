@@ -8,6 +8,7 @@ import {
   type OfferWriteInput,
   type PublicOffer,
 } from "@/lib/stores/offer-types";
+import { pgAddColumn, pgCreateIndex } from "@/lib/stores/sql-schema";
 
 const offerInclude = {
   store: { select: { id: true, name: true } },
@@ -17,48 +18,36 @@ const offerInclude = {
 
 let offersReady: Promise<void> | null = null;
 
-async function columnExists(table: string, column: string): Promise<boolean> {
-  const rows = await prisma.$queryRaw<{ count: bigint | number }[]>`
-    SELECT COUNT(*) AS count
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = ${table}
-      AND COLUMN_NAME = ${column}
-  `;
-  return Number(rows[0]?.count ?? 0) > 0;
-}
-
 async function migrateOffersSchema(): Promise<void> {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS offers (
       id VARCHAR(191) NOT NULL,
-      storeId VARCHAR(191) NOT NULL,
+      "storeId" VARCHAR(191) NOT NULL,
       title VARCHAR(191) NOT NULL,
-      description TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
       image VARCHAR(2048) NULL,
-      startDate DATETIME(3) NOT NULL,
-      endDate DATETIME(3) NOT NULL,
-      isActive BOOLEAN NOT NULL DEFAULT true,
-      categoryId VARCHAR(191) NULL,
-      productId VARCHAR(191) NULL,
-      discountType VARCHAR(191) NOT NULL DEFAULT 'PERCENT',
-      discountVal DOUBLE NOT NULL,
-      endedNotifiedAt DATETIME(3) NULL,
-      createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-      updatedAt DATETIME(3) NOT NULL,
-      PRIMARY KEY (id),
-      KEY offers_storeId_isActive_endDate_idx (storeId, isActive, endDate),
-      KEY offers_endDate_idx (endDate),
-      KEY offers_categoryId_idx (categoryId),
-      KEY offers_productId_idx (productId)
+      "startDate" TIMESTAMP(3) NOT NULL,
+      "endDate" TIMESTAMP(3) NOT NULL,
+      "isActive" BOOLEAN NOT NULL DEFAULT true,
+      "categoryId" VARCHAR(191) NULL,
+      "productId" VARCHAR(191) NULL,
+      "discountType" VARCHAR(191) NOT NULL DEFAULT 'PERCENT',
+      "discountVal" DOUBLE PRECISION NOT NULL,
+      "endedNotifiedAt" TIMESTAMP(3) NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
     )
   `);
-
-  if (!(await columnExists("offers", "endedNotifiedAt"))) {
-    await prisma.$executeRawUnsafe(
-      "ALTER TABLE `offers` ADD COLUMN `endedNotifiedAt` DATETIME(3) NULL",
-    );
-  }
+  await pgCreateIndex(
+    "offers_storeId_isActive_endDate_idx",
+    "offers",
+    `"storeId", "isActive", "endDate"`,
+  );
+  await pgCreateIndex("offers_endDate_idx", "offers", `"endDate"`);
+  await pgCreateIndex("offers_categoryId_idx", "offers", `"categoryId"`);
+  await pgCreateIndex("offers_productId_idx", "offers", `"productId"`);
+  await pgAddColumn("offers", "endedNotifiedAt", "TIMESTAMP(3) NULL");
 }
 
 export async function ensureOffersSchema(): Promise<void> {
