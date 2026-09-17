@@ -36,14 +36,14 @@ export function normalizeProductImages(
 
 export function productImages(product: {
   imageUrl?: string | null;
-  images?: string[] | null;
+  images?: unknown;
 }): string[] {
   return normalizeProductImages(product.imageUrl, product.images);
 }
 
 export function primaryProductImage(product: {
   imageUrl?: string | null;
-  images?: string[] | null;
+  images?: unknown;
 }): string | null {
   return productImages(product)[0] ?? null;
 }

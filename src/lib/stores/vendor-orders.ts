@@ -215,7 +215,7 @@ async function loadOrderRow(storeId: string, orderId: string): Promise<OrderRow 
     SELECT
       o.id,
       o.orderNumber,
-      CAST(o.status AS CHAR) AS status,
+      CAST(o.status AS TEXT) AS status,
       o.customerPhone,
       o.addressText,
       o.createdAt,
@@ -259,15 +259,15 @@ function fulfillmentFilter(source: VendorOrderSource): Prisma.Sql {
 
 function statusFilter(status: VendorOrderFilter): Prisma.Sql {
   if (status === "ALL") {
-    return Prisma.sql`AND CAST(o.status AS CHAR) <> 'PENDING_QUOTE'`;
+    return Prisma.sql`AND CAST(o.status AS TEXT) <> 'PENDING_QUOTE'`;
   }
-  return Prisma.sql`AND CAST(o.status AS CHAR) = ${status}`;
+  return Prisma.sql`AND CAST(o.status AS TEXT) = ${status}`;
 }
 
 const ORDER_SELECT = Prisma.sql`
   o.id,
   o.orderNumber,
-  CAST(o.status AS CHAR) AS status,
+  CAST(o.status AS TEXT) AS status,
   o.customerPhone,
   o.addressText,
   o.createdAt,
@@ -315,7 +315,7 @@ export async function countVendorOrderStatuses(
 ): Promise<VendorOrderCounts> {
   await ensureVendorIntelSchema();
   const rows = await prisma.$queryRaw<{ status: string; count: bigint | number }[]>`
-    SELECT CAST(o.status AS CHAR) AS status, COUNT(*) AS count
+    SELECT CAST(o.status AS TEXT) AS status, COUNT(*) AS count
     FROM orders o
     WHERE o.storeId = ${storeId}
       AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
@@ -421,7 +421,7 @@ export async function listStoreOrdersPage(input: {
           WHERE o.storeId = ${input.storeId}
             AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
             ${fulfillmentFilter(source)}
-            AND CAST(o.status AS CHAR) = 'PENDING_QUOTE'
+            AND CAST(o.status AS TEXT) = 'PENDING_QUOTE'
           ORDER BY o.createdAt DESC
           LIMIT 8
         `,
@@ -436,9 +436,9 @@ export async function listStoreOrdersPage(input: {
         AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
         AND COALESCE(o.orderType, 'STANDARD') = 'SPECIAL_CUSTOM'
         AND o.scheduledDate IS NOT NULL
-        AND CAST(o.status AS CHAR) NOT IN ('CANCELED', 'DELIVERED', 'PENDING_QUOTE')
+        AND CAST(o.status AS TEXT) NOT IN ('CANCELED', 'DELIVERED', 'PENDING_QUOTE')
         AND o.scheduledDate > NOW()
-        AND o.scheduledDate <= DATE_ADD(NOW(), INTERVAL 3 HOUR)
+        AND o.scheduledDate <= NOW() + INTERVAL '3 hours'
       ORDER BY o.scheduledDate ASC
       LIMIT 8
     `,
@@ -461,6 +461,7 @@ export async function listStoreOrdersPage(input: {
     quotes,
     prepAlerts,
     total,
+    page,
     pageSize: VENDOR_ORDERS_PAGE_SIZE,
     counts,
     channelCounts,
@@ -481,7 +482,7 @@ export async function listVendorOrderAlerts(storeId: string): Promise<VendorOrde
   >`
     SELECT
       o.id,
-      CAST(o.status AS CHAR) AS status,
+      CAST(o.status AS TEXT) AS status,
       COALESCE(o.fulfillment, 'DELIVERY') AS fulfillment,
       o.tableLabel,
       o.addressText,
@@ -489,7 +490,7 @@ export async function listVendorOrderAlerts(storeId: string): Promise<VendorOrde
     FROM orders o
     WHERE o.storeId = ${storeId}
       AND COALESCE(o.bundleRole, 'SINGLE') <> 'PARENT'
-      AND CAST(o.status AS CHAR) = 'PENDING'
+      AND CAST(o.status AS TEXT) = 'PENDING'
     ORDER BY o.createdAt DESC
     LIMIT 200
   `;
@@ -511,7 +512,7 @@ export async function listStoreOrders(storeId: string): Promise<VendorOrderRecor
     SELECT
       o.id,
       o.orderNumber,
-      CAST(o.status AS CHAR) AS status,
+      CAST(o.status AS TEXT) AS status,
       o.customerPhone,
       o.addressText,
       o.createdAt,
@@ -561,7 +562,7 @@ export async function getPublicOrdersByTokens(tokens: string[]): Promise<VendorO
     SELECT
       o.id,
       o.orderNumber,
-      CAST(o.status AS CHAR) AS status,
+      CAST(o.status AS TEXT) AS status,
       o.customerPhone,
       o.addressText,
       o.createdAt,
@@ -629,9 +630,18 @@ export async function advanceVendorOrderStatus(
 
   const items = await prisma.orderItem.findMany({
     where: { orderId },
-    select: { name: true, quantity: true, unitPrice: true },
+    select: { id: true, name: true, quantity: true, unitPrice: true, status: true },
   });
-  const record = serializeVendorOrder({ ...existing, status: nextStatus }, items);
+  const record = serializeVendorOrder(
+    { ...existing, status: nextStatus },
+    items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      status: item.status === "SERVED" ? "SERVED" : "PENDING",
+    })),
+  );
 
   await prisma.auditLog.create({
     data: {
@@ -689,11 +699,17 @@ export async function cancelVendorOrder(
 
   const items = await prisma.orderItem.findMany({
     where: { orderId },
-    select: { name: true, quantity: true, unitPrice: true },
+    select: { id: true, name: true, quantity: true, unitPrice: true, status: true },
   });
   const record = serializeVendorOrder(
     { ...existing, status: "CANCELED", cancelReason: trimmedReason.slice(0, 500) },
-    items,
+    items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      status: item.status === "SERVED" ? "SERVED" : "PENDING",
+    })),
   );
 
   await prisma.auditLog.create({

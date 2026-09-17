@@ -66,7 +66,7 @@ async function alreadyIngested(messageId: string): Promise<boolean> {
       where: {
         action: "ORDER_CREATED",
         details: {
-          path: "$.whatsappMessageId",
+          path: ["whatsappMessageId"],
           equals: messageId,
         },
       },
