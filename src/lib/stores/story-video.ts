@@ -70,7 +70,7 @@ export async function saveStoryMedia(
     return await persistUpload({
       folder: "stories",
       mimeType: file.type,
-      bytes: Buffer.from(await file.arrayBuffer()),
+      bytes: new Uint8Array(await file.arrayBuffer()),
     });
   } catch {
     throw new Error(

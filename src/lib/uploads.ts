@@ -21,16 +21,22 @@ export function parseUploadId(url: string | null | undefined): string | null {
   return UUID_RE.test(id) ? id : null;
 }
 
+function toPrismaBytes(data: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(data.byteLength);
+  copy.set(data);
+  return copy;
+}
+
 export async function persistUpload(input: {
   folder: UploadFolder;
   mimeType: string;
-  bytes: Buffer;
+  bytes: Uint8Array;
 }): Promise<string> {
   const row = await prisma.upload.create({
     data: {
       folder: input.folder,
       mimeType: input.mimeType,
-      bytes: input.bytes,
+      bytes: toPrismaBytes(input.bytes),
     },
     select: { id: true },
   });

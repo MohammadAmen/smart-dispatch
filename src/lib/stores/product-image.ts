@@ -32,7 +32,7 @@ export async function saveUploadedImage(
     return await persistUpload({
       folder,
       mimeType: file.type,
-      bytes: Buffer.from(await file.arrayBuffer()),
+      bytes: new Uint8Array(await file.arrayBuffer()),
     });
   } catch {
     throw new Error("Could not save the image. Try a smaller JPG or PNG.");
