@@ -1,10 +1,5 @@
-import {
-  homePathForRole,
-  isDispatchRole,
-  isSuperAdminRole,
-  type SessionRole,
-} from "@/lib/auth/constants";
-import { stripLocalePrefix } from "@/lib/paths";
+import { homePathForRole, isDispatchRole, isSuperAdminRole, type SessionRole } from "@/lib/auth/constants";
+import { stripLocalePrefix, withLocalePrefix } from "@/lib/paths";
 
 export type AccessDecision =
   | { action: "allow" }
@@ -139,6 +134,9 @@ export function decideAccess(
 
   if (isDriverAppPath(pathname)) {
     if (role === "DRIVER" || isSuperAdminRole(role)) {
+      if (!localeMatch) {
+        return { action: "redirect", to: withLocalePrefix(pathname, localePrefix) };
+      }
       return { action: "allow" };
     }
 
@@ -186,7 +184,7 @@ export function decideAccess(
   }
 
   if (isStaffAppPath(pathname) && role === "DRIVER") {
-    return { action: "redirect", to: `${localePrefix}/driver` };
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
   }
 
   return { action: "allow" };

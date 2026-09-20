@@ -1,3 +1,6 @@
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { resolvePathLocale } from "@/lib/paths";
+
 export const SESSION_COOKIE = "sd-session";
 
 export const DEMO_PASSWORD = "Dispatch!23";
@@ -67,7 +70,7 @@ export function authSecret(): string {
 }
 
 export function homePathForRole(role: SessionRole, localePrefix = ""): string {
-  const prefix = localePrefix ? `/${localePrefix}` : "";
+  const prefix = `/${resolvePathLocale(localePrefix) || DEFAULT_LOCALE}`;
   if (role === "DRIVER") {
     return `${prefix}/driver`;
   }

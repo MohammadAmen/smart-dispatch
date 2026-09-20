@@ -1,6 +1,7 @@
 "use client";
 
-import { BellRing, Languages, Truck, Wallet } from "lucide-react";
+import { BellRing, LogOut, Truck, Wallet } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { DriverDutySwitch } from "@/components/driver/driver-duty-switch";
@@ -8,10 +9,12 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { AudioToggle } from "@/components/ui/audio-toggle";
 import { Button } from "@/components/ui/button";
 import { PulseDot } from "@/components/ui/pulse-dot";
+import { logoutRequest } from "@/lib/auth/client";
 import type { DriverDutyStatus } from "@/lib/driver/types";
 import type { BrowserNotificationPermission } from "@/lib/notify";
 import { formatMoney, PRICE_CURRENCY } from "@/lib/stores/pricing";
 import { cn } from "@/lib/utils";
+import { useSessionStore } from "@/stores/session-store";
 
 interface DriverStatusBarProps {
   driverName: string;
@@ -36,9 +39,16 @@ export function DriverStatusBar({
   onEnableAlerts,
   dailyEarnings = 0,
 }: DriverStatusBarProps): ReactNode {
-  const { t, locale, setLocale } = useLocale();
-  const nextLocale = locale === "ar" ? "en" : "ar";
+  const { t, locale } = useLocale();
+  const router = useRouter();
   const available = dutyStatus === "AVAILABLE";
+
+  const onLogout = async (): Promise<void> => {
+    await logoutRequest();
+    useSessionStore.getState().setUser(null);
+    router.replace(`/${locale}/login`);
+    router.refresh();
+  };
 
   return (
     <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -99,18 +109,6 @@ export function DriverStatusBar({
               {t("driver.enableAlerts")}
             </Button>
           ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ms-1 h-10 min-w-10 touch-manipulation px-2"
-            aria-label={t("common.language")}
-            onPress={() => setLocale(nextLocale)}
-          >
-            <Languages className="size-4" />
-            <span className="text-xs font-semibold">
-              {locale === "ar" ? t("common.english") : t("common.arabic")}
-            </span>
-          </Button>
           {onSwitchDriver ? (
             <Button
               variant="ghost"
@@ -121,6 +119,18 @@ export function DriverStatusBar({
               {t("driver.switchDriver")}
             </Button>
           ) : null}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10 touch-manipulation px-2 text-xs"
+            aria-label={t("navbar.logout")}
+            onPress={() => {
+              void onLogout();
+            }}
+          >
+            <LogOut className="size-4" />
+            {t("navbar.logout")}
+          </Button>
         </div>
       </div>
     </header>

@@ -13,7 +13,7 @@ import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { homePathForRole } from "@/lib/auth/constants";
 import { loginRequest } from "@/lib/auth/client";
-import { isSafeInternalPath } from "@/lib/paths";
+import { isSafeInternalPath, withLocalePrefix } from "@/lib/paths";
 
 const fieldClass =
   "h-10 w-full rounded-xl border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -42,7 +42,7 @@ export function LoginForm(): ReactNode {
     const next = searchParams.get("next");
     const decoded = next ? decodeURIComponent(next) : null;
     const destination = isSafeInternalPath(decoded)
-      ? decoded
+      ? withLocalePrefix(decoded, locale)
       : homePathForRole(result.user.role, locale);
 
     router.replace(destination);
