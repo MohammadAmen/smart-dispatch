@@ -68,10 +68,10 @@ export function startIncomingVibrate(): void {
     return;
   }
 
-  navigator.vibrate([400, 160, 400, 160, 400, 700]);
+  navigator.vibrate([500, 120, 500, 120, 500, 180, 800, 700]);
   incomingVibrateTimer = window.setInterval(() => {
-    navigator.vibrate([400, 160, 400, 160, 400, 700]);
-  }, 2200);
+    navigator.vibrate([500, 120, 500, 120, 500, 180, 800, 700]);
+  }, 2500);
 }
 
 export function stopIncomingVibrate(): void {

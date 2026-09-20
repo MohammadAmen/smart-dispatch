@@ -229,6 +229,8 @@ export function startIncomingRingtone(): void {
       const audio = new Audio(src);
       audio.loop = true;
       audio.preload = "auto";
+      audio.volume = 1;
+      audio.playsInline = true;
       try {
         await audio.play();
         ringtoneElement = audio;
