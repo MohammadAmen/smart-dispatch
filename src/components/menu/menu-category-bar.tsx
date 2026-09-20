@@ -68,14 +68,14 @@ function CustomOrderStory({
     >
       <span className="relative block w-full rounded-2xl p-[3px]">
         <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-          <span className="custom-order-story-spin absolute inset-[-45%] bg-[conic-gradient(from_120deg,#14b8a6,#10b981,#22d3ee,#14b8a6)]" />
+          <span className="brand-conic custom-order-story-spin absolute inset-[-45%]" />
         </span>
         <span className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-[13px] bg-background">
-          <span className="absolute inset-0 bg-linear-to-br from-teal-500/20 via-emerald-500/18 to-cyan-500/20" />
-          <Palette className="relative size-5 animate-pulse text-teal-600 motion-reduce:animate-none dark:text-teal-300" />
+          <span className="absolute inset-0 bg-linear-to-br from-primary/20 via-warning/16 to-glow/20" />
+          <Palette className="relative size-5 animate-pulse text-primary motion-reduce:animate-none" />
         </span>
       </span>
-      <span className="flex max-w-full flex-col items-center text-[11px] leading-tight font-semibold text-teal-700 dark:text-teal-300">
+      <span className="flex max-w-full flex-col items-center text-[11px] leading-tight font-semibold text-primary">
         <span className="line-clamp-1">{title}</span>
         <span className="line-clamp-1 text-[10px] font-medium text-muted-foreground">{hint}</span>
       </span>

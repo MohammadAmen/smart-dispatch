@@ -168,7 +168,7 @@ export function MenuPersistentCart({
             <button
               type="button"
               onClick={() => onCheckoutOpenChange(true)}
-              className="glass-strong flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start shadow-[0_18px_40px_-24px_oklch(0.2_0.08_195/0.55)]"
+              className="glass-strong flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start shadow-[0_18px_40px_-24px_color-mix(in_oklch,var(--primary)_35%,transparent)]"
             >
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <ShoppingBag className="size-4" />

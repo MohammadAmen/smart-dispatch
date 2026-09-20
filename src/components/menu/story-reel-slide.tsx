@@ -238,7 +238,7 @@ export function StoryReelOverlay({
             href={actionHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-teal-500 to-emerald-500 text-sm font-semibold text-white shadow-lg shadow-teal-500/30"
+            className="brand-sheen inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30"
           >
             <Phone className="size-4" />
             {story.actionType === "EXTERNAL_LINK" ? t("menu.openLink") : t("menu.contactUs")}
@@ -248,7 +248,7 @@ export function StoryReelOverlay({
           <button
             type="button"
             onClick={onOrder}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-teal-500 via-emerald-500 to-cyan-500 text-sm font-semibold text-white shadow-lg shadow-teal-500/30"
+            className="brand-sheen inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30"
           >
             <ShoppingBag className="size-4" />
             {added

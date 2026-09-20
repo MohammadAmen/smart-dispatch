@@ -79,7 +79,7 @@ export function OrderSidePanel({
                 className={cn(
                   "glass pointer-events-auto w-full rounded-2xl p-4 text-start transition-shadow",
                   selected
-                    ? "ring-2 ring-primary/70 shadow-[0_16px_40px_-24px_oklch(0.55_0.12_195)]"
+                    ? "ring-2 ring-primary/70 shadow-[0_16px_40px_-24px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
                     : "hover:ring-1 hover:ring-primary/30",
                 )}
               >

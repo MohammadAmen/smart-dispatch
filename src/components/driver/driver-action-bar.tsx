@@ -52,7 +52,7 @@ export function DriverActionBar({
         <Button
           isDisabled={busy}
           onPress={() => onAction(kind)}
-          className="h-16 w-full touch-manipulation rounded-2xl text-lg font-bold shadow-[0_16px_40px_-18px_oklch(0.55_0.16_195)]"
+          className="h-16 w-full touch-manipulation rounded-2xl text-lg font-bold shadow-[0_16px_40px_-18px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
         >
           {busy ? (
             t("driver.working")

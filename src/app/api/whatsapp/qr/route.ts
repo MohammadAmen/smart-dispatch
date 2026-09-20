@@ -125,12 +125,12 @@ function renderQrHtml(snapshot: WhatsAppRuntimeSnapshot, imageDataUrl: string | 
     <style>
       :root {
         color-scheme: dark;
-        --bg: #07111f;
-        --card: rgba(15, 23, 42, 0.72);
-        --line: rgba(148, 163, 184, 0.22);
-        --text: #e2e8f0;
-        --muted: #94a3b8;
-        --accent: #38bdf8;
+        --bg: #1a1610;
+        --card: rgba(36, 30, 18, 0.78);
+        --line: rgba(233, 183, 31, 0.18);
+        --text: #f6eed4;
+        --muted: #c4b48a;
+        --accent: #e9b71f;
         --ok: #34d399;
       }
       * { box-sizing: border-box; }
@@ -139,8 +139,8 @@ function renderQrHtml(snapshot: WhatsAppRuntimeSnapshot, imageDataUrl: string | 
         min-height: 100vh;
         font-family: "Segoe UI", Tahoma, sans-serif;
         background:
-          radial-gradient(1200px 500px at 10% -10%, rgba(56, 189, 248, 0.18), transparent 55%),
-          radial-gradient(900px 400px at 100% 0%, rgba(52, 211, 153, 0.12), transparent 50%),
+          radial-gradient(1200px 500px at 10% -10%, rgba(233, 183, 31, 0.2), transparent 55%),
+          radial-gradient(900px 400px at 100% 0%, rgba(184, 134, 22, 0.12), transparent 50%),
           var(--bg);
         color: var(--text);
         display: grid;
@@ -232,9 +232,9 @@ function unauthorizedHtml(): string {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unauthorized · WhatsApp QR</title>
     <style>
-      body { font-family: "Segoe UI", Tahoma, sans-serif; background: #07111f; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }
-      a { color: #38bdf8; }
-      .card { max-width: 420px; padding: 28px; border: 1px solid rgba(148,163,184,.25); border-radius: 20px; text-align: center; }
+      body { font-family: "Segoe UI", Tahoma, sans-serif; background: #1a1610; color: #f6eed4; display: grid; place-items: center; min-height: 100vh; margin: 0; }
+      a { color: #e9b71f; }
+      .card { max-width: 420px; padding: 28px; border: 1px solid rgba(233,183,31,.22); border-radius: 20px; text-align: center; }
     </style>
   </head>
   <body>

@@ -24,7 +24,7 @@ export function GlassCard({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "glass rounded-2xl p-5",
-        hover && "transition-shadow duration-300 hover:shadow-[0_18px_50px_-28px_oklch(0.45_0.08_195/0.45)]",
+        hover && "transition-shadow duration-300 hover:shadow-[0_18px_50px_-28px_color-mix(in_oklch,var(--primary)_40%,transparent)]",
         className,
       )}
     >

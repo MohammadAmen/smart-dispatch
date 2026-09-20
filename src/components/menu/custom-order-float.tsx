@@ -59,9 +59,9 @@ export function CustomOrderFloat({
               onClick={onPress}
               aria-label={t("menu.customFloat")}
               className={cn(
-                "custom-order-glow pointer-events-auto inline-flex items-center rounded-full text-start text-white",
-                "bg-linear-to-r from-teal-500 via-emerald-500 to-cyan-500",
-                "shadow-lg shadow-teal-500/30 ring-2 ring-white/25",
+                "custom-order-glow pointer-events-auto inline-flex items-center rounded-full text-start text-primary-foreground",
+                "brand-sheen",
+                "shadow-lg shadow-primary/30 ring-2 ring-white/25",
                 compact ? "gap-0 p-2.5" : "max-w-[min(100%,17.75rem)] gap-2 px-3 py-2",
               )}
             >

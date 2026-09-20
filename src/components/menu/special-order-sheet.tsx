@@ -25,7 +25,7 @@ const fieldClass =
   "h-11 w-full rounded-2xl border border-border/80 bg-background/55 px-3 text-sm outline-none backdrop-blur-md focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const accentFill =
-  "bg-linear-to-r from-teal-500 via-emerald-500 to-cyan-500 text-white shadow-lg shadow-teal-500/30";
+  "brand-sheen text-primary-foreground shadow-lg shadow-primary/30";
 
 function toLocalInput(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, "0");
@@ -189,11 +189,11 @@ export function SpecialOrderSheet({
             transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             className="glass-strong relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-x border-t"
           >
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-teal-500/18 via-emerald-500/10 to-transparent" />
+            <div className="brand-sheen-soft pointer-events-none absolute inset-x-0 top-0 h-28" />
             <div className="relative mx-auto mt-2 h-1.5 w-12 rounded-full bg-border" />
             <div className="relative flex items-start justify-between gap-3 px-5 pb-2 pt-4">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-teal-600 uppercase dark:text-teal-300">
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
                   {storeName}
                 </p>
                 <h2 className="font-heading text-lg font-semibold">{t("menu.customDrawerTitle")}</h2>
@@ -226,7 +226,7 @@ export function SpecialOrderSheet({
 
               <label className="block space-y-2">
                 <span className="text-xs font-medium text-muted-foreground">{t("menu.customImage")}</span>
-                <span className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-teal-400/50 bg-linear-to-br from-teal-500/8 via-emerald-500/8 to-cyan-500/10">
+                <span className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-primary/40 bg-primary/8">
                   {preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={preview} alt="" className="h-44 w-full object-cover" />
@@ -324,7 +324,7 @@ export function SpecialOrderSheet({
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
               <Button
-                className="h-12 w-full rounded-2xl bg-linear-to-r from-teal-500 via-emerald-500 to-cyan-500 text-sm text-white shadow-lg shadow-teal-500/30 hover:from-teal-500/90 hover:via-emerald-500/90 hover:to-cyan-500/90"
+                className="brand-sheen h-12 w-full rounded-2xl text-sm text-primary-foreground shadow-lg shadow-primary/30 hover:opacity-90"
                 onPress={() => {
                   void submit();
                 }}

@@ -123,7 +123,7 @@ function SidebarBody({
           collapsed && "justify-center px-2",
         )}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_oklch(0.55_0.12_195)]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_color-mix(in_oklch,var(--primary)_55%,transparent)]">
           <Truck className="size-[18px]" />
         </span>
         <AnimatePresence initial={false}>

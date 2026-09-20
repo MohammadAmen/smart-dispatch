@@ -202,9 +202,9 @@ export function StoreDiscoveryApp({
                 className="relative inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-background/55 hover:text-foreground"
                 aria-label={t("menu.savedStores")}
               >
-                <Bookmark className={cn("size-4", savedCount > 0 && "fill-teal-500 text-teal-600")} />
+                <Bookmark className={cn("size-4", savedCount > 0 && "fill-primary text-primary")} />
                 {savedCount > 0 ? (
-                  <span className="absolute -top-0.5 -end-0.5 inline-flex min-w-3.5 items-center justify-center rounded-full bg-teal-500 px-1 text-[9px] font-bold text-white">
+                  <span className="absolute -top-0.5 -end-0.5 inline-flex min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                     {savedCount > 9 ? "9+" : savedCount}
                   </span>
                 ) : null}

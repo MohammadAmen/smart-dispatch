@@ -62,7 +62,7 @@ export function OrderQueueCard({
       className={cn(
         "glass overflow-hidden rounded-2xl",
         selected &&
-          "ring-2 ring-primary/70 shadow-[0_16px_40px_-24px_oklch(0.55_0.12_195)]",
+          "ring-2 ring-primary/70 shadow-[0_16px_40px_-24px_color-mix(in_oklch,var(--primary)_55%,transparent)]",
       )}
     >
       <button

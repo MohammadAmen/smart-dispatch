@@ -13,10 +13,10 @@ interface ChartColors {
 }
 
 const fallback: ChartColors = {
-  primary: "#2aa8a0",
+  primary: "#e9b71f",
   success: "#3da66a",
-  info: "#4d7fd6",
-  warning: "#d4a017",
+  info: "#a67c2a",
+  warning: "#c98414",
   muted: "#7b8494",
   foreground: "#1e2430",
   grid: "rgba(120, 130, 145, 0.22)",

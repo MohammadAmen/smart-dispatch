@@ -110,7 +110,7 @@ export function DispatchHeader(): ReactNode {
         isDisabled={isAutoDispatching || pendingAssign === 0}
         className={cn(
           "relative overflow-hidden",
-          pendingAssign > 0 && !isAutoDispatching && "shadow-[0_10px_28px_-14px_oklch(0.55_0.14_195)]",
+          pendingAssign > 0 && !isAutoDispatching && "shadow-[0_10px_28px_-14px_color-mix(in_oklch,var(--primary)_55%,transparent)]",
         )}
       >
         {isAutoDispatching ? (

@@ -99,7 +99,7 @@ export function SavedStoresSheet({
                         onClose();
                         router.push(`/menu/stores/${store.id}`);
                       }}
-                      className="inline-flex size-9 items-center justify-center rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300"
+                      className="inline-flex size-9 items-center justify-center rounded-full bg-primary/15 text-primary"
                       aria-label={t("menu.viewStoreMenu")}
                     >
                       <ShoppingBag className="size-4" />

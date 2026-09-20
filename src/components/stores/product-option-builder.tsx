@@ -27,7 +27,7 @@ export interface OptionGroupDraft {
 }
 
 export function emptyOptionValue(): OptionValueDraft {
-  return { key: crypto.randomUUID(), name: "", extraPrice: 0, colorHex: "#2aa8a0" };
+  return { key: crypto.randomUUID(), name: "", extraPrice: 0, colorHex: "#e9b71f" };
 }
 
 export function emptyOptionGroup(type: ProductOptionType, name = ""): OptionGroupDraft {
@@ -172,7 +172,7 @@ export function ProductOptionBuilder({
                   {group.type === "COLOR" ? (
                     <input
                       type="color"
-                      value={value.colorHex || "#2aa8a0"}
+                      value={value.colorHex || "#e9b71f"}
                       onChange={(event) => updateValue(group.key, value.key, { colorHex: event.target.value })}
                       className={cn(fieldClass, "w-14 cursor-pointer p-1")}
                     />

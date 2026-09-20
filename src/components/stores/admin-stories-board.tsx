@@ -258,7 +258,7 @@ function AdminStoryEditor({
                   <video src={preview} className="h-56 w-full rounded-2xl object-cover" controls playsInline />
                 )
               ) : (
-                <span className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-teal-400/50 bg-linear-to-br from-teal-500/8 to-cyan-500/10 text-muted-foreground">
+                <span className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-linear-to-br from-primary/8 to-warning/10 text-muted-foreground">
                   <span className="flex items-center gap-2">
                     <Play className="size-6" />
                     <ImageIcon className="size-6" />
@@ -307,7 +307,7 @@ function AdminStoryEditor({
               className={cn(
                 "rounded-xl border px-3 py-2 text-sm font-medium",
                 actionType === "CONTACT_US"
-                  ? "border-teal-500 bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                  ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground",
               )}
             >
@@ -319,7 +319,7 @@ function AdminStoryEditor({
               className={cn(
                 "rounded-xl border px-3 py-2 text-sm font-medium",
                 actionType === "EXTERNAL_LINK"
-                  ? "border-teal-500 bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                  ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground",
               )}
             >

@@ -252,7 +252,7 @@ export function OrderTrackerApp({
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-lg px-4 pb-[max(0.85rem,env(safe-area-inset-bottom))]">
-        <div className="glass-strong grid grid-cols-2 gap-2 rounded-2xl border p-2 shadow-[0_18px_40px_-24px_oklch(0.2_0.08_195/0.55)]">
+        <div className="glass-strong grid grid-cols-2 gap-2 rounded-2xl border p-2 shadow-[0_18px_40px_-24px_color-mix(in_oklch,var(--primary)_35%,transparent)]">
           <Link
             href="/menu"
             className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-medium"

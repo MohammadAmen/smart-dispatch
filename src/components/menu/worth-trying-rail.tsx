@@ -103,13 +103,13 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
     <section className="px-4 pb-1">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <Lightbulb className="size-3.5 text-teal-600" />
+          <Lightbulb className="size-3.5 text-primary" />
           <h2 className="text-sm font-semibold">{t("menu.worthTrying")}</h2>
         </div>
         <button
           type="button"
           onClick={() => setFeedOpen(true)}
-          className="text-xs font-semibold text-teal-700 dark:text-teal-300"
+          className="text-xs font-semibold text-primary"
         >
           {t("menu.viewAll")}
         </button>
@@ -120,9 +120,9 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
           onClick={() => setFeedOpen(true)}
           className="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 text-center"
         >
-          <span className="relative block w-full rounded-full bg-linear-to-tr from-amber-400 via-teal-500 to-cyan-400 p-[3px]">
+          <span className="relative block w-full rounded-full bg-linear-to-tr from-primary via-warning to-glow p-[3px]">
             <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-background">
-              <Sparkles className="size-5 text-teal-600" />
+              <Sparkles className="size-5 text-primary" />
             </span>
           </span>
           <span className="line-clamp-1 text-[11px] font-medium">{t("menu.viewAll")}</span>
@@ -143,16 +143,16 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
                 className={cn(
                   "relative block w-full rounded-full p-[3px]",
                   store.isAdminAd
-                    ? "bg-linear-to-tr from-amber-400 to-teal-500"
+                    ? "bg-linear-to-tr from-warning to-primary"
                     : allSeen
                       ? "bg-slate-500/35 ring-1 ring-slate-500/40"
-                      : "bg-linear-to-tr from-teal-500 to-cyan-400",
+                      : "bg-linear-to-tr from-primary to-glow",
                   !allSeen && freshIds.has(store.storeId) && "albal-pulse-glow",
                 )}
               >
                 {!allSeen && !store.isAdminAd ? (
                   <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                    <span className="custom-order-story-spin absolute inset-[-45%] bg-[conic-gradient(from_120deg,#14b8a6,#10b981,#22d3ee,#14b8a6)]" />
+                    <span className="brand-conic custom-order-story-spin absolute inset-[-45%]" />
                   </span>
                 ) : null}
                 <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-background">
@@ -162,7 +162,7 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={store.storeLogoUrl} alt="" className="size-full object-cover" />
                   ) : (
-                    <span className="text-xs font-semibold text-teal-700">
+                    <span className="text-xs font-semibold text-primary">
                       {store.storeName.slice(0, 1)}
                     </span>
                   )}

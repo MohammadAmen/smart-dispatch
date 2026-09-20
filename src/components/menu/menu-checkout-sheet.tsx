@@ -124,7 +124,7 @@ export function MenuCheckoutSheet({
 
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-6">
               {dineInLabel ? (
-                <p className="rounded-2xl bg-teal-500/12 px-3 py-2 text-sm font-semibold text-teal-700 dark:text-teal-300">
+                <p className="rounded-2xl bg-primary/12 px-3 py-2 text-sm font-semibold text-primary">
                   {t("menu.dineInBanner", { table: dineInLabel })}
                 </p>
               ) : null}

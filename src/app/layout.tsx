@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo, Geist_Mono } from "next/font/google";
 
 import { LocaleProvider } from "@/components/providers/locale-provider";
@@ -31,6 +31,13 @@ export const metadata: Metadata = {
   },
   description:
     "مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf6ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1610" },
+  ],
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

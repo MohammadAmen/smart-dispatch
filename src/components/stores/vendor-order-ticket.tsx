@@ -89,7 +89,7 @@ export function VendorOrderTicket({
           className={cn(
             "inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
             dineIn
-              ? "bg-teal-500/15 text-teal-800 shadow-[0_0_18px_oklch(0.72_0.12_180/0.28)] dark:text-teal-100"
+              ? "bg-primary/15 text-primary shadow-[0_0_18px_color-mix(in_oklch,var(--primary)_28%,transparent)]"
               : "bg-sky-500/12 text-sky-800 dark:text-sky-100",
           )}
         >

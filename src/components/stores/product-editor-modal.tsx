@@ -92,7 +92,7 @@ export function ProductEditorModal({
           key: value.id,
           name: value.name,
           extraPrice: value.extraPrice,
-          colorHex: value.colorHex ?? "#2aa8a0",
+          colorHex: value.colorHex ?? "#e9b71f",
         })),
       })),
     );
@@ -333,9 +333,9 @@ export function ProductEditorModal({
                       <button
                         type="button"
                         onClick={() => fileRef.current?.click()}
-                        className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-teal-400/50 bg-linear-to-br from-teal-500/8 via-emerald-500/8 to-cyan-500/10 text-muted-foreground"
+                        className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-linear-to-br from-primary/8 via-warning/8 to-glow/10 text-muted-foreground"
                       >
-                        <span className="flex size-10 items-center justify-center rounded-2xl bg-linear-to-r from-teal-500 via-emerald-500 to-cyan-500 text-white shadow-lg shadow-teal-500/30">
+                        <span className="brand-sheen flex size-10 items-center justify-center rounded-2xl text-primary-foreground shadow-lg shadow-primary/30">
                           <ImagePlus className="size-5" />
                         </span>
                         <span className="px-2 text-center text-[11px] font-medium">

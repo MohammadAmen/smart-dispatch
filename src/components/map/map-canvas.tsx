@@ -185,7 +185,7 @@ export function MapCanvas({
                 key={`${order.id}-${selected ? "on" : "off"}`}
                 positions={curve}
                 pathOptions={{
-                  color: selected ? "#5eead4" : "#14b8a6",
+                  color: selected ? "#f3d56a" : "#e9b71f",
                   weight: selected ? 5 : 3.25,
                   opacity: selected ? 0.95 : 0.7,
                   className: cn("sd-route-path", selected && "sd-route-active"),

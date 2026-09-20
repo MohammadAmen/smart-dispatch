@@ -66,7 +66,7 @@ export function StoreInfoSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-strong relative z-10 w-full max-w-lg overflow-visible rounded-t-3xl border-x border-t pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-18px_48px_-24px_oklch(0.2_0.08_195/0.45)]"
+            className="glass-strong relative z-10 w-full max-w-lg overflow-visible rounded-t-3xl border-x border-t pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-18px_48px_-24px_color-mix(in_oklch,var(--primary)_32%,transparent)]"
           >
             <div className="relative">
               <div className="h-32 w-full overflow-hidden rounded-t-3xl bg-muted">
@@ -78,7 +78,7 @@ export function StoreInfoSheet({
                     className="h-32 w-full rounded-t-3xl object-cover"
                   />
                 ) : (
-                  <div className="h-32 w-full rounded-t-3xl bg-linear-to-l from-teal-500/30 via-emerald-400/15 to-cyan-400/10" />
+                  <div className="brand-sheen-soft h-32 w-full rounded-t-3xl" />
                 )}
               </div>
               <div className="absolute inset-x-0 top-0 z-10 flex justify-center">
@@ -89,7 +89,7 @@ export function StoreInfoSheet({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={store.storeLogoUrl} alt="" className="size-full object-cover" />
                 ) : (
-                  <span className="flex size-full items-center justify-center font-heading text-xl font-bold text-teal-700 dark:text-teal-300">
+                  <span className="flex size-full items-center justify-center font-heading text-xl font-bold text-primary">
                     {store.storeName.slice(0, 1)}
                   </span>
                 )}
@@ -101,20 +101,20 @@ export function StoreInfoSheet({
                 <h2 className="text-xl font-bold">{store.storeName}</h2>
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                   {store.storeTypeName ? (
-                    <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-700 ring-1 ring-teal-500/15 dark:text-teal-300">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary ring-1 ring-primary/15">
                       {store.storeTypeName}
                     </span>
                   ) : null}
                   {address ? (
                     <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground ring-1 ring-border/70">
-                      <MapPin className="size-3.5 shrink-0 text-teal-600" />
+                      <MapPin className="size-3.5 shrink-0 text-primary" />
                       <span className="truncate">{address}</span>
                     </span>
                   ) : null}
                   {store.storePhone ? (
                     <a
                       href={`tel:${store.storePhone}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-500/20 transition hover:bg-teal-500/15 dark:text-teal-300"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20 transition hover:bg-primary/15"
                     >
                       <Phone className="size-3.5 shrink-0" />
                       {store.storePhone}
@@ -132,7 +132,7 @@ export function StoreInfoSheet({
                     onOpenMenu();
                     router.push(`/menu/stores/${store.storeId}`);
                   }}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-teal-500 to-emerald-500 py-3 text-sm font-medium text-white shadow-md shadow-teal-500/20 transition active:scale-95"
+                  className="brand-sheen inline-flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium text-primary-foreground shadow-md shadow-primary/20 transition active:scale-95"
                 >
                   <ShoppingBag className="size-4" />
                   {t("menu.viewStoreMenu")}
@@ -145,8 +145,8 @@ export function StoreInfoSheet({
                   className={cn(
                     "inline-flex size-12 shrink-0 items-center justify-center rounded-2xl transition",
                     saved
-                      ? "bg-teal-500 text-white shadow-md shadow-teal-500/35 ring-2 ring-teal-300/60"
-                      : "bg-background/80 text-muted-foreground ring-1 ring-border hover:text-teal-600",
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-2 ring-primary/50"
+                      : "bg-background/80 text-muted-foreground ring-1 ring-border hover:text-primary",
                   )}
                 >
                   <Bookmark className={cn("size-5", saved && "fill-current")} />

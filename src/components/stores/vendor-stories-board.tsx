@@ -268,7 +268,7 @@ function StoryEditor({
               {preview ? (
                 <video src={preview} className="h-56 w-full rounded-2xl object-cover" controls playsInline />
               ) : (
-                <span className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-teal-400/50 bg-linear-to-br from-teal-500/8 to-cyan-500/10 text-muted-foreground">
+                <span className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-linear-to-br from-primary/8 to-warning/10 text-muted-foreground">
                   <Play className="size-7" />
                   <span className="text-xs">{t("vendor.storyVideoHint")}</span>
                 </span>

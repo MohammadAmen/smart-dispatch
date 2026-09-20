@@ -502,7 +502,7 @@ export function MenuApp({
         </div>
         <div className="relative -mt-12 px-4">
           <div className="flex items-end gap-3">
-            <div className="relative size-[4.75rem] shrink-0 overflow-hidden rounded-full bg-background shadow-[0_12px_32px_-12px_oklch(0.2_0.08_195/0.55)] ring-4 ring-background">
+            <div className="relative size-[4.75rem] shrink-0 overflow-hidden rounded-full bg-background shadow-[0_12px_32px_-12px_color-mix(in_oklch,var(--primary)_35%,transparent)] ring-4 ring-background">
               <MenuSafeImage
                 src={store.logoUrl}
                 alt={store.name}
