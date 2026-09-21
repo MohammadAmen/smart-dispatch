@@ -53,6 +53,9 @@ async function migrateVendorIntelSchema(): Promise<void> {
   await pgCreateIndex("store_tables_storeId_idx", "store_tables", `"storeId"`);
 
   await pgAddColumn("stores", "receiptFooterNote", "VARCHAR(255) NULL");
+  await pgAddColumn("stores", "primaryColor", "VARCHAR(32) NULL");
+  await pgAddColumn("stores", "secondaryColor", "VARCHAR(32) NULL");
+  await pgAddColumn("stores", "welcomeMessage", "VARCHAR(255) NULL");
   await pgAddColumn("orders", "fulfillment", "VARCHAR(32) NOT NULL DEFAULT 'DELIVERY'");
   await pgAddColumn("orders", "tableId", "VARCHAR(191) NULL");
   await pgAddColumn("orders", "tableLabel", "VARCHAR(64) NULL");

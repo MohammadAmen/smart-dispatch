@@ -30,7 +30,7 @@ export function MenuCategoryBar({
   return (
     <div
       ref={tabRowRef}
-      className="flex gap-2.5 overflow-x-auto px-0.5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex gap-3 overflow-x-auto px-0.5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {customStory && onCustomStory ? (
         <CustomOrderStory title={customStory.title} hint={customStory.hint} onPress={onCustomStory} />
@@ -61,16 +61,16 @@ function CustomOrderStory({
     <m.button
       type="button"
       onClick={onPress}
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.96 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 text-center"
+      className="flex w-[4.35rem] shrink-0 flex-col items-center gap-1.5 text-center"
       aria-label={title}
     >
-      <span className="relative block w-full rounded-2xl p-[3px]">
-        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+      <span className="relative flex size-14 items-center justify-center rounded-full p-[3px]">
+        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
           <span className="brand-conic custom-order-story-spin absolute inset-[-45%]" />
         </span>
-        <span className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-[13px] bg-background">
+        <span className="relative flex size-full items-center justify-center overflow-hidden rounded-full bg-background">
           <span className="absolute inset-0 bg-linear-to-br from-primary/20 via-warning/16 to-glow/20" />
           <Palette className="relative size-5 animate-pulse text-primary motion-reduce:animate-none" />
         </span>
@@ -101,35 +101,38 @@ function CategoryCard({
       type="button"
       data-cat={category.id}
       onClick={onSelect}
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.96 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 text-center"
+      className="flex w-[4.35rem] shrink-0 flex-col items-center gap-1.5 text-center"
     >
       <span
         className={cn(
-          "block w-full rounded-2xl p-[3px]",
-          active ? "bg-primary" : "bg-border/80",
+          "relative flex size-14 items-center justify-center rounded-full p-[3px] transition-shadow duration-200",
+          active
+            ? "bg-primary shadow-[0_0_18px_color-mix(in_oklch,var(--primary)_70%,transparent)]"
+            : "bg-border/80",
         )}
       >
-        <span className="relative block h-12 w-full overflow-hidden rounded-[13px] bg-muted">
+        <span className="relative size-full overflow-hidden rounded-full bg-muted">
           <MenuSafeImage
             src={coverSrc}
             alt=""
             className="absolute inset-0 size-full object-cover"
             fallback={
-              <span className="absolute inset-0 bg-linear-to-br from-primary/85 via-info/55 to-secondary" />
+              <span className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-primary/85 via-info/55 to-secondary text-primary-foreground">
+                <Icon className="size-5" />
+              </span>
             }
           />
         </span>
       </span>
       <span
         className={cn(
-          "flex max-w-full items-start justify-center gap-0.5 text-[11px] leading-tight font-semibold",
+          "line-clamp-2 max-w-full text-[11px] leading-tight font-semibold",
           active ? "text-primary" : "text-foreground",
         )}
       >
-        <Icon className="mt-0.5 size-3 shrink-0 opacity-80" />
-        <span className="line-clamp-2 text-start">{category.name}</span>
+        {category.name}
       </span>
     </m.button>
   );

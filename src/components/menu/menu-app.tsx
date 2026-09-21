@@ -30,10 +30,11 @@ import { MenuProductDetailsModal } from "@/components/menu/menu-product-details-
 import { MenuProductCard } from "@/components/menu/menu-product-card";
 import { MenuProductSkeleton } from "@/components/menu/menu-product-skeleton";
 import { MenuSafeImage } from "@/components/menu/menu-safe-image";
+import { MenuTableBadge } from "@/components/menu/menu-table-badge";
 import { MenuViewSwitcher } from "@/components/menu/menu-view-switcher";
 import { SpecialOrderSheet } from "@/components/menu/special-order-sheet";
+import { SplashOverlay } from "@/components/menu/splash-overlay";
 import { useLocale } from "@/components/providers/locale-provider";
-import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   emptyCheckoutDraft,
@@ -65,6 +66,8 @@ import { applyOfferToProduct, offerAppliesToProduct } from "@/lib/stores/offer-t
 import type { PublicOffer } from "@/lib/stores/offer-types";
 import { storeTypeIcon } from "@/lib/stores/category-icon";
 import { storeAllowsCustomOrders } from "@/lib/stores/custom-order";
+import { menuBrandStyle } from "@/lib/stores/menu-brand";
+import { readOrCreateMenuSession } from "@/lib/stores/menu-session";
 import { effectiveProductPrice } from "@/lib/stores/pricing";
 import type { MenuProduct, MenuStore } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
@@ -101,6 +104,8 @@ export function MenuApp({
   const [detailsProduct, setDetailsProduct] = useState<MenuProduct | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [splashOpen, setSplashOpen] = useState(true);
+  const [sessionCode, setSessionCode] = useState("");
   const tabRowRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const switchTimer = useRef<number | null>(null);
@@ -154,6 +159,10 @@ export function MenuApp({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    setSessionCode(readOrCreateMenuSession(store.id, dineIn?.tableId ?? null));
+  }, [dineIn?.tableId, store.id]);
 
   useEffect(() => {
     const saved = readCheckoutDraft(phone);
@@ -393,22 +402,42 @@ export function MenuApp({
   const headerLabel = locationLabel(draft, t("menu.detectingLocation"));
   const ratingLabel =
     store.rating > 0 ? store.rating.toFixed(1) : t("menu.noRating");
-
-  const dineInHeader = dineIn
-    ? t("menu.dineInHeader", { store: store.name, table: dineIn.tableLabel })
-    : null;
+  const brandStyle = menuBrandStyle(store.primaryColor, store.secondaryColor);
+  const splashWelcome = store.welcomeMessage?.trim() || t("menu.splashWelcome", { store: store.name });
+  const tableText = dineIn ? t("menu.tableCapsule", { table: dineIn.tableLabel }) : "";
+  const sessionText = sessionCode ? t("menu.sessionCapsule", { code: sessionCode }) : "";
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-lg">
+    <div className="menu-brand-scope mx-auto min-h-dvh w-full max-w-lg">
+      {brandStyle ? <style>{brandStyle}</style> : null}
       {isDineIn ? (
         <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex items-center gap-2">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-              <UtensilsCrossed className="size-4" />
-            </span>
-            <p className="min-w-0 flex-1 truncate font-heading text-sm font-semibold">
-              {dineInHeader}
-            </p>
+            <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-primary/12 ring-2 ring-primary/25">
+              <MenuSafeImage
+                src={store.logoUrl}
+                alt={store.name}
+                className="size-full object-cover"
+                fallback={
+                  <span className="flex size-full items-center justify-center text-primary">
+                    <StoreTypeIcon className="size-4" />
+                  </span>
+                }
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-heading text-sm font-semibold">{store.name}</p>
+              {dineIn ? (
+                <div className="mt-1">
+                  <MenuTableBadge
+                    tableLabel={dineIn.tableLabel}
+                    sessionCode={sessionCode}
+                    tableText={tableText}
+                    sessionText={sessionText}
+                  />
+                </div>
+              ) : null}
+            </div>
             <div className="flex items-center gap-0.5 rounded-full bg-background/55 p-0.5">
               <button
                 type="button"
@@ -423,7 +452,6 @@ export function MenuApp({
               >
                 {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
               </button>
-              <LocaleToggle className="h-8 px-2" />
               <ThemeToggle />
             </div>
           </div>
@@ -494,7 +522,6 @@ export function MenuApp({
               >
                 <ClipboardList className="size-4" />
               </Link>
-              <LocaleToggle className="h-8 px-2" />
               <ThemeToggle />
             </div>
           </div>
@@ -741,6 +768,22 @@ export function MenuApp({
           onError={setError}
         />
       ) : null}
+
+      <AnimatePresence>
+        {splashOpen ? (
+          <SplashOverlay
+            key="menu-splash"
+            store={store}
+            welcome={splashWelcome}
+            exploreLabel={t("menu.exploreMenu")}
+            tableLabel={dineIn?.tableLabel}
+            tableText={tableText}
+            sessionCode={sessionCode}
+            sessionText={sessionText}
+            onExplore={() => setSplashOpen(false)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

@@ -97,6 +97,7 @@ export async function getPublicMenu(storeId: string): Promise<MenuStore | null> 
     city: store.city,
     logoUrl: store.logoUrl,
     coverImage: store.coverImage,
+    ...(await loadStoreBranding(store.id)),
     latitude: store.latitude,
     longitude: store.longitude,
     rating: store.rating,
@@ -122,6 +123,31 @@ export async function getPublicMenu(storeId: string): Promise<MenuStore | null> 
     })),
     offers,
   };
+}
+
+async function loadStoreBranding(storeId: string): Promise<{
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  welcomeMessage: string | null;
+}> {
+  try {
+    const rows = await prisma.$queryRaw<
+      { primaryColor: string | null; secondaryColor: string | null; welcomeMessage: string | null }[]
+    >`
+      SELECT "primaryColor", "secondaryColor", "welcomeMessage"
+      FROM stores
+      WHERE id = ${storeId}
+      LIMIT 1
+    `;
+    const row = rows[0];
+    return {
+      primaryColor: row?.primaryColor?.trim() || null,
+      secondaryColor: row?.secondaryColor?.trim() || null,
+      welcomeMessage: row?.welcomeMessage?.trim() || null,
+    };
+  } catch {
+    return { primaryColor: null, secondaryColor: null, welcomeMessage: null };
+  }
 }
 
 export async function findOrCreateCustomer(phone: string): Promise<{ id: string; phone: string }> {

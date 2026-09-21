@@ -338,6 +338,9 @@ model Store {
   city        String?
   logoUrl     String?   @db.VarChar(2048)
   coverImage  String?   @db.VarChar(2048)
+  primaryColor String?  @db.VarChar(32)
+  secondaryColor String? @db.VarChar(32)
+  welcomeMessage String? @db.VarChar(255)
   receiptFooterNote String? @db.VarChar(255)
   latitude    Float?
   longitude   Float?

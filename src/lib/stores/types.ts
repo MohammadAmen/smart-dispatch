@@ -160,6 +160,9 @@ export interface MenuStore {
   city: string | null;
   logoUrl: string | null;
   coverImage: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  welcomeMessage: string | null;
   latitude: number | null;
   longitude: number | null;
   rating: number;

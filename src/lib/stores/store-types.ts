@@ -40,6 +40,9 @@ async function migrateStoreDirectorySchema(): Promise<void> {
 
   await pgAddColumn("stores", "storeTypeId", "VARCHAR(191) NULL");
   await pgAddColumn("stores", "coverImage", "VARCHAR(2048) NULL");
+  await pgAddColumn("stores", "primaryColor", "VARCHAR(32) NULL");
+  await pgAddColumn("stores", "secondaryColor", "VARCHAR(32) NULL");
+  await pgAddColumn("stores", "welcomeMessage", "VARCHAR(255) NULL");
   await pgAddColumn("stores", "latitude", "DOUBLE PRECISION NULL");
   await pgAddColumn("stores", "longitude", "DOUBLE PRECISION NULL");
   await pgAddColumn("stores", "rating", "DOUBLE PRECISION NOT NULL DEFAULT 0");
