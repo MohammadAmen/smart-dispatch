@@ -127,6 +127,30 @@ export function latestQueuedStatus(
   entityId: string,
 ): QueuedAction | undefined {
   return [...queue]
-    .filter((action) => action.entityId === entityId)
+    .filter(
+      (action) =>
+        action.entityId === entityId &&
+        (action.queueStatus === "pending" ||
+          action.queueStatus === "failed" ||
+          action.queueStatus === "syncing"),
+    )
+    .sort((left, right) => right.createdAt - left.createdAt)[0];
+}
+
+export function latestOpenDutyAction(
+  queue: QueuedAction[],
+  entityId: string,
+): QueuedAction | undefined {
+  return [...queue]
+    .filter(
+      (action) =>
+        action.entityId === entityId &&
+        (action.type === "DRIVER_AVAILABLE" ||
+          action.type === "DRIVER_BUSY" ||
+          action.type === "DRIVER_OFFLINE") &&
+        (action.queueStatus === "pending" ||
+          action.queueStatus === "failed" ||
+          action.queueStatus === "syncing"),
+    )
     .sort((left, right) => right.createdAt - left.createdAt)[0];
 }

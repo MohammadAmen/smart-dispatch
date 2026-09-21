@@ -3,6 +3,7 @@ import "server-only";
 import type { OrderStatus } from "@/generated/prisma/enums";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { queueAutoAssign } from "@/lib/dispatch/queue-auto-assign";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
 import { notifyCustomerOrderUpdate } from "@/lib/stores/order-notify";
 import { ensureOrderTrackingToken } from "@/lib/stores/order-token";
@@ -653,6 +654,10 @@ export async function advanceVendorOrderStatus(
 
   publishDispatchEvent({ type: "orders.changed" });
   await refreshParentBundleStatus(orderId);
+
+  if (nextStatus === "READY_FOR_PICKUP" && existing.bundleRole !== "CHILD") {
+    queueAutoAssign(orderId);
+  }
 
   if (
     nextStatus === "READY_FOR_PICKUP" &&

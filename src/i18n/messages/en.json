@@ -155,7 +155,10 @@
       "vendorDineIn": "New order at {entityId} 🔔",
       "vendorDineInDetail": "A dine-in order arrived for {entityId} and is waiting in the kitchen.",
       "offerExpired": "Offer ended",
-      "offerExpiredDetail": "“{entityId}” was stopped automatically when its time ran out."
+      "offerExpiredDetail": "“{entityId}” was stopped automatically when its time ran out.",
+      "autoAssigned": "Auto-assigned {count} order(s)",
+      "autoAssignEmpty": "No courier is available right now",
+      "autoAssignFailed": "Auto-assign failed. Please try again."
     }
   },
   "fleet": {

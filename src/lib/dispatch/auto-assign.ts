@@ -201,6 +201,8 @@ export async function runAutoAssign(
 ): Promise<AutoAssignResult> {
   await bootstrapDispatchData();
   await ensureOrderBundleSchema();
+  const { ensureVendorIntelSchema } = await import("@/lib/stores/vendor-intel-schema");
+  await ensureVendorIntelSchema();
 
   const pending = await prisma.order.findMany({
     where: options.orderId

@@ -5,7 +5,6 @@ import { create } from "zustand";
 import { fetchDispatchOrders, postAutoAssign } from "@/lib/dispatch/client";
 import type { AssignmentMatch } from "@/lib/dispatch/types";
 import {
-  courierPool,
   liveOrders,
   type DispatchFilter,
   type LiveOrder,
@@ -33,24 +32,7 @@ interface DispatchState {
   hydrateOrders: (orders: LiveOrder[]) => void;
   autoAssign: (orderId: string) => Promise<boolean>;
   cancelOrder: (orderId: string) => Promise<void>;
-  autoDispatch: () => Promise<void>;
-}
-
-function busyVehicleIds(orders: LiveOrder[]): Set<string> {
-  return new Set(
-    orders
-      .filter(
-        (order) =>
-          order.status === "ASSIGNED" || order.status === "IN_TRANSIT",
-      )
-      .map((order) => order.vehicleId)
-      .filter((id) => id !== "—"),
-  );
-}
-
-function nextCourier(orders: LiveOrder[]): (typeof courierPool)[number] | undefined {
-  const busy = busyVehicleIds(orders);
-  return courierPool.find((courier) => !busy.has(courier.vehicleId));
+  autoDispatch: (options?: { quiet?: boolean }) => Promise<void>;
 }
 
 async function commitActions(inputs: NewDriverAction[]): Promise<void> {
@@ -75,12 +57,6 @@ async function commitActions(inputs: NewDriverAction[]): Promise<void> {
   }
 
   await useSyncStore.getState().flush(inputs.length > 1);
-}
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
 }
 
 function applyMatches(orders: LiveOrder[], matches: AssignmentMatch[]): LiveOrder[] {
@@ -202,45 +178,17 @@ export const useDispatchStore = create<DispatchState>()((set, get) => ({
         return true;
       }
 
-      if (result && result.unmatchedCount > 0) {
-        useToastStore.getState().push({ kind: "error" });
+      if (result) {
+        useToastStore.getState().push({ kind: "autoAssignEmpty" });
         return false;
       }
-    }
 
-    const courier = nextCourier(get().orders);
-    if (!courier) {
+      useToastStore.getState().push({ kind: "autoAssignFailed" });
       return false;
     }
 
-    set((state) => ({
-      selectedOrderId: orderId,
-      orders: state.orders.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: "ASSIGNED",
-              vehicleId: courier.vehicleId,
-              driverName: courier.driverName,
-              driver: courier.driver,
-              progress: 0.05,
-            }
-          : order,
-      ),
-    }));
-
-    await commitActions([
-      {
-        type: "ORDER_ASSIGNED",
-        entityId: orderId,
-        payload: {
-          vehicleId: courier.vehicleId,
-          driverName: courier.driverName,
-        },
-      },
-    ]);
-
-    return true;
+    useToastStore.getState().push({ kind: "autoAssignFailed" });
+    return false;
   },
 
   cancelOrder: async (orderId) => {
@@ -259,11 +207,12 @@ export const useDispatchStore = create<DispatchState>()((set, get) => ({
     await commitActions([{ type: "ORDER_CANCELED", entityId: orderId }]);
   },
 
-  autoDispatch: async () => {
+  autoDispatch: async (options) => {
     if (get().isAutoDispatching) {
       return;
     }
 
+    const quiet = options?.quiet === true;
     const pending = get().orders.filter((order) =>
       isDispatchAssignable(order.status, order.storeId),
     );
@@ -274,64 +223,39 @@ export const useDispatchStore = create<DispatchState>()((set, get) => ({
     set({ isAutoDispatching: true });
 
     try {
-      if (navigator.onLine) {
-        const result = await postAutoAssign();
-        if (result) {
-          set((state) => ({
-            orders: applyMatches(state.orders, result.matches),
-            selectedOrderId: result.matches[0]?.orderNumber ?? state.selectedOrderId,
-          }));
-
-          const fresh = await fetchDispatchOrders();
-          if (fresh) {
-            get().hydrateOrders(fresh);
-          }
-
-          useToastStore.getState().push({
-            kind: result.assignedCount > 0 ? "synced" : "error",
-            count: result.assignedCount,
-          });
-          return;
+      if (!navigator.onLine) {
+        if (!quiet) {
+          useToastStore.getState().push({ kind: "autoAssignFailed" });
         }
+        return;
       }
 
-      const assigned: NewDriverAction[] = [];
-
-      for (const order of pending) {
-        const courier = nextCourier(get().orders);
-        if (!courier) {
-          break;
-        }
-
+      const result = await postAutoAssign();
+      if (result) {
         set((state) => ({
-          selectedOrderId: order.id,
-          orders: state.orders.map((row) =>
-            row.id === order.id
-              ? {
-                  ...row,
-                  status: "ASSIGNED",
-                  vehicleId: courier.vehicleId,
-                  driverName: courier.driverName,
-                  driver: courier.driver,
-                  progress: 0.05,
-                }
-              : row,
-          ),
+          orders: applyMatches(state.orders, result.matches),
+          selectedOrderId: result.matches[0]?.orderNumber ?? state.selectedOrderId,
         }));
 
-        assigned.push({
-          type: "ORDER_ASSIGNED",
-          entityId: order.id,
-          payload: {
-            vehicleId: courier.vehicleId,
-            driverName: courier.driverName,
-          },
-        });
+        const fresh = await fetchDispatchOrders();
+        if (fresh) {
+          get().hydrateOrders(fresh);
+        }
 
-        await wait(380);
+        if (result.assignedCount > 0) {
+          useToastStore.getState().push({
+            kind: "autoAssigned",
+            count: result.assignedCount,
+          });
+        } else if (!quiet) {
+          useToastStore.getState().push({ kind: "autoAssignEmpty" });
+        }
+        return;
       }
 
-      await commitActions(assigned);
+      if (!quiet) {
+        useToastStore.getState().push({ kind: "autoAssignFailed" });
+      }
     } finally {
       set({ isAutoDispatching: false });
     }

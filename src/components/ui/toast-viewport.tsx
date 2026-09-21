@@ -11,6 +11,7 @@ import {
   VolumeX,
   WifiOff,
   X,
+  Zap,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -31,6 +32,9 @@ const toneClass: Record<ToastKind, string> = {
   vendorDineIn: "text-primary",
   offerExpired: "text-warning-foreground dark:text-warning",
   audio: "text-primary",
+  autoAssigned: "text-success",
+  autoAssignEmpty: "text-warning-foreground dark:text-warning",
+  autoAssignFailed: "text-destructive",
 };
 
 const iconByKind: Record<ToastKind, typeof CloudOff> = {
@@ -44,6 +48,9 @@ const iconByKind: Record<ToastKind, typeof CloudOff> = {
   vendorDineIn: PackagePlus,
   offerExpired: Megaphone,
   audio: Volume2,
+  autoAssigned: Zap,
+  autoAssignEmpty: Zap,
+  autoAssignFailed: CloudOff,
 };
 
 export function ToastViewport(): ReactNode {

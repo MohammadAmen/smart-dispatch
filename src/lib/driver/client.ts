@@ -57,7 +57,9 @@ export async function respondToDriverOffer(input: {
   }
 }
 
-export async function patchDriver(body: DriverPatchBody): Promise<boolean> {
+export async function patchDriver(
+  body: DriverPatchBody,
+): Promise<DriverSessionResponse | null> {
   try {
     const response = await fetch("/api/driver", {
       method: "PATCH",
@@ -66,8 +68,17 @@ export async function patchDriver(body: DriverPatchBody): Promise<boolean> {
       keepalive: true,
     });
 
-    return response.ok;
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await readJson(response)) as DriverSessionResponse | null;
+    if (!payload || payload.ok !== true) {
+      return null;
+    }
+
+    return payload;
   } catch {
-    return false;
+    return null;
   }
 }

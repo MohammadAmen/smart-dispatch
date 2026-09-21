@@ -15,11 +15,12 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useDriverAlerts } from "@/hooks/use-driver-alerts";
 import { useDriverGeolocation } from "@/hooks/use-driver-geolocation";
 import { playDeliverySuccessSound, stopIncomingRingtone } from "@/lib/audio";
-import { respondToDriverOffer } from "@/lib/driver/client";
+import { patchDriver, respondToDriverOffer } from "@/lib/driver/client";
 import type { DriverAccess, DriverAssignment, DriverDutyStatus } from "@/lib/driver/types";
 import { stopIncomingVibrate } from "@/lib/notify";
-import { latestQueuedStatus, useSyncStore } from "@/stores/sync-store";
+import { latestOpenDutyAction, latestQueuedStatus, useSyncStore } from "@/stores/sync-store";
 import { useDriverStore } from "@/stores/driver-store";
+import { deleteDutyActionsForEntity } from "@/lib/offline/idb";
 
 export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
   const { t } = useLocale();
@@ -27,6 +28,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
   const driverName = useDriverStore((state) => state.driverName);
   const vehicleType = useDriverStore((state) => state.vehicleType);
   const dutyStatus = useDriverStore((state) => state.dutyStatus);
+  const dutyIntentAt = useDriverStore((state) => state.dutyIntentAt);
   const location = useDriverStore((state) => state.location);
   const locationError = useDriverStore((state) => state.locationError);
   const assignment = useDriverStore((state) => state.assignment);
@@ -115,7 +117,12 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
       return dutyStatus;
     }
 
-    const queued = latestQueuedStatus(queue, driverId);
+    // Keep the driver's last tap sticky so a background hydrate/sync cannot flip it back.
+    if (dutyIntentAt > 0 && Date.now() - dutyIntentAt < 45_000) {
+      return dutyStatus;
+    }
+
+    const queued = latestOpenDutyAction(queue, driverId);
     if (queued?.type === "DRIVER_OFFLINE") {
       return "OFFLINE";
     }
@@ -125,7 +132,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
     }
 
     return dutyStatus;
-  }, [driverId, dutyStatus, queue]);
+  }, [driverId, dutyIntentAt, dutyStatus, queue]);
 
   const locationPayload = useCallback((): Record<string, number> => {
     const point = useDriverStore.getState().location;
@@ -144,10 +151,27 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
       }
 
       setDutyStatus(status);
+      const payload = locationPayload();
+      if (navigator.onLine) {
+        const session = await patchDriver({
+          driverId: id,
+          status,
+          ...(typeof payload.latitude === "number" && typeof payload.longitude === "number"
+            ? { latitude: payload.latitude, longitude: payload.longitude }
+            : {}),
+        });
+        if (session) {
+          await deleteDutyActionsForEntity(id);
+          await useSyncStore.getState().hydrate();
+          setDutyStatus(status);
+          return;
+        }
+      }
+
       await enqueue({
         type: status === "AVAILABLE" ? "DRIVER_AVAILABLE" : "DRIVER_OFFLINE",
         entityId: id,
-        payload: locationPayload(),
+        payload,
       });
     },
     [enqueue, locationPayload, setDutyStatus],
@@ -182,11 +206,32 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
 
         if (action === "timeout") {
           setDutyStatus("OFFLINE");
-          await enqueue({
-            type: "DRIVER_OFFLINE",
-            entityId: id,
-            payload: locationPayload(),
-          });
+          const payload = locationPayload();
+          if (navigator.onLine) {
+            const session = await patchDriver({
+              driverId: id,
+              status: "OFFLINE",
+              ...(typeof payload.latitude === "number" && typeof payload.longitude === "number"
+                ? { latitude: payload.latitude, longitude: payload.longitude }
+                : {}),
+            });
+            if (!session) {
+              await enqueue({
+                type: "DRIVER_OFFLINE",
+                entityId: id,
+                payload,
+              });
+            } else {
+              await deleteDutyActionsForEntity(id);
+              await useSyncStore.getState().hydrate();
+            }
+          } else {
+            await enqueue({
+              type: "DRIVER_OFFLINE",
+              entityId: id,
+              payload,
+            });
+          }
         }
 
         clearAssignment();

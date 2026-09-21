@@ -51,11 +51,21 @@ async function persistAction(action: QueuedAction): Promise<void> {
   const coords = coordsFromPayload(action.payload);
 
   if (nextStatus) {
+    const driverIdFromPayload =
+      typeof action.payload.driverId === "string" && action.payload.driverId.trim()
+        ? action.payload.driverId.trim()
+        : null;
+
     const updated = await prisma.order.updateMany({
       where: {
         OR: [{ id: action.entityId }, { orderNumber: action.entityId }],
       },
-      data: { status: nextStatus },
+      data: {
+        status: nextStatus,
+        ...(nextStatus === "ASSIGNED" && driverIdFromPayload
+          ? { driverId: driverIdFromPayload, offeredAt: new Date(), driverAcceptedAt: null }
+          : {}),
+      },
     });
 
     if (updated.count === 0) {
@@ -116,6 +126,13 @@ async function persistAction(action: QueuedAction): Promise<void> {
           latitude: coords.latitude,
           longitude: coords.longitude,
         },
+      });
+    }
+
+    if (order.driverId && nextStatus === "ASSIGNED") {
+      await prisma.driver.update({
+        where: { id: order.driverId },
+        data: { status: "BUSY" },
       });
     }
 
@@ -235,17 +252,20 @@ export async function POST(request: Request): Promise<Response> {
   for (const action of actions) {
     try {
       await persistAction(action);
+      syncedIds.push(action.id);
       persisted = true;
     } catch {
-      persisted = persisted || false;
+      // Keep failed actions out of syncedIds so the client retries instead of
+      // reporting a successful sync that never landed.
     }
-    syncedIds.push(action.id);
   }
 
   return Response.json({
     ok: true,
     syncedIds,
-    failedIds: [],
+    failedIds: actions
+      .map((action) => action.id)
+      .filter((id) => !syncedIds.includes(id)),
     persisted,
   } satisfies SyncResponseBody);
 }

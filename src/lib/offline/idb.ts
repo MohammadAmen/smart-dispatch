@@ -85,6 +85,20 @@ export async function deleteActions(ids: string[]): Promise<void> {
   db.close();
 }
 
+const DUTY_ACTION_TYPES = new Set([
+  "DRIVER_AVAILABLE",
+  "DRIVER_BUSY",
+  "DRIVER_OFFLINE",
+]);
+
+export async function deleteDutyActionsForEntity(entityId: string): Promise<void> {
+  const actions = await getAllActions();
+  const ids = actions
+    .filter((action) => action.entityId === entityId && DUTY_ACTION_TYPES.has(action.type))
+    .map((action) => action.id);
+  await deleteActions(ids);
+}
+
 export async function markActions(
   ids: string[],
   patch: Partial<Pick<QueuedAction, "queueStatus" | "attempts" | "lastError">>,

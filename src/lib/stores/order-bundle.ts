@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
+import { queueAutoAssign } from "@/lib/dispatch/queue-auto-assign";
 import { notifyCustomerOrderUpdate } from "@/lib/stores/order-notify";
 import { pgAddColumn } from "@/lib/stores/sql-schema";
 import { ensureOrderTrackingToken } from "@/lib/stores/order-token";
@@ -89,6 +90,7 @@ export async function refreshParentBundleStatus(childOrderId: string): Promise<v
     data: { status: "READY_FOR_PICKUP" },
   });
   publishDispatchEvent({ type: "orders.changed" });
+  queueAutoAssign(parent.id);
 
   const trackingToken = parent.trackingToken ?? (await ensureOrderTrackingToken(parent.id));
   void notifyCustomerOrderUpdate({

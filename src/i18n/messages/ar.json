@@ -155,7 +155,10 @@
       "vendorDineIn": "طلب جديد على {entityId} 🔔",
       "vendorDineInDetail": "وصل طلب داخلي للطاولة {entityId} وهو بانتظار التحضير.",
       "offerExpired": "انتهى العرض",
-      "offerExpiredDetail": "تم إيقاف «{entityId}» تلقائياً بعد انتهاء مدته."
+      "offerExpiredDetail": "تم إيقاف «{entityId}» تلقائياً بعد انتهاء مدته.",
+      "autoAssigned": "تم تعيين {count} طلب تلقائياً",
+      "autoAssignEmpty": "لا يوجد مندوب متاح حالياً",
+      "autoAssignFailed": "تعذر التعيين التلقائي. أعد المحاولة."
     }
   },
   "fleet": {

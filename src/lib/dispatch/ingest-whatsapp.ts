@@ -5,6 +5,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getDepotPoint } from "@/lib/dispatch/depot";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
+import { queueAutoAssign } from "@/lib/dispatch/queue-auto-assign";
 import { nextOrderNumber } from "@/lib/dispatch/order-number";
 import { orderWithDriver, toLiveOrder } from "@/lib/dispatch/order-mapper";
 import {
@@ -137,6 +138,7 @@ export async function createOrderFromWhatsApp(
       orderNumber: order.orderNumber,
       source: "whatsapp",
     });
+    queueAutoAssign(order.id);
 
     return { live: toLiveOrder(order), trackingToken };
   } catch {

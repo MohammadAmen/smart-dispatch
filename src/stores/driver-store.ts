@@ -32,6 +32,7 @@ interface DriverState {
   drivers: DriverProfile[];
   isHydrated: boolean;
   isBusy: boolean;
+  dutyIntentAt: number;
   hydrate: () => Promise<void>;
   selectDriver: (driverId: string) => Promise<void>;
   resetDriver: () => void;
@@ -61,6 +62,7 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
   drivers: [],
   isHydrated: false,
   isBusy: false,
+  dutyIntentAt: 0,
 
   hydrate: async () => {
     const storedId = get().driverId ?? readDriverId();
@@ -87,13 +89,18 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
       Boolean(assignment?.acceptedAt) ||
       (assignment?.status === "ASSIGNED" && !assignment.offeredAt) ||
       (assignment != null && acceptedStored === assignment.orderNumber);
+    const incomingDuty = dutyFromServer(driver?.status);
+    const localDuty = get().dutyStatus;
+    const intentAt = get().dutyIntentAt;
+    const keepLocalDuty =
+      intentAt > 0 && Date.now() - intentAt < 45_000 && incomingDuty !== localDuty;
 
     set({
       drivers: session.drivers,
       driverId: driver?.id ?? storedId,
       driverName: driver?.name ?? "",
       vehicleType: driver?.vehicleType ?? "",
-      dutyStatus: dutyFromServer(driver?.status),
+      dutyStatus: keepLocalDuty ? localDuty : incomingDuty,
       assignment,
       accepted,
       dailyEarnings: session.dailyEarnings ?? 0,
@@ -131,7 +138,7 @@ export const useDriverStore = create<DriverState>()((set, get) => ({
     });
   },
 
-  setDutyStatus: (status) => set({ dutyStatus: status }),
+  setDutyStatus: (status) => set({ dutyStatus: status, dutyIntentAt: Date.now() }),
 
   setLocation: (point) => {
     writeStoredLocation(point);

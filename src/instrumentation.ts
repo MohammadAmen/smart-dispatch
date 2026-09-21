@@ -10,7 +10,10 @@ export async function register(): Promise<void> {
   const { startWhatsAppBaileys } = await import("./lib/whatsapp/baileys-service");
   void startWhatsAppBaileys();
 
-  const globalTimer = globalThis as typeof globalThis & { __sdScheduledDispatch?: ReturnType<typeof setInterval> };
+  const globalTimer = globalThis as typeof globalThis & {
+    __sdScheduledDispatch?: ReturnType<typeof setInterval>;
+    __sdAutoAssign?: ReturnType<typeof setInterval>;
+  };
   if (!globalTimer.__sdScheduledDispatch) {
     const tick = (): void => {
       void import("./lib/dispatch/scheduled-dispatch")
@@ -19,5 +22,14 @@ export async function register(): Promise<void> {
     };
     globalTimer.__sdScheduledDispatch = setInterval(tick, 60_000);
     tick();
+  }
+  if (!globalTimer.__sdAutoAssign) {
+    const assignTick = (): void => {
+      void import("./lib/dispatch/auto-assign")
+        .then((mod) => mod.runAutoAssign())
+        .catch(() => undefined);
+    };
+    globalTimer.__sdAutoAssign = setInterval(assignTick, 12_000);
+    assignTick();
   }
 }

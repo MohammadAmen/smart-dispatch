@@ -14,7 +14,10 @@ export type ToastKind =
   | "vendorIncoming"
   | "vendorDineIn"
   | "offerExpired"
-  | "audio";
+  | "audio"
+  | "autoAssigned"
+  | "autoAssignEmpty"
+  | "autoAssignFailed";
 
 export interface SyncToast {
   id: string;

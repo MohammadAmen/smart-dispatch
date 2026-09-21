@@ -65,6 +65,9 @@ export async function runScheduledDispatch(): Promise<ScheduledDispatchResult> {
     publishDispatchEvent({ type: "orders.changed" });
   }
 
+  const leftover = await runAutoAssign();
+  assigned += leftover.assignedCount;
+
   return {
     prepared: toPrepare.length,
     dispatched: due.length,

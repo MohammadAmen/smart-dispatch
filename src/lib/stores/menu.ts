@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getDepotPoint } from "@/lib/dispatch/depot";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
+import { queueAutoAssign } from "@/lib/dispatch/queue-auto-assign";
 import { nextOrderNumber } from "@/lib/dispatch/order-number";
 import { normalizePhone } from "@/lib/dispatch/whatsapp";
 import { notifyCustomerOrderUpdate } from "@/lib/stores/order-notify";
@@ -414,6 +415,9 @@ export async function placeMenuOrder(input: {
         orderNumber: created.orderNumber,
         source: "menu",
       });
+      if (single?.id) {
+        queueAutoAssign(single.id);
+      }
     }
     if (customer && isRealCustomerPhone(customer.phone) && !dineIn) {
       void notifyCustomerOrderUpdate({
