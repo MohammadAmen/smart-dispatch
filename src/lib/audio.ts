@@ -225,7 +225,11 @@ export function startIncomingRingtone(): void {
 
   void (async () => {
     await resumeContext();
-    for (const src of ["/ringtone.mp3", "/ringtone.wav"]) {
+    for (const src of [
+      "/audio/universfield-ringtone-126505.mp3",
+      "/ringtone.mp3",
+      "/ringtone.wav",
+    ]) {
       const audio = new Audio(src);
       audio.loop = true;
       audio.preload = "auto";

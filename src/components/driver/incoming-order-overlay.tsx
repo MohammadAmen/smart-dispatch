@@ -1,11 +1,11 @@
 "use client";
 
 import { m } from "framer-motion";
-import { Banknote, MapPin, Navigation, Store, X } from "lucide-react";
+import { Banknote, MapPin, Navigation, Store } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { IncomingOfferSlider } from "@/components/driver/incoming-offer-slider";
 import { useLocale } from "@/components/providers/locale-provider";
-import { Button } from "@/components/ui/button";
 import { startIncomingRingtone, stopIncomingRingtone } from "@/lib/audio";
 import { DRIVER_OFFER_SECONDS } from "@/lib/driver/offer-window";
 import type { DriverAssignment } from "@/lib/driver/types";
@@ -13,16 +13,21 @@ import { calculateDistance, roundDistanceKm } from "@/lib/geo";
 import type { LatLngTuple } from "@/lib/live-map";
 import { startIncomingVibrate, stopIncomingVibrate } from "@/lib/notify";
 import { formatMoney, PRICE_CURRENCY } from "@/lib/stores/pricing";
+import { cn } from "@/lib/utils";
+
+const TOTAL_TIME = DRIVER_OFFER_SECONDS;
+const URGENT_SECONDS = 10;
+const WARN_SECONDS = 20;
 
 function remainingFromOffer(offeredAt: string | null): number {
   if (!offeredAt) {
-    return DRIVER_OFFER_SECONDS;
+    return TOTAL_TIME;
   }
   const elapsed = (Date.now() - new Date(offeredAt).getTime()) / 1000;
   if (!Number.isFinite(elapsed)) {
-    return DRIVER_OFFER_SECONDS;
+    return TOTAL_TIME;
   }
-  return Math.max(0, Math.min(DRIVER_OFFER_SECONDS, Math.ceil(DRIVER_OFFER_SECONDS - elapsed)));
+  return Math.max(0, Math.min(TOTAL_TIME, Math.ceil(TOTAL_TIME - elapsed)));
 }
 
 function liveDistanceKm(
@@ -38,6 +43,18 @@ function liveDistanceKm(
     1,
   );
   return Number.isFinite(distance) ? distance : assignment.distanceKm;
+}
+
+function pulseUrgentVibrate(): void {
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") {
+    return;
+  }
+  navigator.vibrate([90, 40, 90, 40, 180]);
+}
+
+function stopOfferAlerts(): void {
+  stopIncomingRingtone();
+  stopIncomingVibrate();
 }
 
 export function IncomingOrderOverlay({
@@ -57,16 +74,22 @@ export function IncomingOrderOverlay({
 }): ReactNode {
   const { t } = useLocale();
   const timedOutRef = useRef(false);
+  const decidedRef = useRef(false);
+  const urgentBuzzedRef = useRef(false);
   const onTimeoutRef = useRef(onTimeout);
   onTimeoutRef.current = onTimeout;
   const [remaining, setRemaining] = useState(() => remainingFromOffer(assignment.offeredAt));
   const distance = liveDistanceKm(assignment, driverPoint);
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const progress = remaining / DRIVER_OFFER_SECONDS;
+  const progress = remaining / TOTAL_TIME;
+  const urgent = remaining <= URGENT_SECONDS;
+  const warn = remaining <= WARN_SECONDS && !urgent;
 
   useEffect(() => {
     timedOutRef.current = false;
+    decidedRef.current = false;
+    urgentBuzzedRef.current = false;
     setRemaining(remainingFromOffer(assignment.offeredAt));
     startIncomingRingtone();
     startIncomingVibrate();
@@ -74,20 +97,37 @@ export function IncomingOrderOverlay({
     const timer = window.setInterval(() => {
       const next = remainingFromOffer(assignment.offeredAt);
       setRemaining(next);
-      if (next <= 0 && !timedOutRef.current) {
+
+      if (next <= URGENT_SECONDS && next > 0 && !urgentBuzzedRef.current) {
+        urgentBuzzedRef.current = true;
+        pulseUrgentVibrate();
+      }
+
+      if (next <= 0 && !timedOutRef.current && !decidedRef.current) {
         timedOutRef.current = true;
-        stopIncomingRingtone();
-        stopIncomingVibrate();
+        stopOfferAlerts();
         onTimeoutRef.current();
       }
     }, 250);
 
     return () => {
       window.clearInterval(timer);
-      stopIncomingRingtone();
-      stopIncomingVibrate();
+      stopOfferAlerts();
     };
   }, [assignment.offeredAt, assignment.orderId]);
+
+  function decide(kind: "accept" | "reject"): void {
+    if (decidedRef.current || timedOutRef.current) {
+      return;
+    }
+    decidedRef.current = true;
+    stopOfferAlerts();
+    if (kind === "accept") {
+      onAccept();
+      return;
+    }
+    onReject();
+  }
 
   return (
     <m.div
@@ -104,35 +144,52 @@ export function IncomingOrderOverlay({
       </p>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <div className="relative size-36">
+        <m.div
+          className="relative size-40"
+          animate={urgent ? { x: [0, -3, 3, -2, 2, 0] } : { x: 0 }}
+          transition={urgent ? { duration: 0.42, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
+        >
           <svg viewBox="0 0 120 120" className="-rotate-90 size-full">
             <circle
               cx="60"
               cy="60"
               r={radius}
               fill="none"
-              className="stroke-muted"
-              strokeWidth="8"
+              className="stroke-muted/70"
+              strokeWidth="10"
             />
             <circle
               cx="60"
               cy="60"
               r={radius}
               fill="none"
-              className="stroke-primary"
-              strokeWidth="8"
+              className={cn(
+                "transition-[stroke] duration-300",
+                urgent && "stroke-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.85)]",
+                warn && "stroke-orange-400 drop-shadow-[0_0_10px_rgba(251,146,60,0.75)]",
+                !urgent && !warn && "stroke-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.7)]",
+              )}
+              strokeWidth="10"
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={circumference * (1 - progress)}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-heading text-4xl font-bold tabular-nums">{remaining}</span>
+            <span
+              className={cn(
+                "font-heading text-5xl font-bold tabular-nums",
+                urgent && "text-red-500",
+                warn && "text-orange-500",
+              )}
+            >
+              {remaining}
+            </span>
             <span className="text-[11px] font-semibold text-muted-foreground">
               {t("driver.incomingSeconds")}
             </span>
           </div>
-        </div>
+        </m.div>
 
         <div className="w-full max-w-md space-y-3">
           <article className="glass-strong rounded-3xl p-4">
@@ -188,24 +245,15 @@ export function IncomingOrderOverlay({
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-md grid-cols-2 gap-3">
-        <Button
-          variant="destructive"
-          isDisabled={busy}
-          onPress={onReject}
-          className="h-16 rounded-2xl text-base font-bold"
-        >
-          <X data-icon="inline-start" className="size-5" />
-          {t("driver.reject")}
-        </Button>
-        <Button
-          isDisabled={busy}
-          onPress={onAccept}
-          className="h-16 rounded-2xl bg-emerald-600 text-base font-bold text-white hover:bg-emerald-600/90"
-        >
-          {t("driver.accept")}
-        </Button>
-      </div>
+      <IncomingOfferSlider
+        disabled={busy}
+        handleLabel={t("driver.slideHandle")}
+        acceptLabel={t("driver.slideAccept")}
+        rejectLabel={t("driver.slideReject")}
+        hint={t("driver.slideHint")}
+        onAccept={() => decide("accept")}
+        onReject={() => decide("reject")}
+      />
     </m.div>
   );
 }

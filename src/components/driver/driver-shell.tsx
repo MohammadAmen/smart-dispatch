@@ -1,19 +1,21 @@
 "use client";
 
+import { LazyMotion, MotionConfig, domMax } from "framer-motion";
 import type { ReactNode } from "react";
 
-import { AudioUnlock } from "@/components/providers/audio-unlock";
 import { OfflineSync } from "@/components/offline/offline-sync";
-import { MotionProvider } from "@/components/providers/motion-provider";
+import { AudioUnlock } from "@/components/providers/audio-unlock";
 import { ToastViewport } from "@/components/ui/toast-viewport";
 
 export function DriverShell({ children }: { children: ReactNode }): ReactNode {
   return (
-    <MotionProvider>
-      <AudioUnlock />
-      <OfflineSync />
-      <ToastViewport />
-      {children}
-    </MotionProvider>
+    <LazyMotion features={domMax} strict>
+      <MotionConfig reducedMotion="user">
+        <AudioUnlock />
+        <OfflineSync />
+        <ToastViewport />
+        {children}
+      </MotionConfig>
+    </LazyMotion>
   );
 }
