@@ -248,18 +248,20 @@ function inboundReplyText(
   if (orderNumber) {
     const trackingUrl = trackingToken ? customerOrderTrackingUrl(trackingToken) : null;
     return [
-      `أهلاً بك، تم استلام طلبك بنجاح وجارٍ معالجته برقم مرجعي ${orderNumber}.`,
-      `Hello, your order was received and is being processed. Reference: ${orderNumber}.`,
+      `أهلاً بك في BEEV، تم استلام طلبك بنجاح وجارٍ معالجته برقم مرجعي ${orderNumber}.`,
+      `Hello from BEEV — your order was received and is being processed. Reference: ${orderNumber}.`,
       ...(trackingUrl ? ["تتبع طلبك / Track your order:", trackingUrl] : []),
       "تصفح المنيو واطلب مباشرة / Browse the menu:",
       menuUrl,
+      "— BEEV",
     ].join("\n");
   }
 
   return [
-    "أهلاً بك، يمكنك تصفح المنيو وتقديم طلبك من الرابط التالي:",
-    "Welcome, browse the menu and place your order here:",
+    "أهلاً بك في BEEV، يمكنك تصفح المنيو وتقديم طلبك من الرابط التالي:",
+    "Welcome to BEEV — browse the menu and place your order here:",
     menuUrl,
+    "— BEEV",
   ].join("\n");
 }
 

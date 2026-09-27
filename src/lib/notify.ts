@@ -40,7 +40,7 @@ export function showBrowserNotification(input: {
       body: input.body,
       tag: input.tag,
       lang: document.documentElement.lang,
-      icon: "/favicon.ico",
+      icon: "/brand/beev-logo.png",
     });
 
     notification.onclick = () => {

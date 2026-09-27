@@ -1,10 +1,10 @@
 "use client";
 
 import { m } from "framer-motion";
-import { Truck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { Button } from "@/components/ui/button";
@@ -60,9 +60,7 @@ export function LoginForm(): ReactNode {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Truck className="size-5" />
-              </span>
+              <BrandMark size={40} />
               <div>
                 <p className="text-sm font-semibold">{t("brand.name")}</p>
                 <p className="text-xs text-muted-foreground">{t("brand.tagline")}</p>

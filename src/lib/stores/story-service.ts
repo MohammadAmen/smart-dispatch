@@ -82,7 +82,7 @@ function serializePublic(row: StoryRow, liked: boolean): PublicStory {
   return {
     id: row.id,
     storeId: row.storeId ?? ADMIN_STORY_STORE_ID,
-    storeName: row.store?.name ?? "Smart Dispatch",
+    storeName: row.store?.name ?? "BEEV",
     storeLogoUrl: row.store?.logoUrl ?? null,
     storeLat: row.store?.latitude ?? null,
     storeLng: row.store?.longitude ?? null,
@@ -215,7 +215,7 @@ export async function listActiveStoryStores(guestKey: string): Promise<PublicSto
     }
     grouped.set(groupId, {
       storeId: groupId,
-      storeName: story.isAdminAd ? "Smart Dispatch" : (row.store?.name ?? story.storeName),
+      storeName: story.isAdminAd ? "BEEV" : (row.store?.name ?? story.storeName),
       storeLogoUrl: row.store?.logoUrl ?? null,
       storeCoverImage: row.store?.coverImage ?? null,
       storePhone: row.store?.phone ?? story.contactNumber,

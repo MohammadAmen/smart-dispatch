@@ -182,7 +182,7 @@ export function OrderTrackerApp({
       <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="mb-3 flex items-center justify-between gap-2">
           <Link href="/menu" className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-            Smart Dispatch
+            {t("brand.name")}
           </Link>
           <div className="flex items-center gap-0.5">
             <LocaleToggle className="h-8 px-2" />

@@ -1,7 +1,7 @@
 {
   "brand": {
-    "name": "Smart Dispatch",
-    "tagline": "Logistics OS"
+    "name": "BEEV",
+    "tagline": "Speedy Tech Delivery"
   },
   "nav": {
     "overview": "Overview",
@@ -807,7 +807,7 @@
     "chartLost": "Losses",
     "chartGained": "Gains",
     "salesChart": "Sales gains and losses",
-    "platformGift": "What Smart Dispatch delivered for you this month ✨",
+    "platformGift": "What BEEV delivered for you this month ✨",
     "platformGiftBody": "We brought you {orders} orders this month worth {revenue}, and handled {fees} in delivery fees so you can focus on prep.",
     "addTable": "Add table",
     "addStand": "Add QR stand",

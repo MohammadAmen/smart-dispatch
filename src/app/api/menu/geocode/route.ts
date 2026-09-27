@@ -31,7 +31,7 @@ export async function GET(request: Request): Promise<Response> {
       headers: {
         Accept: "application/json",
         "Accept-Language": "ar,en",
-        "User-Agent": "SmartDispatch/1.0 (menu-geocode)",
+        "User-Agent": "BEEV/1.0 (menu-geocode)",
       },
       cache: "no-store",
     });

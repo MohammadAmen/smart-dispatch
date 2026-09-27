@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, m } from "framer-motion";
-import { PanelLeftClose, PanelLeftOpen, Truck, X } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, type ReactNode } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import { primaryNav, secondaryNav, type NavItem } from "@/lib/nav";
@@ -123,9 +124,7 @@ function SidebarBody({
           collapsed && "justify-center px-2",
         )}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_color-mix(in_oklch,var(--primary)_55%,transparent)]">
-          <Truck className="size-[18px]" />
-        </span>
+        <BrandMark size={36} className="shadow-[0_8px_24px_-10px_color-mix(in_oklch,var(--primary)_55%,transparent)]" />
         <AnimatePresence initial={false}>
           {collapsed ? null : (
             <m.div

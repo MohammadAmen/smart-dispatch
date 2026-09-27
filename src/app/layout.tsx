@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import type { Metadata, Viewport } from "next";
 import { Cairo, Geist_Mono } from "next/font/google";
 
+import { BRAND_NAME } from "@/lib/brand";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import {
   DEFAULT_LOCALE,
@@ -26,11 +27,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Smart Dispatch",
-    template: "%s · Smart Dispatch",
+    default: BRAND_NAME,
+    template: `%s · ${BRAND_NAME}`,
   },
   description:
-    "مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
+    "BEEV — مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
+  applicationName: BRAND_NAME,
+  icons: {
+    icon: [{ url: "/brand/beev-logo.png", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {

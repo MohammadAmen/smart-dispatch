@@ -188,7 +188,7 @@ export function StoreDiscoveryApp({
       <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="mb-3 flex items-center justify-between gap-2">
           <p className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-            Smart Dispatch
+            {t("brand.name")}
           </p>
           <div className="flex items-center gap-1.5">
             <div className="glass flex items-center gap-0.5 rounded-2xl px-0.5 py-0.5">

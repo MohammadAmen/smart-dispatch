@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Driver",
   appleWebApp: {
     capable: true,
-    title: "Smart Dispatch Driver",
+    title: "BEEV Driver",
     statusBarStyle: "black-translucent",
   },
 };

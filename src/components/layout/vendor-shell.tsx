@@ -13,12 +13,12 @@ import {
   QrCode,
   Search,
   Settings,
-  Store,
   Tags,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { VendorNavbar } from "@/components/layout/vendor-navbar";
 import { SessionSync } from "@/components/auth/session-sync";
 import { AudioUnlock } from "@/components/providers/audio-unlock";
@@ -207,9 +207,7 @@ export function VendorShell({
         <div className="flex min-h-dvh">
           <aside className="glass-strong sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto border-e p-4 print:hidden md:flex">
             <div className="mb-6 flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Store className="size-4" />
-              </span>
+              <BrandMark size={36} />
               <div>
                 <p className="text-sm font-semibold">{t("brand.name")}</p>
                 <p className="text-xs text-muted-foreground">{t("nav.vendor")}</p>

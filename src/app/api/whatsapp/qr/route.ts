@@ -121,7 +121,7 @@ function renderQrHtml(snapshot: WhatsAppRuntimeSnapshot, imageDataUrl: string | 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="refresh" content="5" />
-    <title>WhatsApp QR · Smart Dispatch</title>
+    <title>WhatsApp QR · BEEV</title>
     <style>
       :root {
         color-scheme: dark;
@@ -202,7 +202,7 @@ function renderQrHtml(snapshot: WhatsAppRuntimeSnapshot, imageDataUrl: string | 
   </head>
   <body>
     <main class="card">
-      <p class="eyebrow">Smart Dispatch</p>
+      <p class="eyebrow">BEEV</p>
       <h1>ربط واتساب بزنس</h1>
       <p>${escapeHtml(copy.ar)}</p>
       <p>${escapeHtml(copy.en)}</p>

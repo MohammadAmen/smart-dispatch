@@ -1,7 +1,7 @@
 {
   "brand": {
-    "name": "سمارت ديسباتش",
-    "tagline": "نظام التشغيل اللوجستي"
+    "name": "BEEV",
+    "tagline": "توصيل تقني سريع"
   },
   "nav": {
     "overview": "نظرة عامة",
@@ -807,7 +807,7 @@
     "chartGained": "مكاسب",
     "chartLost": "خسائر",
     "salesChart": "خسائر ومكاسب المبيعات",
-    "platformGift": "ما قدمه لك تطبيق سمارت ديسپاتش هذا الشهر ✨",
+    "platformGift": "ما قدمه لك BEEV هذا الشهر ✨",
     "platformGiftBody": "أوصلنا لك {orders} طلباً هذا الشهر بإيرادات {revenue}، وتكفّلنا برسوم توصيل بقيمة {fees} حتى تركز على التجهيز.",
     "addTable": "إضافة طاولة",
     "addStand": "إضافة منصة QR",
