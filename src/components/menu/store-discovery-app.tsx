@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
+import { DiscoveryFeed } from "@/components/menu/discovery-feed";
 import { WorthTryingRail } from "@/components/menu/worth-trying-rail";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -288,6 +289,12 @@ export function StoreDiscoveryApp({
         onClaim={(offer) => {
           router.push(`/menu/stores/${offer.storeId}?offer=${encodeURIComponent(offer.id)}`);
         }}
+      />
+
+      <DiscoveryFeed
+        category={typeId}
+        lat={draft.latitude}
+        lng={draft.longitude}
       />
 
       <main className="space-y-3 px-4 pb-32">

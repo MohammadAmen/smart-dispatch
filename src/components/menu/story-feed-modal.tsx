@@ -221,6 +221,7 @@ export function StoryFeedModal({
                 story={entry.story}
                 active={itemIndex === index}
                 muted={muted}
+                preload={itemIndex !== index}
                 onProgress={itemIndex === index ? setProgress : () => undefined}
                 onEnded={() => {
                   if (itemIndex === index) {

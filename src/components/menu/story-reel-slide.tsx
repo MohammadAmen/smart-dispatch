@@ -17,6 +17,12 @@ import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { storyActionHref } from "@/lib/stores/story-contact";
+import {
+  claimStoryVideo,
+  preloadStoryMedia,
+  releaseStoryVideo,
+  silenceStoryVideo,
+} from "@/lib/stores/story-playback";
 import { formatMoney } from "@/lib/stores/pricing";
 import type { PublicStory, PublicStoryStore } from "@/lib/stores/story-types";
 import { cn } from "@/lib/utils";
@@ -25,6 +31,7 @@ export function StoryReelMedia({
   story,
   active,
   muted,
+  preload = false,
   videoRef,
   onProgress,
   onEnded,
@@ -32,37 +39,109 @@ export function StoryReelMedia({
   story: PublicStory;
   active: boolean;
   muted: boolean;
+  /** Warm the next/prev clip without playing audio. */
+  preload?: boolean;
   videoRef?: RefObject<HTMLVideoElement | null>;
   onProgress: (value: number) => void;
   onEnded: () => void;
 }): ReactNode {
   const localRef = useRef<HTMLVideoElement | null>(null);
   const nodeRef = videoRef ?? localRef;
+  const mediaUrl = story.videoUrl;
+
+  useEffect(() => {
+    if ((active || preload) && mediaUrl) {
+      preloadStoryMedia(mediaUrl);
+    }
+  }, [active, mediaUrl, preload]);
 
   useEffect(() => {
     const node = nodeRef.current;
     if (!node || story.mediaType !== "VIDEO") {
       return;
     }
+
     if (!active) {
-      node.pause();
+      silenceStoryVideo(node);
+      releaseStoryVideo(node);
+      try {
+        if (node.currentTime > 0.15) {
+          node.currentTime = 0;
+        }
+      } catch {
+        // Ignore seek failures on incomplete buffers.
+      }
+      return;
+    }
+
+    claimStoryVideo(node);
+
+    let cancelled = false;
+
+    const tryPlay = (): void => {
+      if (cancelled || !active) {
+        return;
+      }
+      node.muted = muted;
+      node.volume = muted ? 0 : 1;
+      void node.play().catch(() => {
+        if (!node.muted) {
+          node.muted = true;
+          node.volume = 0;
+          void node.play().catch(() => undefined);
+        }
+      });
+    };
+
+    if (node.readyState >= 2) {
+      tryPlay();
+    } else {
+      const onReady = (): void => {
+        tryPlay();
+      };
+      node.addEventListener("loadeddata", onReady);
+      node.addEventListener("canplay", onReady);
+      try {
+        if (node.networkState === HTMLMediaElement.NETWORK_EMPTY) {
+          node.load();
+        }
+      } catch {
+        // Fast swipes can race load().
+      }
+      return () => {
+        cancelled = true;
+        node.removeEventListener("loadeddata", onReady);
+        node.removeEventListener("canplay", onReady);
+        silenceStoryVideo(node);
+        releaseStoryVideo(node);
+      };
+    }
+
+    return () => {
+      cancelled = true;
+      silenceStoryVideo(node);
+      releaseStoryVideo(node);
+    };
+  }, [active, nodeRef, story.id, story.mediaType]);
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node || !active || story.mediaType !== "VIDEO") {
       return;
     }
     node.muted = muted;
-    void node.play().catch(() => {
-      node.muted = true;
-      void node.play().catch(() => undefined);
-    });
-  }, [active, muted, nodeRef, story.id, story.mediaType]);
+    node.volume = muted ? 0 : 1;
+  }, [active, muted, nodeRef, story.mediaType]);
 
   if (story.mediaType === "IMAGE") {
     return (
       <div className="absolute inset-0 overflow-hidden bg-black">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={story.videoUrl}
+          src={mediaUrl}
           alt=""
           className={cn("size-full object-cover", active && "albal-ken-burns")}
+          draggable={false}
         />
       </div>
     );
@@ -72,17 +151,26 @@ export function StoryReelMedia({
     <video
       key={story.id}
       ref={nodeRef}
-      src={active ? story.videoUrl : undefined}
+      src={mediaUrl}
       className="absolute inset-0 size-full object-cover"
       autoPlay={active}
-      muted={muted}
+      muted={!active || muted}
       playsInline
-      preload={active ? "auto" : "none"}
+      preload={active || preload ? "auto" : "metadata"}
+      controls={false}
+      disablePictureInPicture
       onTimeUpdate={(event) => {
+        if (!active) {
+          return;
+        }
         const node = event.currentTarget;
         onProgress(node.duration > 0 ? node.currentTime / node.duration : 0);
       }}
-      onEnded={onEnded}
+      onEnded={() => {
+        if (active) {
+          onEnded();
+        }
+      }}
     />
   );
 }

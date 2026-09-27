@@ -109,7 +109,7 @@ export function MenuOffersSlider({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: rtl ? 18 : -18 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="relative h-[6.5rem] overflow-hidden rounded-2xl"
+            className="relative h-[9.25rem] overflow-hidden rounded-2xl sm:h-[9.75rem]"
           >
             <MenuSafeImage
               src={offer.image}
@@ -119,25 +119,27 @@ export function MenuOffersSlider({
                 <span className="absolute inset-0 bg-linear-to-br from-primary/80 via-destructive/50 to-warning/40" />
               }
             />
-            <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/55 to-black/15 rtl:bg-linear-to-l" />
-            <div className="relative z-10 flex h-full items-center gap-3 px-3 py-2.5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
-                <Megaphone className="size-4" />
+            <div className="absolute inset-0 bg-linear-to-r from-black/82 via-black/58 to-black/18 rtl:bg-linear-to-l" />
+            <div className="relative z-10 flex h-full items-stretch gap-3 px-3.5 py-3 pb-5">
+              <span className="mt-0.5 flex size-11 shrink-0 items-center justify-center self-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
+                <Megaphone className="size-[1.05rem]" />
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{offer.title}</p>
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+                <p className="line-clamp-2 text-[0.9375rem] font-semibold leading-snug text-white">
+                  {offer.title}
+                </p>
                 {storeHint ? (
-                  <p className="truncate text-[11px] text-white/80">{offer.storeName}</p>
+                  <p className="truncate text-[11px] text-white/75">{offer.storeName}</p>
                 ) : null}
-                <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[11px] font-semibold text-warning">
-                  <Hourglass className="size-3" />
+                <p className="inline-flex w-fit items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-warning">
+                  <Hourglass className="size-3 shrink-0" />
                   {t("menu.offerRemaining", { time: formatCountdown(remaining) })}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onClaim(offer)}
-                className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground shadow-sm"
+                className="shrink-0 self-center rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm"
               >
                 {t("menu.claimOffer")}
               </button>

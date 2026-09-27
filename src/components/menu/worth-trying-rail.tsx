@@ -15,6 +15,7 @@ const StoryFeedModal = dynamic(
 );
 import { useLocale } from "@/components/providers/locale-provider";
 import { sortRailStores } from "@/lib/stores/story-feed";
+import { preloadStoryMedia } from "@/lib/stores/story-playback";
 import {
   ACTIVE_STORIES_KEY,
   fetchActiveStories,
@@ -50,6 +51,16 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
   useEffect(() => subscribeStoriesChanged(() => {
     void mutate();
   }), [mutate]);
+
+  useEffect(() => {
+    // Warm the first few clips so opening a story feels instant on weak networks.
+    for (const store of stores.slice(0, 4)) {
+      const first = store.stories[0];
+      if (first?.videoUrl) {
+        preloadStoryMedia(first.videoUrl);
+      }
+    }
+  }, [stores]);
 
   const viewedSet = useMemo(() => new Set(viewedIds), [viewedIds]);
 

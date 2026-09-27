@@ -8,9 +8,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { StoryReelMedia, StoryReelOverlay } from "@/components/menu/story-reel-slide";
 import { useLocale } from "@/components/providers/locale-provider";
-import { readStoryGuestKey } from "@/lib/stores/story-guest";
-import { firstUnseenStoryIndex } from "@/lib/stores/story-seen";
 import { baseCartExtras } from "@/lib/stores/menu-cart";
+import { readStoryGuestKey } from "@/lib/stores/story-guest";
+import { preloadStoryMedia } from "@/lib/stores/story-playback";
+import { firstUnseenStoryIndex } from "@/lib/stores/story-seen";
 import { storyDurationMs, type PublicStory, type PublicStoryStore } from "@/lib/stores/story-types";
 import { useMenuCartStore } from "@/stores/menu-cart-store";
 import { useStorySeenStore } from "@/stores/story-seen-store";
@@ -66,6 +67,22 @@ export function StoryReelsModal({
     setAdded(false);
     setMuted(false);
   }, [story?.id]);
+
+  useEffect(() => {
+    if (!store) {
+      return;
+    }
+    const nextInStore = store.stories[storyIndex + 1];
+    if (nextInStore?.videoUrl) {
+      preloadStoryMedia(nextInStore.videoUrl);
+      return;
+    }
+    const nextStore = stores[storeIndex + 1];
+    const firstNext = nextStore?.stories[0];
+    if (firstNext?.videoUrl) {
+      preloadStoryMedia(firstNext.videoUrl);
+    }
+  }, [store, storeIndex, storyIndex, stores]);
 
   useEffect(() => {
     if (!story || story.mediaType !== "IMAGE" || storeOpen) {

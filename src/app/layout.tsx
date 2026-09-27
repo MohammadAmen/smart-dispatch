@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Cairo, Geist_Mono } from "next/font/google";
 
 import { BRAND_NAME } from "@/lib/brand";
+import { SplashGate } from "@/components/brand/splash-gate";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import {
   DEFAULT_LOCALE,
@@ -69,7 +70,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
+        <LocaleProvider initialLocale={locale}>
+          <SplashGate>{children}</SplashGate>
+        </LocaleProvider>
       </body>
     </html>
   );
