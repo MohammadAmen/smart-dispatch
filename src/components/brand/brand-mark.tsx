@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export function BrandMark({
   className,
-  size = 36,
+  size = 48,
   rounded = true,
 }: {
   className?: string;
@@ -15,7 +15,8 @@ export function BrandMark({
   rounded?: boolean;
 }): ReactNode {
   return (
-    // Brand lockup lives in /public; keep a plain img for offline-first shells.
+    // Brand lockup lives in /public as PNG with alpha; keep a plain img so
+    // offline shells and Next image optimization never strip transparency.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={BRAND_LOGO_SRC}
@@ -24,10 +25,11 @@ export function BrandMark({
       height={size}
       decoding="async"
       className={cn(
-        "shrink-0 object-contain bg-black",
-        rounded && "rounded-xl",
+        "h-12 w-12 shrink-0 bg-transparent object-contain shadow-sm",
+        rounded && "rounded-xl border border-slate-100 dark:border-slate-800",
         className,
       )}
+      style={{ width: size, height: size }}
     />
   );
 }

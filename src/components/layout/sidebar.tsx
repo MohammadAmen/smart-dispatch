@@ -124,7 +124,7 @@ function SidebarBody({
           collapsed && "justify-center px-2",
         )}
       >
-        <BrandMark size={36} className="shadow-[0_8px_24px_-10px_color-mix(in_oklch,var(--primary)_55%,transparent)]" />
+        <BrandMark size={36} />
         <AnimatePresence initial={false}>
           {collapsed ? null : (
             <m.div

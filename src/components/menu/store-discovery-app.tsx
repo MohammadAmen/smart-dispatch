@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
 import { WorthTryingRail } from "@/components/menu/worth-trying-rail";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -185,44 +186,49 @@ export function StoreDiscoveryApp({
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
-      <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-            {t("brand.name")}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <div className="glass flex items-center gap-0.5 rounded-2xl px-0.5 py-0.5">
-              <LocaleToggle compact className="rounded-xl text-muted-foreground hover:bg-background/55 hover:text-foreground" />
-              <ThemeToggle className="rounded-xl text-muted-foreground hover:bg-background/55 hover:text-foreground" />
-            </div>
-            <div className="glass flex items-center gap-0.5 rounded-2xl px-0.5 py-0.5">
-              <button
-                type="button"
-                onClick={() => setSavedOpen(true)}
-                className="relative inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-background/55 hover:text-foreground"
-                aria-label={t("menu.savedStores")}
-              >
-                <Bookmark className={cn("size-4", savedCount > 0 && "fill-primary text-primary")} />
-                {savedCount > 0 ? (
-                  <span className="absolute -top-0.5 -end-0.5 inline-flex min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-                    {savedCount > 9 ? "9+" : savedCount}
-                  </span>
-                ) : null}
-              </button>
-              <Link
-                href="/menu/orders"
-                className="inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-background/55 hover:text-foreground"
-                aria-label={t("menu.trackTitle")}
-              >
-                <ClipboardList className="size-4" />
-              </Link>
+      <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <BrandMark size={48} className="h-12 w-12" />
+            <div className="min-w-0">
+              <p className="truncate font-heading text-base font-bold tracking-tight">{t("brand.name")}</p>
+              <p className="truncate text-[11px] font-medium text-muted-foreground">{t("brand.tagline")}</p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 p-1.5 shadow-xs backdrop-blur-md dark:border-slate-700/60 dark:bg-background/55">
+            <button
+              type="button"
+              onClick={() => setSavedOpen(true)}
+              className="relative inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
+              aria-label={t("menu.savedStores")}
+            >
+              <Bookmark className={cn("size-4", savedCount > 0 && "fill-primary text-primary")} />
+              {savedCount > 0 ? (
+                <span className="absolute -top-0.5 -end-0.5 inline-flex min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                  {savedCount > 9 ? "9+" : savedCount}
+                </span>
+              ) : null}
+            </button>
+            <Link
+              href="/menu/orders"
+              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
+              aria-label={t("menu.trackTitle")}
+            >
+              <ClipboardList className="size-4" />
+            </Link>
+            <LocaleToggle
+              compact
+              className="size-8 rounded-full text-muted-foreground hover:bg-background/70 hover:text-foreground"
+            />
+            <ThemeToggle className="size-8 rounded-full text-muted-foreground hover:bg-background/70 hover:text-foreground" />
+          </div>
         </div>
+
         <button
           type="button"
           onClick={locate}
-          className="flex w-full items-center gap-2 rounded-2xl bg-background/55 px-3 py-2 text-start"
+          className="mt-3 flex w-full items-center gap-2 rounded-full border border-border/60 bg-background/45 px-3.5 py-2 text-start shadow-xs backdrop-blur-sm"
         >
           {locating ? (
             <LoaderCircle className="size-4 shrink-0 animate-spin text-primary" />
@@ -237,11 +243,12 @@ export function StoreDiscoveryApp({
               {!hydrated || locating ? t("menu.detectingLocation") : headerLabel}
             </span>
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
             <Navigation className="size-3" />
             {t("menu.changeLocation")}
           </span>
         </button>
+
         <label className="relative mt-3 block">
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
