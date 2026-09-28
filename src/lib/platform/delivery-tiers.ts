@@ -26,7 +26,7 @@ export function normalizeDeliveryTiers(value: unknown): DeliveryTier[] {
     if (typeof row !== "object" || row === null) {
       continue;
     }
-    const item = row as Partial<DeliveryTier>;
+    const item = row as Record<string, unknown>;
     const fromKm = typeof item.fromKm === "number" ? item.fromKm : Number(item.fromKm);
     const fee = typeof item.fee === "number" ? item.fee : Number(item.fee);
     const toRaw = item.toKm;
