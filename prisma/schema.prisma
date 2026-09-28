@@ -321,7 +321,8 @@ model StoreType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stores Store[]
+  stores           Store[]
+  globalCategories GlobalCategory[]
 
   @@index([sortOrder])
   @@map("store_types")
@@ -365,20 +366,54 @@ model Store {
   @@map("stores")
 }
 
+model GlobalCategory {
+  id          String   @id @default(uuid())
+  storeTypeId String?
+  storeType   StoreType? @relation(fields: [storeTypeId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      GlobalCategory?  @relation("GlobalCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    GlobalCategory[] @relation("GlobalCategoryTree")
+  name        String
+  slug        String
+  icon        String   @default("package")
+  imageUrl    String?  @db.VarChar(2048)
+  sortOrder   Int      @default(0)
+  isOther     Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  storeCategories Category[]
+
+  @@unique([storeTypeId, slug])
+  @@index([storeTypeId, sortOrder])
+  @@index([parentId])
+  @@map("global_categories")
+}
+
 model Category {
-  id        String   @id @default(uuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name      String
-  sortOrder Int      @default(0)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(uuid())
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  parentId         String?
+  parent           Category?  @relation("StoreCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children         Category[] @relation("StoreCategoryTree")
+  name             String
+  sortOrder        Int      @default(0)
+  active           Boolean  @default(true)
+  icon             String?
+  imageUrl         String?  @db.VarChar(2048)
+  globalCategoryId String?
+  globalCategory   GlobalCategory? @relation(fields: [globalCategoryId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   products Product[]
   offers   Offer[]
 
   @@index([storeId, sortOrder])
+  @@index([parentId])
+  @@index([globalCategoryId])
   @@map("categories")
 }
 

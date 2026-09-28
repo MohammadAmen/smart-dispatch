@@ -15,74 +15,67 @@ export function StoreMegaDealsCard({ store }: { store: BurnDealStore }): ReactNo
   return (
     <Link
       href={`/menu/stores/${store.storeId}`}
-      className="group block overflow-hidden rounded-3xl border border-rose-500/20 bg-card/85 shadow-sm backdrop-blur-sm transition hover:border-rose-500/40 hover:shadow-md"
+      className="group relative block rounded-3xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-card"
     >
-      <div className="relative h-24 overflow-hidden bg-muted">
-        <MenuSafeImage
-          src={store.storeCoverImage}
-          alt=""
-          className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
-          fallback={
-            <span className="absolute inset-0 bg-linear-to-br from-rose-500/35 via-orange-400/25 to-amber-300/20" />
-          }
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/15 to-transparent" />
+      <span className="absolute end-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-linear-to-r from-red-500 to-amber-500 px-2.5 py-1 text-xs font-medium text-white shadow-sm shadow-red-500/25">
+        <Flame className="size-3 animate-pulse fill-current" />
+        {t("menu.burnBadge")}
+      </span>
 
-        <span className="absolute end-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-linear-to-r from-rose-600 to-orange-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-lg shadow-rose-600/30">
-          <Flame className="size-3 animate-pulse fill-current" />
-          {t("menu.burnBadge")}
+      <div className="flex items-center gap-3 pe-24">
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 object-cover dark:border-slate-700 dark:bg-slate-800">
+          {store.storeLogoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={store.storeLogoUrl} alt="" className="size-full object-cover" />
+          ) : (
+            <Store className="size-5 text-slate-400" />
+          )}
         </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-lg font-bold text-slate-900 dark:text-slate-50">
+            {store.storeName}
+          </h3>
+          {store.storeTypeName ? (
+            <p className="mt-0.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+              {store.storeTypeName}
+            </p>
+          ) : null}
+          <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+            {t("menu.burnDealsCount", { count: store.dealsCount })}
+          </p>
+        </div>
       </div>
 
-      <div className="relative -mt-7 px-3.5 pb-3.5">
-        <div className="flex items-end gap-3">
-          <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-background shadow-md">
-            {store.storeLogoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={store.storeLogoUrl} alt="" className="size-full object-cover" />
-            ) : (
-              <Store className="size-5 text-primary" />
-            )}
-          </span>
-          <div className="min-w-0 flex-1 pb-1">
-            <h3 className="truncate font-heading text-base font-semibold text-foreground">
-              {store.storeName}
-            </h3>
-            <p className="mt-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-              {t("menu.burnDealsCount", { count: store.dealsCount })}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3 flex gap-2.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-3.5 rounded-2xl bg-slate-50/80 p-2.5 dark:bg-slate-900/50">
+        <div className="flex gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {store.products.map((product) => (
             <div
               key={product.id}
-              className="w-[7.25rem] shrink-0 overflow-hidden rounded-2xl border border-border/70 bg-background/80"
+              className="w-[7.5rem] shrink-0 overflow-hidden rounded-2xl border border-white bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
             >
-              <div className="relative aspect-square bg-muted">
+              <div className="relative aspect-square bg-slate-100 dark:bg-slate-700">
                 <MenuSafeImage
                   src={product.imageUrl}
                   alt=""
                   className="size-full object-cover"
                   fallback={
-                    <span className="flex size-full items-center justify-center bg-linear-to-br from-rose-500/20 to-orange-400/15 text-rose-500">
+                    <span className="flex size-full items-center justify-center bg-linear-to-br from-red-500/15 to-amber-400/15 text-red-500">
                       <Flame className="size-5 opacity-70" />
                     </span>
                   }
                 />
-                <span className="absolute end-1 top-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                <span className="absolute end-1.5 top-1.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   {t("menu.burnDiscountBadge", { value: String(product.discountPercent) })}
                 </span>
               </div>
               <div className="space-y-0.5 p-2">
-                <p className="line-clamp-2 min-h-[2.1rem] text-[11px] font-semibold leading-snug text-foreground">
+                <p className="line-clamp-2 min-h-[2.1rem] text-[11px] font-semibold leading-snug text-slate-800 dark:text-slate-100">
                   {product.name}
                 </p>
-                <p className="text-[10px] text-muted-foreground line-through">
+                <p className="text-[10px] text-slate-400 line-through">
                   {formatMoney(product.price)}
                 </p>
-                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                <p className="text-xs font-bold text-red-600">
                   {formatMoney(product.discountPrice)}{" "}
                   <span className="text-[9px] font-semibold">{t("menu.currency")}</span>
                 </p>

@@ -852,6 +852,8 @@
     "searchStores": "ابحث عن متجر…",
     "allTypes": "الكل",
     "nearbyStores": "المتاجر القريبة منك",
+    "subCategories": "التصنيفات الفرعية",
+    "clearSubCategory": "مسح الفلتر",
     "burnTitle": "حرق الأسعار 🔥",
     "burnBadge": "حرق أسعار 🔥",
     "burnDealsCount": "{count} أصناف بحسم",

@@ -34,7 +34,13 @@ function BurnDealsSkeleton(): ReactNode {
   );
 }
 
-export function BurnDealsSection({ categoryType }: { categoryType: string }): ReactNode {
+export function BurnDealsSection({
+  categoryType,
+  storeIdsFilter = null,
+}: {
+  categoryType: string;
+  storeIdsFilter?: string[] | null;
+}): ReactNode {
   const { t } = useLocale();
   const category = categoryType === "all" ? "ALL" : categoryType;
   const key = burnDealsKey(category);
@@ -48,6 +54,10 @@ export function BurnDealsSection({ categoryType }: { categoryType: string }): Re
 
   const stores = data?.stores ?? [];
   const loading = isLoading && !data;
+  const visible =
+    storeIdsFilter && storeIdsFilter.length > 0
+      ? stores.filter((store) => storeIdsFilter.includes(store.storeId))
+      : stores;
 
   return (
     <section className="space-y-3 px-4 pb-32">
@@ -57,21 +67,21 @@ export function BurnDealsSection({ categoryType }: { categoryType: string }): Re
           <h1 className="font-heading text-xl font-semibold">{t("menu.burnTitle")}</h1>
         </div>
         {!loading ? (
-          <p className="text-xs text-muted-foreground">{stores.length}</p>
+          <p className="text-xs text-muted-foreground">{visible.length}</p>
         ) : null}
       </div>
 
       {loading ? <BurnDealsSkeleton /> : null}
 
-      {!loading && stores.length === 0 ? (
+      {!loading && visible.length === 0 ? (
         <p className="glass rounded-3xl px-4 py-10 text-center text-sm text-muted-foreground">
           {t("menu.burnEmpty")}
         </p>
       ) : null}
 
-      {!loading && stores.length > 0 ? (
+      {!loading && visible.length > 0 ? (
         <div className="space-y-3">
-          {stores.map((store) => (
+          {visible.map((store) => (
             <StoreMegaDealsCard key={store.storeId} store={store} />
           ))}
         </div>

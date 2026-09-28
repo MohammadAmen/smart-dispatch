@@ -57,6 +57,10 @@ export interface CategoryRecord {
   sortOrder: number;
   active: boolean;
   productCount: number;
+  parentId?: string | null;
+  icon?: string | null;
+  imageUrl?: string | null;
+  globalCategoryId?: string | null;
 }
 
 export interface ProductRecord {

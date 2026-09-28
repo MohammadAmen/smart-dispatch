@@ -13,6 +13,7 @@ export interface BurnDealStore {
   storeLogoUrl: string | null;
   storeCoverImage: string | null;
   storeTypeId: string | null;
+  storeTypeName: string | null;
   dealsCount: number;
   products: BurnDealProduct[];
 }

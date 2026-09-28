@@ -65,6 +65,7 @@ export async function getBurnDealsFeed(categoryType = "ALL"): Promise<BurnDealsF
           logoUrl: true,
           coverImage: true,
           storeTypeId: true,
+          storeType: { select: { name: true } },
         },
       },
     },
@@ -78,6 +79,7 @@ export async function getBurnDealsFeed(categoryType = "ALL"): Promise<BurnDealsF
       storeLogoUrl: string | null;
       storeCoverImage: string | null;
       storeTypeId: string | null;
+      storeTypeName: string | null;
       products: BurnDealProduct[];
     }
   >();
@@ -112,6 +114,7 @@ export async function getBurnDealsFeed(categoryType = "ALL"): Promise<BurnDealsF
       storeLogoUrl: row.store.logoUrl,
       storeCoverImage: row.store.coverImage,
       storeTypeId: row.store.storeTypeId,
+      storeTypeName: row.store.storeType?.name ?? null,
       products: [product],
     });
   }
@@ -127,6 +130,7 @@ export async function getBurnDealsFeed(categoryType = "ALL"): Promise<BurnDealsF
         storeLogoUrl: bucket.storeLogoUrl,
         storeCoverImage: bucket.storeCoverImage,
         storeTypeId: bucket.storeTypeId,
+        storeTypeName: bucket.storeTypeName,
         dealsCount: ranked.length,
         products: ranked.slice(0, BURN_DEALS_PER_STORE),
       };

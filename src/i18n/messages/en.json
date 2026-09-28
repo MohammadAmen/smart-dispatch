@@ -852,6 +852,8 @@
     "searchStores": "Search stores…",
     "allTypes": "All",
     "nearbyStores": "Nearby stores",
+    "subCategories": "Sub-categories",
+    "clearSubCategory": "Clear filter",
     "burnTitle": "Price burn 🔥",
     "burnBadge": "Price burn 🔥",
     "burnDealsCount": "{count} items on sale",

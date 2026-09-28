@@ -48,6 +48,7 @@ function normalizeStore(value: unknown): BurnDealStore | null {
     storeLogoUrl: typeof row.storeLogoUrl === "string" ? row.storeLogoUrl : null,
     storeCoverImage: typeof row.storeCoverImage === "string" ? row.storeCoverImage : null,
     storeTypeId: typeof row.storeTypeId === "string" ? row.storeTypeId : null,
+    storeTypeName: typeof row.storeTypeName === "string" ? row.storeTypeName : null,
     dealsCount: typeof row.dealsCount === "number" ? row.dealsCount : products.length,
     products,
   };

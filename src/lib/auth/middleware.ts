@@ -37,6 +37,10 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
+  if (pathname.startsWith("/api/categories")) {
+    return true;
+  }
+
   if (pathname.startsWith("/api/uploads")) {
     return true;
   }

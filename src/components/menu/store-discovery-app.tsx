@@ -21,6 +21,7 @@ import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
 import { BurnDealsSection } from "@/components/menu/burn-deals-section";
 import { DiscoveryFeed } from "@/components/menu/discovery-feed";
+import { SubCategoryPillsBar } from "@/components/menu/sub-category-pills-bar";
 import { WorthTryingRail } from "@/components/menu/worth-trying-rail";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -38,6 +39,7 @@ import {
 import { reportMenuSearch } from "@/lib/stores/menu-signals";
 import { storeTypeIcon } from "@/lib/stores/store-type-icon";
 import type { PublicOffer } from "@/lib/stores/offer-types";
+import type { PublicSubCategory } from "@/lib/stores/global-categories-types";
 import type { DirectoryStore, StoreTypeRecord } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 import { useSavedStoresStore } from "@/stores/saved-stores-store";
@@ -66,6 +68,7 @@ export function StoreDiscoveryApp({
   const [search, setSearch] = useState("");
   const [typeId, setTypeId] = useState("all");
   const [burnActive, setBurnActive] = useState(false);
+  const [subCategory, setSubCategory] = useState<PublicSubCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
@@ -144,10 +147,14 @@ export function StoreDiscoveryApp({
     const query = search.trim().toLowerCase();
     const originLat = draft.latitude;
     const originLng = draft.longitude;
+    const subStoreIds = subCategory ? new Set(subCategory.storeIds) : null;
 
     return stores
       .filter((store) => {
         if (typeId !== "all" && store.storeType.id !== typeId) {
+          return false;
+        }
+        if (subStoreIds && !subStoreIds.has(store.id)) {
           return false;
         }
         if (!query) {
@@ -170,7 +177,11 @@ export function StoreDiscoveryApp({
         return { store, distanceKm };
       })
       .sort((left, right) => left.distanceKm - right.distanceKm);
-  }, [draft.latitude, draft.longitude, search, stores, typeId]);
+  }, [draft.latitude, draft.longitude, search, stores, subCategory, typeId]);
+
+  useEffect(() => {
+    setSubCategory(null);
+  }, [typeId]);
 
   useEffect(() => {
     const query = search.trim();
@@ -281,6 +292,7 @@ export function StoreDiscoveryApp({
           onClick={() => {
             setTypeId("all");
             setBurnActive(false);
+            setSubCategory(null);
           }}
         />
         <TypeChip
@@ -304,6 +316,16 @@ export function StoreDiscoveryApp({
         })}
       </div>
 
+      {typeId !== "all" ? (
+        <SubCategoryPillsBar
+          mainCategoryId={typeId}
+          lat={draft.latitude}
+          lng={draft.longitude}
+          selectedId={subCategory?.id ?? null}
+          onSelect={setSubCategory}
+        />
+      ) : null}
+
       <WorthTryingRail typeId={typeId} />
 
       <MenuOffersSlider
@@ -323,7 +345,10 @@ export function StoreDiscoveryApp({
       ) : null}
 
       {burnActive ? (
-        <BurnDealsSection categoryType={typeId} />
+        <BurnDealsSection
+          categoryType={typeId}
+          storeIdsFilter={subCategory?.storeIds ?? null}
+        />
       ) : (
       <main className="space-y-3 px-4 pb-32">
         <div className="flex items-end justify-between gap-3">
