@@ -72,7 +72,7 @@ export function WorthTryingRail({
   const viewedSet = useMemo(() => new Set(viewedIds), [viewedIds]);
 
   const allowedStoreIds = useMemo(() => {
-    if (!storeIdsFilter || storeIdsFilter.length === 0) {
+    if (storeIdsFilter == null) {
       return null;
     }
     return new Set(storeIdsFilter);

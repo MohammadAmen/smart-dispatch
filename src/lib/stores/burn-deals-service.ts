@@ -18,8 +18,10 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>();
 
-function cacheKey(categoryType: string): string {
-  return categoryType.trim().toUpperCase() || "ALL";
+function cacheKey(categoryType: string, subCategoryId?: string | null): string {
+  const category = categoryType.trim().toUpperCase() || "ALL";
+  const sub = subCategoryId?.trim() || "all";
+  return `${category}::${sub}`;
 }
 
 function isAllCategory(categoryType: string): boolean {
@@ -31,8 +33,11 @@ function isAllCategory(categoryType: string): boolean {
  * One discounted-products query, grouped in memory into store mega-deal cards.
  * Top products per store are ranked by discount percent (highest first).
  */
-export async function getBurnDealsFeed(categoryType = "ALL"): Promise<BurnDealsFeed> {
-  const key = cacheKey(categoryType);
+export async function getBurnDealsFeed(
+  categoryType = "ALL",
+  subCategoryId?: string | null,
+): Promise<BurnDealsFeed> {
+  const key = cacheKey(categoryType, subCategoryId);
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < BURN_DEALS_CACHE_MS) {
     return hit.data;
@@ -42,12 +47,16 @@ export async function getBurnDealsFeed(categoryType = "ALL"): Promise<BurnDealsF
     ? { active: true as const }
     : { active: true as const, storeTypeId: categoryType.trim() };
 
+  const { productSubCategoryWhere } = await import("@/lib/stores/sub-category-filter");
+  const categoryWhere = await productSubCategoryWhere(subCategoryId, categoryType);
+
   const rows = await prisma.product.findMany({
     where: {
       available: true,
       hasDiscount: true,
       discountPrice: { not: null },
       store: storeFilter,
+      ...categoryWhere,
     },
     select: {
       id: true,

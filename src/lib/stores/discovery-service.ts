@@ -149,8 +149,13 @@ export async function getDiscoveryFeed(input: {
   const userLat = parseCoord(input.lat);
   const userLng = parseCoord(input.lng);
   const baseWhere = activeStoreFilter(category);
-  const { resolveStoreIdsForSubCategory } = await import("@/lib/stores/sub-category-filter");
-  const storeIds = await resolveStoreIdsForSubCategory(input.subCategoryId, category);
+  const { productSubCategoryWhere, resolveStoreIdsForSubCategory } = await import(
+    "@/lib/stores/sub-category-filter"
+  );
+  const [storeIds, categoryWhere] = await Promise.all([
+    resolveStoreIdsForSubCategory(input.subCategoryId, category),
+    productSubCategoryWhere(input.subCategoryId, category),
+  ]);
 
   if (storeIds && storeIds.length === 0) {
     return { trending: [], deals: [], newArrivals: [], curated: [] };
@@ -159,6 +164,7 @@ export async function getDiscoveryFeed(input: {
   const where = {
     ...baseWhere,
     ...(storeIds ? { storeId: { in: storeIds } } : {}),
+    ...categoryWhere,
   };
   const since = daysAgo(DISCOVERY_TRENDING_DAYS);
 

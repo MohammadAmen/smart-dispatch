@@ -11,13 +11,16 @@ export async function GET(request: Request): Promise<Response> {
       searchParams.get("category") ??
       searchParams.get("typeId") ??
       "ALL";
+    const subCategoryId =
+      searchParams.get("subCategoryId") ?? searchParams.get("subCategory") ?? null;
 
-    const feed = await getBurnDealsFeed(categoryType);
+    const feed = await getBurnDealsFeed(categoryType, subCategoryId);
 
     return Response.json(
       {
         ok: true,
         categoryType: categoryType.trim() || "ALL",
+        subCategoryId: subCategoryId?.trim() || null,
         ...feed,
       },
       {

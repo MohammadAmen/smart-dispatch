@@ -386,14 +386,7 @@ export function StoreDiscoveryApp({
         />
       ) : null}
 
-      <WorthTryingRail
-        typeId={typeId}
-        storeIdsFilter={
-          storeIdsFilter && storeIdsFilter.length > 0
-            ? storeIdsFilter
-            : null
-        }
-      />
+      <WorthTryingRail typeId={typeId} storeIdsFilter={storeIdsFilter} />
 
       <MenuOffersSlider
         offers={filteredOffers}
@@ -408,26 +401,14 @@ export function StoreDiscoveryApp({
           category={typeId}
           lat={draft.latitude}
           lng={draft.longitude}
-          storeIdsFilter={
-            storeIdsFilter && storeIdsFilter.length > 0
-              ? storeIdsFilter
-              : typeStoreIdSet
-                ? Array.from(typeStoreIdSet)
-                : null
-          }
+          subCategoryId={selectedSubCategoryId}
         />
       ) : null}
 
       {burnActive ? (
         <BurnDealsSection
           categoryType={typeId}
-          storeIdsFilter={
-            storeIdsFilter && storeIdsFilter.length > 0
-              ? storeIdsFilter
-              : typeStoreIdSet
-                ? Array.from(typeStoreIdSet)
-                : null
-          }
+          subCategoryId={selectedSubCategoryId}
         />
       ) : (
       <main className="space-y-3 px-4 pb-32">

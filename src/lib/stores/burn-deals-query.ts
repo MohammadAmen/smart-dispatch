@@ -2,9 +2,10 @@ import type { BurnDealStore, BurnDealsFeed } from "@/lib/stores/burn-deals-types
 
 export const BURN_DEALS_KEY_PREFIX = "/api/deals/burn";
 
-export function burnDealsKey(categoryType: string): string {
+export function burnDealsKey(categoryType: string, subCategoryId: string | null = null): string {
   const category = categoryType.trim() || "ALL";
-  return `${BURN_DEALS_KEY_PREFIX}?categoryType=${encodeURIComponent(category)}`;
+  const sub = subCategoryId?.trim() || "all";
+  return `${BURN_DEALS_KEY_PREFIX}?categoryType=${encodeURIComponent(category)}&sub=${encodeURIComponent(sub)}`;
 }
 
 function normalizeStore(value: unknown): BurnDealStore | null {
@@ -54,10 +55,16 @@ function normalizeStore(value: unknown): BurnDealStore | null {
   };
 }
 
-export async function fetchBurnDeals(categoryType: string): Promise<BurnDealsFeed> {
+export async function fetchBurnDeals(
+  categoryType: string,
+  subCategoryId: string | null = null,
+): Promise<BurnDealsFeed> {
   const params = new URLSearchParams({
     categoryType: categoryType.trim() || "ALL",
   });
+  if (subCategoryId?.trim()) {
+    params.set("subCategoryId", subCategoryId.trim());
+  }
   const response = await fetch(`${BURN_DEALS_KEY_PREFIX}?${params.toString()}`, {
     cache: "no-store",
   });
