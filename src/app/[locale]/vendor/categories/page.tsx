@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { VendorCategoriesBoard } from "@/components/stores/vendor-categories-board";
 import { isLocale, LOCALES } from "@/i18n/config";
+import { listGlobalCategoriesForStoreType } from "@/lib/stores/global-categories-admin";
 import { loadVendorCatalog } from "@/lib/stores/vendor-access";
 
 export const dynamic = "force-dynamic";
@@ -23,5 +24,15 @@ export default async function LocaleVendorCategoriesPage({
   }
 
   const catalog = await loadVendorCatalog(`/${locale}/login`);
-  return <VendorCategoriesBoard store={catalog.store} categories={catalog.categories} />;
+  const globalCategories = catalog.store?.storeTypeId
+    ? await listGlobalCategoriesForStoreType(catalog.store.storeTypeId)
+    : [];
+
+  return (
+    <VendorCategoriesBoard
+      store={catalog.store}
+      categories={catalog.categories}
+      globalCategories={globalCategories}
+    />
+  );
 }

@@ -388,7 +388,12 @@ export async function createStoreDriver(input: DriverWriteInput): Promise<StoreD
 }
 
 function serializeCategory(
-  row: Prisma.CategoryGetPayload<{ include: { _count: { select: { products: true } } } }>,
+  row: Prisma.CategoryGetPayload<{
+    include: {
+      _count: { select: { products: true } };
+      globalCategory: { select: { id: true; name: true } };
+    };
+  }>,
 ): CategoryRecord {
   return {
     id: row.id,
@@ -397,13 +402,49 @@ function serializeCategory(
     sortOrder: row.sortOrder,
     active: row.active,
     productCount: row._count.products,
+    parentId: row.parentId,
+    icon: row.icon,
+    imageUrl: row.imageUrl,
+    globalCategoryId: row.globalCategoryId,
+    globalCategoryName: row.globalCategory?.name ?? null,
   };
+}
+
+const categoryInclude = {
+  _count: { select: { products: true } },
+  globalCategory: { select: { id: true, name: true } },
+} as const;
+
+async function resolveCategoryGlobalId(
+  storeId: string,
+  explicit: string | null | undefined,
+): Promise<string | null> {
+  const value = explicit?.trim() ?? "";
+  if (value) {
+    const found = await prisma.globalCategory.findFirst({
+      where: { id: value, active: true },
+      select: { id: true },
+    });
+    if (found) {
+      return found.id;
+    }
+  }
+
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+    select: { storeTypeId: true },
+  });
+  if (!store?.storeTypeId) {
+    return null;
+  }
+  const { getOtherGlobalCategoryId } = await import("@/lib/stores/global-categories-admin");
+  return getOtherGlobalCategoryId(store.storeTypeId);
 }
 
 export async function listCategories(storeId: string): Promise<CategoryRecord[]> {
   const rows = await prisma.category.findMany({
     where: { storeId },
-    include: { _count: { select: { products: true } } },
+    include: categoryInclude,
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
   return rows.map(serializeCategory);
@@ -418,14 +459,17 @@ export async function createCategory(
     throw new Error("Category name is required.");
   }
 
+  const globalCategoryId = await resolveCategoryGlobalId(storeId, input.globalCategoryId);
+
   const row = await prisma.category.create({
     data: {
       storeId,
       name,
       sortOrder: input.sortOrder ?? 0,
       active: input.active ?? true,
+      globalCategoryId,
     },
-    include: { _count: { select: { products: true } } },
+    include: categoryInclude,
   });
   return serializeCategory(row);
 }
@@ -448,14 +492,17 @@ export async function updateCategory(
     throw new Error("Category name is required.");
   }
 
+  const globalCategoryId = await resolveCategoryGlobalId(storeId, input.globalCategoryId);
+
   const row = await prisma.category.update({
     where: { id },
     data: {
       name,
       sortOrder: input.sortOrder ?? 0,
       active: input.active ?? true,
+      globalCategoryId,
     },
-    include: { _count: { select: { products: true } } },
+    include: categoryInclude,
   });
   return serializeCategory(row);
 }

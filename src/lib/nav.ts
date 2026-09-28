@@ -11,6 +11,7 @@ import {
   Shapes,
   Sparkles,
   Store,
+  Tags,
   Truck,
   Users,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export const primaryNav: NavItem[] = [
 export const secondaryNav: NavItem[] = [
   { href: "/admin/stores", labelKey: "nav.stores", icon: Store, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/admin/store-types", labelKey: "nav.storeTypes", icon: Shapes, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/global-categories", labelKey: "nav.globalCategories", icon: Tags, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/admin/stories", labelKey: "nav.adminStories", icon: Sparkles, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/settings/users", labelKey: "nav.users", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "DISPATCHER"] },
   { href: "/settings/zones", labelKey: "nav.zones", icon: MapPinned, roles: ["SUPER_ADMIN", "ADMIN", "DISPATCHER"] },

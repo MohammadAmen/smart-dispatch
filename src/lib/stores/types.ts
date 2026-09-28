@@ -61,6 +61,7 @@ export interface CategoryRecord {
   icon?: string | null;
   imageUrl?: string | null;
   globalCategoryId?: string | null;
+  globalCategoryName?: string | null;
 }
 
 export interface ProductRecord {
@@ -120,6 +121,7 @@ export interface CategoryWriteInput {
   name: string;
   sortOrder?: number;
   active?: boolean;
+  globalCategoryId?: string | null;
 }
 
 export interface ProductWriteInput {

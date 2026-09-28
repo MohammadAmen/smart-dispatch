@@ -227,6 +227,68 @@ export async function deleteStoreTypeAction(formData: FormData): Promise<ActionR
   }
 }
 
+function revalidateGlobalCategories(): void {
+  for (const path of ["/admin/global-categories", "/admin/store-types", "/vendor/categories", "/menu"]) {
+    revalidatePath(path);
+    revalidatePath(`/ar${path}`);
+    revalidatePath(`/en${path}`);
+  }
+}
+
+export async function saveGlobalCategoryAction(formData: FormData): Promise<ActionResult> {
+  const denied = await requireAdmin();
+  if (denied) {
+    return denied;
+  }
+
+  try {
+    const { createGlobalCategory, updateGlobalCategory } = await import(
+      "@/lib/stores/global-categories-admin"
+    );
+    const { saveUploadedImage } = await import("@/lib/stores/product-image");
+    const uploaded = asFile(formData, "image");
+    const imageUrl = uploaded
+      ? await saveUploadedImage(uploaded, "custom")
+      : asOptional(formData, "imageUrl");
+
+    const payload = {
+      name: asString(formData, "name"),
+      storeTypeId: asString(formData, "storeTypeId"),
+      icon: asString(formData, "icon") || "📦",
+      imageUrl,
+      sortOrder: Number.parseInt(asString(formData, "sortOrder") || "0", 10),
+      isOther: asBoolean(formData, "isOther"),
+      active: formData.has("active") ? asBoolean(formData, "active") : true,
+    };
+    const id = asOptional(formData, "id");
+    if (id) {
+      await updateGlobalCategory(id, payload);
+    } else {
+      await createGlobalCategory(payload);
+    }
+    revalidateGlobalCategories();
+    return { ok: true };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function deleteGlobalCategoryAction(formData: FormData): Promise<ActionResult> {
+  const denied = await requireAdmin();
+  if (denied) {
+    return denied;
+  }
+
+  try {
+    const { deleteGlobalCategory } = await import("@/lib/stores/global-categories-admin");
+    await deleteGlobalCategory(asString(formData, "id"));
+    revalidateGlobalCategories();
+    return { ok: true };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
 export async function createOwnerAction(formData: FormData): Promise<ActionResult> {
   const denied = await requireAdmin();
   if (denied) {
@@ -280,6 +342,7 @@ export async function saveCategoryAction(formData: FormData): Promise<ActionResu
       name: asString(formData, "name"),
       sortOrder: Number.parseInt(asString(formData, "sortOrder") || "0", 10),
       active: asBoolean(formData, "active"),
+      globalCategoryId: asOptional(formData, "globalCategoryId"),
     };
     const id = asOptional(formData, "id");
     if (id) {

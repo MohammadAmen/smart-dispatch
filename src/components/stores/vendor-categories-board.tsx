@@ -17,12 +17,23 @@ import type { CategoryRecord, StoreRecord } from "@/lib/stores/types";
 const fieldClass =
   "h-10 w-full rounded-xl border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
+export type VendorGlobalCategoryOption = {
+  id: string;
+  name: string;
+  icon: string;
+  imageUrl: string | null;
+  isOther: boolean;
+  sortOrder: number;
+};
+
 export function VendorCategoriesBoard({
   store,
   categories,
+  globalCategories,
 }: {
   store: StoreRecord | null;
   categories: CategoryRecord[];
+  globalCategories: VendorGlobalCategoryOption[];
 }): ReactNode {
   const { t } = useLocale();
   const router = useRouter();
@@ -82,6 +93,11 @@ export function VendorCategoriesBoard({
                 <p className="text-xs text-muted-foreground">
                   {t("vendor.productCount", { count: category.productCount })}
                 </p>
+                {category.globalCategoryName ? (
+                  <p className="truncate text-[11px] font-medium text-primary/90">
+                    {t("vendor.linkedGlobal", { name: category.globalCategoryName })}
+                  </p>
+                ) : null}
                 <StatusBadge
                   label={category.active ? t("vendor.active") : t("vendor.unavailable")}
                   tone={category.active ? "success" : "muted"}
@@ -108,6 +124,7 @@ export function VendorCategoriesBoard({
         open={creating || editing !== null}
         storeId={store.id}
         category={editing}
+        globalCategories={globalCategories}
         pending={pending}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSubmit={(formData) => run(() => saveCategoryAction(formData), true)}
@@ -120,6 +137,7 @@ function CategoryEditorDialog({
   open,
   storeId,
   category,
+  globalCategories,
   pending,
   onClose,
   onSubmit,
@@ -127,11 +145,16 @@ function CategoryEditorDialog({
   open: boolean;
   storeId: string;
   category: CategoryRecord | null;
+  globalCategories: VendorGlobalCategoryOption[];
   pending: boolean;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
 }): ReactNode {
   const { t } = useLocale();
+  const defaultGlobal =
+    category?.globalCategoryId ??
+    globalCategories.find((item) => item.isOther)?.id ??
+    "";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -178,6 +201,26 @@ function CategoryEditorDialog({
                   {t("vendor.name")}
                   <input name="name" required defaultValue={category?.name ?? ""} className={fieldClass} />
                 </label>
+                <label className="block space-y-1.5 text-xs font-medium text-muted-foreground">
+                  {t("vendor.globalCategory")}
+                  <select
+                    name="globalCategoryId"
+                    defaultValue={defaultGlobal}
+                    className={fieldClass}
+                  >
+                    <option value="">{t("vendor.globalCategoryAuto")}</option>
+                    {globalCategories.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.icon ? `${item.icon} ` : ""}
+                        {item.name}
+                        {item.isOther ? ` (${t("stores.globalOtherBadge")})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  {t("vendor.globalCategoryHint")}
+                </p>
                 <label className="block space-y-1.5 text-xs font-medium text-muted-foreground">
                   {t("vendor.sortOrder")}
                   <input

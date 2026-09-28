@@ -210,6 +210,10 @@ export async function seedAndLinkGlobalCategories(): Promise<void> {
 /** Idempotent ensure + seed used by public APIs. */
 let seedReady: Promise<void> | null = null;
 
+export function resetGlobalCategoriesSeedCache(): void {
+  seedReady = null;
+}
+
 export async function ensureGlobalCategoriesReady(): Promise<void> {
   if (!seedReady) {
     seedReady = seedAndLinkGlobalCategories().catch((error: unknown) => {
