@@ -14,6 +14,67 @@ import {
 } from "@/lib/stores/offer-types";
 import { cn } from "@/lib/utils";
 
+/** Luxury promotional banner slide — alias for design-system naming. */
+export function PromoBanner({
+  offer,
+  storeHint,
+  onClaim,
+  claimLabel,
+  remainingLabel,
+}: {
+  offer: PublicOffer;
+  storeHint: boolean;
+  onClaim: () => void;
+  claimLabel: string;
+  remainingLabel: string;
+}): ReactNode {
+  return (
+    <article className="relative h-[10.5rem] overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-lg sm:h-[11.25rem]">
+      <MenuSafeImage
+        src={offer.image}
+        alt=""
+        className="absolute inset-0 size-full scale-105 object-cover"
+        fallback={
+          <span className="absolute inset-0 bg-linear-to-br from-slate-900 via-slate-800 to-amber-950/40" />
+        }
+      />
+      {/* Dark luxury gradient — keeps type readable over food art */}
+      <div className="absolute inset-0 bg-linear-to-r from-slate-950 via-slate-950/88 to-slate-950/35 rtl:bg-linear-to-l" />
+      <div className="absolute inset-0 bg-linear-to-t from-slate-950/70 via-transparent to-slate-950/25" />
+
+      <div className="relative z-10 flex h-full items-center gap-3 px-3.5 py-3.5 sm:gap-4 sm:px-5">
+        {/* Alert / megaphone badge */}
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-amber-300 shadow-inner ring-1 ring-white/20 backdrop-blur-md sm:size-12">
+          <Megaphone className="size-[1.1rem]" />
+        </span>
+
+        {/* Typography + countdown */}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+          <p className="line-clamp-2 text-base font-bold leading-snug tracking-tight text-white drop-shadow-sm sm:text-[1.0625rem]">
+            {offer.title}
+          </p>
+          {storeHint ? (
+            <p className="truncate text-sm text-slate-400">{offer.storeName}</p>
+          ) : null}
+          <p className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300 shadow-sm backdrop-blur-md sm:text-xs">
+            <Hourglass className="size-3 shrink-0 text-amber-200" />
+            <span className="truncate tabular-nums">{remainingLabel}</span>
+          </p>
+        </div>
+
+        {/* CTA */}
+        <button
+          type="button"
+          onClick={onClaim}
+          className="flex shrink-0 items-center gap-2 rounded-full bg-amber-400 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-md transition-all hover:bg-amber-500 active:scale-[0.98] sm:px-6 sm:text-sm"
+        >
+          {claimLabel}
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export function MenuOffersSlider({
   offers,
   onClaim,
@@ -94,7 +155,7 @@ export function MenuOffersSlider({
       onPointerLeave={() => setPaused(false)}
     >
       <div
-        className="relative overflow-hidden rounded-2xl"
+        className="relative overflow-hidden rounded-3xl"
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         onPointerCancel={() => {
@@ -103,55 +164,31 @@ export function MenuOffersSlider({
         }}
       >
         <AnimatePresence mode="wait">
-          <m.article
+          <m.div
             key={offer.id}
             initial={{ opacity: 0, x: rtl ? -18 : 18 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: rtl ? 18 : -18 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="relative h-[9.25rem] overflow-hidden rounded-2xl sm:h-[9.75rem]"
           >
-            <MenuSafeImage
-              src={offer.image}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-              fallback={
-                <span className="absolute inset-0 bg-linear-to-br from-primary/80 via-destructive/50 to-warning/40" />
-              }
+            <PromoBanner
+              offer={offer}
+              storeHint={storeHint}
+              onClaim={() => onClaim(offer)}
+              claimLabel={t("menu.claimOffer")}
+              remainingLabel={t("menu.offerRemaining", {
+                time: formatCountdown(remaining),
+              })}
             />
-            <div className="absolute inset-0 bg-linear-to-r from-black/82 via-black/58 to-black/18 rtl:bg-linear-to-l" />
-            <div className="relative z-10 flex h-full items-stretch gap-3 px-3.5 py-3 pb-5">
-              <span className="mt-0.5 flex size-11 shrink-0 items-center justify-center self-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
-                <Megaphone className="size-[1.05rem]" />
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-                <p className="line-clamp-2 text-[0.9375rem] font-semibold leading-snug text-white">
-                  {offer.title}
-                </p>
-                {storeHint ? (
-                  <p className="truncate text-[11px] text-white/75">{offer.storeName}</p>
-                ) : null}
-                <p className="inline-flex w-fit items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-warning">
-                  <Hourglass className="size-3 shrink-0" />
-                  {t("menu.offerRemaining", { time: formatCountdown(remaining) })}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onClaim(offer)}
-                className="shrink-0 self-center rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm"
-              >
-                {t("menu.claimOffer")}
-              </button>
-            </div>
-          </m.article>
+          </m.div>
         </AnimatePresence>
+
         {live.length > 1 ? (
           <>
             <button
               type="button"
               onClick={() => go(-1)}
-              className="absolute start-1 top-1/2 z-20 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white"
+              className="absolute start-1.5 top-1/2 z-20 flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/55 text-white backdrop-blur-md"
               aria-label={t("menu.offerPrev")}
             >
               <ChevronRight className="size-3.5 rtl:hidden" />
@@ -160,19 +197,19 @@ export function MenuOffersSlider({
             <button
               type="button"
               onClick={() => go(1)}
-              className="absolute end-1 top-1/2 z-20 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white"
+              className="absolute end-1.5 top-1/2 z-20 flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/55 text-white backdrop-blur-md"
               aria-label={t("menu.offerNext")}
             >
               <ChevronLeft className="size-3.5 rtl:hidden" />
               <ChevronRight className="size-3.5 hidden rtl:block" />
             </button>
-            <div className="absolute inset-x-0 bottom-1.5 z-20 flex justify-center gap-1">
+            <div className="absolute inset-x-0 bottom-2 z-20 flex justify-center gap-1.5">
               {live.map((item, itemIndex) => (
                 <span
                   key={item.id}
                   className={cn(
                     "h-1 rounded-full transition-all",
-                    itemIndex === index ? "w-4 bg-white" : "w-1.5 bg-white/45",
+                    itemIndex === index ? "w-4 bg-amber-400" : "w-1.5 bg-white/40",
                   )}
                 />
               ))}
