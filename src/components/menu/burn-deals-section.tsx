@@ -1,11 +1,12 @@
 "use client";
 
 import { Flame } from "lucide-react";
-import { type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import useSWR from "swr";
 
 import { StoreMegaDealsCard } from "@/components/menu/store-mega-deals-card";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { burnDealsKey, fetchBurnDeals } from "@/lib/stores/burn-deals-query";
 
 function BurnDealsSkeleton(): ReactNode {
@@ -44,20 +45,25 @@ export function BurnDealsSection({
   const { t } = useLocale();
   const category = categoryType === "all" ? "ALL" : categoryType;
   const key = burnDealsKey(category);
+  const debouncedStoreIds = useDebouncedValue(storeIdsFilter, 160);
 
   const { data, isLoading } = useSWR(key, () => fetchBurnDeals(category), {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
-    dedupingInterval: 20_000,
+    dedupingInterval: 30_000,
     keepPreviousData: true,
   });
 
   const stores = data?.stores ?? [];
   const loading = isLoading && !data;
-  const visible =
-    storeIdsFilter && storeIdsFilter.length > 0
-      ? stores.filter((store) => storeIdsFilter.includes(store.storeId))
-      : stores;
+
+  const visible = useMemo(() => {
+    if (!debouncedStoreIds || debouncedStoreIds.length === 0) {
+      return stores;
+    }
+    const allowed = new Set(debouncedStoreIds);
+    return stores.filter((store) => allowed.has(store.storeId));
+  }, [debouncedStoreIds, stores]);
 
   return (
     <section className="space-y-3 px-4 pb-32">

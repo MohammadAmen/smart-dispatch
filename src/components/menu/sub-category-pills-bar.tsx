@@ -1,80 +1,85 @@
 "use client";
 
 import { m } from "framer-motion";
+import Image from "next/image";
 import { LayoutGrid } from "lucide-react";
 import { type ReactNode } from "react";
 import useSWR from "swr";
 
-import { MenuSafeImage } from "@/components/menu/menu-safe-image";
 import { useLocale } from "@/components/providers/locale-provider";
+import { BRAND_SPLASH_BEE_SRC } from "@/lib/brand";
 import { fetchSubCategories, subCategoriesKey } from "@/lib/stores/global-categories-query";
 import type { PublicSubCategory } from "@/lib/stores/global-categories-types";
 import { cn } from "@/lib/utils";
 
-function ChipSkeleton(): ReactNode {
+function GridSkeleton(): ReactNode {
   return (
-    <div className="scrollbar-none flex gap-2 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {Array.from({ length: 7 }, (_, index) => (
+    <div className="scrollbar-none flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {Array.from({ length: 5 }, (_, index) => (
         <div
           key={index}
-          className="flex h-10 shrink-0 items-center gap-2 rounded-2xl border border-slate-100 bg-white px-2.5 shadow-sm"
-        >
-          <div className="size-8 animate-pulse rounded-lg bg-slate-100" />
-          <div className="h-3 w-12 animate-pulse rounded bg-slate-100" />
-        </div>
+          className="h-24 w-36 shrink-0 animate-pulse rounded-2xl border border-slate-100 bg-slate-100 shadow-sm"
+        />
       ))}
     </div>
   );
 }
 
-function SubCategoryChip({
+function SubCategoryGridCard({
   label,
   imageUrl,
   icon,
   active,
   onSelect,
+  allChip = false,
 }: {
   label: string;
   imageUrl?: string | null;
   icon?: string | null;
   active: boolean;
   onSelect: () => void;
+  allChip?: boolean;
 }): ReactNode {
   return (
     <m.button
       type="button"
-      whileTap={{ scale: 0.96 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onSelect}
-      className={cn(
-        "flex h-10 shrink-0 items-center gap-2 rounded-2xl border px-2.5 shadow-sm transition",
-        active
-          ? "border-amber-500 bg-amber-50/60"
-          : "border-slate-100 bg-white hover:border-amber-200",
-      )}
       aria-pressed={active}
+      className={cn(
+        "relative h-24 w-36 flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-slate-100 shadow-sm transition-all",
+        active && "scale-[1.02] ring-2 ring-amber-500",
+      )}
     >
-      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50">
-        {imageUrl ? (
-          <MenuSafeImage
-            src={imageUrl}
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="144px"
+          className="object-cover"
+          unoptimized
+        />
+      ) : allChip ? (
+        <span className="absolute inset-0 bg-linear-to-br from-amber-400 via-amber-500 to-orange-600">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={BRAND_SPLASH_BEE_SRC}
             alt=""
-            className="h-8 w-8 object-contain"
-            fallback={
-              icon ? (
-                <span className="text-sm leading-none">{icon}</span>
-              ) : (
-                <LayoutGrid className="size-4 text-slate-400" />
-              )
-            }
+            className="absolute inset-0 m-auto size-12 object-contain opacity-90"
+            draggable={false}
           />
-        ) : icon ? (
-          <span className="text-sm leading-none">{icon}</span>
-        ) : (
-          <LayoutGrid className="size-4 text-slate-400" />
-        )}
-      </span>
-      <span className="max-w-[7.5rem] truncate text-xs font-semibold text-slate-800">
-        {label}
+        </span>
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-700 to-slate-900 text-3xl">
+          {icon || <LayoutGrid className="size-8 text-white/80" />}
+        </span>
+      )}
+
+      <span className="absolute inset-0 flex items-end justify-center bg-linear-to-t from-black/80 via-black/30 to-transparent p-2">
+        <span className="text-center text-xs font-bold text-white drop-shadow-md sm:text-sm">
+          {label}
+        </span>
       </span>
     </m.button>
   );
@@ -103,7 +108,7 @@ export function SubCategoryPillsBar({
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 25_000,
+      dedupingInterval: 30_000,
       keepPreviousData: true,
     },
   );
@@ -120,18 +125,19 @@ export function SubCategoryPillsBar({
   }
 
   return (
-    <section className="pb-1 pt-0.5">
+    <section className="pb-1.5 pt-1">
       {loading ? (
-        <ChipSkeleton />
+        <GridSkeleton />
       ) : (
-        <div className="scrollbar-none flex gap-2 overflow-x-auto px-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <SubCategoryChip
+        <div className="scrollbar-none flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SubCategoryGridCard
             label={t("menu.allTypes")}
             active={!selectedId}
+            allChip
             onSelect={() => onSelect(null)}
           />
           {items.map((item) => (
-            <SubCategoryChip
+            <SubCategoryGridCard
               key={item.id}
               label={item.name}
               imageUrl={item.imageUrl}

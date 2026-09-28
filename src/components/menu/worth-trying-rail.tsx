@@ -27,7 +27,13 @@ import type { PublicStory } from "@/lib/stores/story-types";
 import { cn } from "@/lib/utils";
 import { useStorySeenStore } from "@/stores/story-seen-store";
 
-export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
+export function WorthTryingRail({
+  typeId,
+  storeIdsFilter = null,
+}: {
+  typeId: string;
+  storeIdsFilter?: string[] | null;
+}): ReactNode {
   const { t } = useLocale();
   const viewedIds = useStorySeenStore((state) => state.viewedIds);
   const hydrateSeen = useStorySeenStore((state) => state.hydrate);
@@ -46,6 +52,7 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
     keepPreviousData: true,
+    dedupingInterval: 8_000,
   });
 
   useEffect(() => subscribeStoriesChanged(() => {
@@ -64,10 +71,20 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
 
   const viewedSet = useMemo(() => new Set(viewedIds), [viewedIds]);
 
+  const allowedStoreIds = useMemo(() => {
+    if (!storeIdsFilter || storeIdsFilter.length === 0) {
+      return null;
+    }
+    return new Set(storeIdsFilter);
+  }, [storeIdsFilter]);
+
   const visible = useMemo(() => {
     const filtered = stores
       .filter((store) => {
         if (typeId !== "all" && !store.isAdminAd && store.storeTypeId !== typeId) {
+          return false;
+        }
+        if (allowedStoreIds && !store.isAdminAd && !allowedStoreIds.has(store.storeId)) {
           return false;
         }
         return store.stories.some((story) => Date.parse(story.expiresAt) > Date.now());
@@ -77,7 +94,7 @@ export function WorthTryingRail({ typeId }: { typeId: string }): ReactNode {
         stories: store.stories.filter((story) => Date.parse(story.expiresAt) > Date.now()),
       }));
     return sortRailStores(filtered, viewedSet);
-  }, [stores, typeId, viewedSet]);
+  }, [allowedStoreIds, stores, typeId, viewedSet]);
 
   useEffect(() => {
     if (visible.length === 0) {

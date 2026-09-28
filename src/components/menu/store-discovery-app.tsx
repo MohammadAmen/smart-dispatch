@@ -28,6 +28,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { BRAND_SPLASH_BEE_SRC } from "@/lib/brand";
 import { calculateDistance } from "@/lib/geo";
 import {
@@ -145,27 +146,39 @@ export function StoreDiscoveryApp({
     locate();
   }, [draft.latitude, draft.longitude, hydrated, locate]);
 
-  const subCategoryId = subCategory?.id ?? null;
+  const selectedSubCategoryId = subCategory?.id ?? null;
+  const storeIdsFilter = subCategory?.storeIds ?? null;
+  const debouncedStoreIds = useDebouncedValue(storeIdsFilter, 160);
 
-  const {
-    data: liveStores,
-    isLoading: storesLoading,
-    isValidating: storesValidating,
-  } = useSWR(
-    menuStoresKey(typeId, subCategoryId),
-    () => fetchMenuStores(typeId, subCategoryId),
+  // One cached fetch per main type — sub-category filtering is client-side.
+  const { data: liveStores, isLoading: storesLoading } = useSWR(
+    menuStoresKey(typeId, null),
+    () => fetchMenuStores(typeId, null),
     {
-      fallbackData: typeId === "all" && !subCategoryId ? stores : undefined,
+      fallbackData: typeId === "all" ? stores : undefined,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 12_000,
+      dedupingInterval: 30_000,
       keepPreviousData: true,
     },
   );
 
   const directoryStores = liveStores ?? stores;
-  const showStoresSkeleton =
-    (storesLoading && !liveStores) || (storesValidating && Boolean(subCategoryId));
+  const showStoresSkeleton = storesLoading && !liveStores;
+
+  const subStoreIdSet = useMemo(() => {
+    if (!debouncedStoreIds || debouncedStoreIds.length === 0) {
+      return null;
+    }
+    return new Set(debouncedStoreIds);
+  }, [debouncedStoreIds]);
+
+  const filteredOffers = useMemo(() => {
+    if (!subStoreIdSet) {
+      return offers;
+    }
+    return offers.filter((offer) => subStoreIdSet.has(offer.storeId));
+  }, [offers, subStoreIdSet]);
 
   const ranked = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -174,6 +187,9 @@ export function StoreDiscoveryApp({
 
     return directoryStores
       .filter((store) => {
+        if (subStoreIdSet && !subStoreIdSet.has(store.id)) {
+          return false;
+        }
         if (!query) {
           return true;
         }
@@ -194,7 +210,7 @@ export function StoreDiscoveryApp({
         return { store, distanceKm };
       })
       .sort((left, right) => left.distanceKm - right.distanceKm);
-  }, [directoryStores, draft.latitude, draft.longitude, search]);
+  }, [directoryStores, draft.latitude, draft.longitude, search, subStoreIdSet]);
 
   useEffect(() => {
     setSubCategory(null);
@@ -338,15 +354,15 @@ export function StoreDiscoveryApp({
           mainCategoryId={typeId}
           lat={draft.latitude}
           lng={draft.longitude}
-          selectedId={subCategory?.id ?? null}
+          selectedId={selectedSubCategoryId}
           onSelect={setSubCategory}
         />
       ) : null}
 
-      <WorthTryingRail typeId={typeId} />
+      <WorthTryingRail typeId={typeId} storeIdsFilter={storeIdsFilter} />
 
       <MenuOffersSlider
-        offers={offers}
+        offers={filteredOffers}
         storeHint
         onClaim={(offer) => {
           router.push(`/menu/stores/${offer.storeId}?offer=${encodeURIComponent(offer.id)}`);
@@ -358,14 +374,14 @@ export function StoreDiscoveryApp({
           category={typeId}
           lat={draft.latitude}
           lng={draft.longitude}
-          subCategoryId={subCategoryId}
+          storeIdsFilter={storeIdsFilter}
         />
       ) : null}
 
       {burnActive ? (
         <BurnDealsSection
           categoryType={typeId}
-          storeIdsFilter={subCategory?.storeIds ?? null}
+          storeIdsFilter={storeIdsFilter}
         />
       ) : (
       <main className="space-y-3 px-4 pb-32">

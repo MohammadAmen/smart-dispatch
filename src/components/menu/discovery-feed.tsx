@@ -2,11 +2,12 @@
 
 import { Flame, Percent, Sparkles, Tag } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
 
 import { ShowcaseProductCard } from "@/components/menu/showcase-product-card";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { baseCartExtras } from "@/lib/stores/menu-cart";
 import { discoveryKey, fetchDiscoveryFeed } from "@/lib/stores/discovery-query";
 import type { DiscoveryProduct } from "@/lib/stores/discovery-types";
@@ -103,6 +104,16 @@ function DiscoveryRail({
   );
 }
 
+function filterByStores(
+  products: DiscoveryProduct[],
+  storeIds: Set<string> | null,
+): DiscoveryProduct[] {
+  if (!storeIds) {
+    return products;
+  }
+  return products.filter((product) => storeIds.has(product.storeId));
+}
+
 /**
  * Public marketplace discovery feed only — mount from StoreDiscoveryApp,
  * never from the per-store / table MenuApp.
@@ -111,30 +122,55 @@ export function DiscoveryFeed({
   category,
   lat,
   lng,
-  subCategoryId = null,
+  storeIdsFilter = null,
 }: {
   category: string;
   lat: number | null;
   lng: number | null;
-  subCategoryId?: string | null;
+  /** Client-side filter — keeps one cached discovery fetch per category/location. */
+  storeIdsFilter?: string[] | null;
 }): ReactNode {
   const { t } = useLocale();
   const add = useMenuCartStore((state) => state.add);
   const [detailsProduct, setDetailsProduct] = useState<DiscoveryProduct | null>(null);
   const isAll = category === "all" || category === "ALL" || !category;
   const resolvedCategory = isAll ? "ALL" : category;
-  const resolvedSub = subCategoryId?.trim() || null;
-  const key = discoveryKey(resolvedCategory, lat, lng, resolvedSub);
+  const debouncedStoreIds = useDebouncedValue(storeIdsFilter, 160);
+  const key = discoveryKey(resolvedCategory, lat, lng, null);
 
   const { data, isLoading } = useSWR(
     key,
-    () => fetchDiscoveryFeed(resolvedCategory, lat, lng, resolvedSub),
+    () => fetchDiscoveryFeed(resolvedCategory, lat, lng, null),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 30_000,
+      dedupingInterval: 45_000,
       keepPreviousData: true,
     },
+  );
+
+  const storeIdSet = useMemo(() => {
+    if (!debouncedStoreIds || debouncedStoreIds.length === 0) {
+      return null;
+    }
+    return new Set(debouncedStoreIds);
+  }, [debouncedStoreIds]);
+
+  const trending = useMemo(
+    () => filterByStores(data?.trending ?? [], storeIdSet),
+    [data?.trending, storeIdSet],
+  );
+  const deals = useMemo(
+    () => filterByStores(data?.deals ?? [], storeIdSet),
+    [data?.deals, storeIdSet],
+  );
+  const newArrivals = useMemo(
+    () => filterByStores(data?.newArrivals ?? [], storeIdSet),
+    [data?.newArrivals, storeIdSet],
+  );
+  const curated = useMemo(
+    () => filterByStores(data?.curated ?? [], storeIdSet),
+    [data?.curated, storeIdSet],
   );
 
   const addSimple = useCallback(
@@ -200,10 +236,6 @@ export function DiscoveryFeed({
     [add, detailsProduct],
   );
 
-  const trending = data?.trending ?? [];
-  const deals = data?.deals ?? [];
-  const newArrivals = data?.newArrivals ?? [];
-  const curated = data?.curated ?? [];
   const loading = isLoading && !data;
 
   if (!loading && trending.length === 0 && deals.length === 0 && newArrivals.length === 0) {
