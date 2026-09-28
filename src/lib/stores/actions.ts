@@ -235,6 +235,43 @@ function revalidateGlobalCategories(): void {
   }
 }
 
+function revalidateMenuHeader(): void {
+  for (const path of ["/admin/menu-header", "/menu"]) {
+    revalidatePath(path);
+    revalidatePath(`/ar${path}`);
+    revalidatePath(`/en${path}`);
+  }
+}
+
+export async function saveMenuHeaderAction(formData: FormData): Promise<ActionResult> {
+  const denied = await requireAdmin();
+  if (denied) {
+    return denied;
+  }
+
+  try {
+    const { updateAppConfig } = await import("@/lib/platform/app-config");
+    const { saveUploadedImage } = await import("@/lib/stores/product-image");
+    const uploaded = asFile(formData, "image");
+    const clear = asBoolean(formData, "clearBackground");
+    let menuHeaderBackgroundUrl: string | null;
+
+    if (clear) {
+      menuHeaderBackgroundUrl = null;
+    } else if (uploaded) {
+      menuHeaderBackgroundUrl = await saveUploadedImage(uploaded, "platform");
+    } else {
+      menuHeaderBackgroundUrl = asOptional(formData, "menuHeaderBackgroundUrl");
+    }
+
+    await updateAppConfig({ menuHeaderBackgroundUrl });
+    revalidateMenuHeader();
+    return { ok: true };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
 export async function saveGlobalCategoryAction(formData: FormData): Promise<ActionResult> {
   const denied = await requireAdmin();
   if (denied) {

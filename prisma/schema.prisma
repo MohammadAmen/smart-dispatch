@@ -573,3 +573,12 @@ model Upload {
   @@index([folder])
   @@map("uploads")
 }
+
+/** Singleton platform settings (menu header background, etc.). */
+model AppConfig {
+  id                      String   @id @default("default")
+  menuHeaderBackgroundUrl String?  @map("menuHeaderBackgroundUrl") @db.VarChar(2048)
+  updatedAt               DateTime @updatedAt
+
+  @@map("app_config")
+}

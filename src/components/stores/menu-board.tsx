@@ -11,13 +11,21 @@ export function MenuBoard({
   storeTypes,
   offers,
   phone,
+  headerBackgroundUrl = null,
 }: {
   stores: DirectoryStore[];
   storeTypes: StoreTypeRecord[];
   offers: PublicOffer[];
   phone: string;
+  headerBackgroundUrl?: string | null;
 }): ReactNode {
   return (
-    <StoreDiscoveryApp stores={stores} storeTypes={storeTypes} offers={offers} phone={phone} />
+    <StoreDiscoveryApp
+      stores={stores}
+      storeTypes={storeTypes}
+      offers={offers}
+      phone={phone}
+      headerBackgroundUrl={headerBackgroundUrl}
+    />
   );
 }
