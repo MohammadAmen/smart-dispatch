@@ -13,6 +13,8 @@ import { composeDeliveryAddress, type MenuCheckoutDraft } from "@/lib/stores/men
 import { rememberTrackingToken } from "@/lib/stores/menu-track-store";
 import { formatMoney } from "@/lib/stores/pricing";
 import { customerOrderTrackingPath } from "@/lib/stores/public-url";
+import type { DeliveryTier } from "@/lib/platform/delivery-tiers";
+import { DEFAULT_DELIVERY_TIERS } from "@/lib/platform/delivery-tiers";
 import { useMenuCartStore } from "@/stores/menu-cart-store";
 
 export function MenuPersistentCart({
@@ -23,6 +25,7 @@ export function MenuPersistentCart({
   onLocate,
   onCheckoutOpenChange,
   dineIn,
+  deliveryTiers = DEFAULT_DELIVERY_TIERS,
 }: {
   draft: MenuCheckoutDraft;
   locating: boolean;
@@ -31,6 +34,7 @@ export function MenuPersistentCart({
   onLocate: () => void;
   onCheckoutOpenChange: (open: boolean) => void;
   dineIn?: { storeId: string; tableId: string; tableLabel: string } | null;
+  deliveryTiers?: DeliveryTier[];
 }): ReactNode {
   const { t } = useLocale();
   const router = useRouter();
@@ -82,8 +86,9 @@ export function MenuPersistentCart({
         draft.latitude != null && draft.longitude != null
           ? { latitude: draft.latitude, longitude: draft.longitude }
           : null,
+        deliveryTiers,
       ),
-    [draft.latitude, draft.longitude, groups],
+    [deliveryTiers, draft.latitude, draft.longitude, groups],
   );
 
   const placeOrder = async (): Promise<void> => {

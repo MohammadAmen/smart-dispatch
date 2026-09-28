@@ -10,14 +10,16 @@ async function migrateAppConfigSchema(): Promise<void> {
     CREATE TABLE IF NOT EXISTS app_config (
       id VARCHAR(64) NOT NULL,
       "menuHeaderBackgroundUrl" VARCHAR(2048) NULL,
+      "deliveryTiersJson" TEXT NULL,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id)
     )
   `);
   await pgAddColumn("app_config", "menuHeaderBackgroundUrl", "VARCHAR(2048) NULL");
+  await pgAddColumn("app_config", "deliveryTiersJson", "TEXT NULL");
   await prisma.$executeRawUnsafe(`
-    INSERT INTO app_config (id, "menuHeaderBackgroundUrl", "updatedAt")
-    VALUES ('default', NULL, CURRENT_TIMESTAMP)
+    INSERT INTO app_config (id, "menuHeaderBackgroundUrl", "deliveryTiersJson", "updatedAt")
+    VALUES ('default', NULL, NULL, CURRENT_TIMESTAMP)
     ON CONFLICT (id) DO NOTHING
   `);
 }

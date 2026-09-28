@@ -1,13 +1,8 @@
 "use client";
 
 import { AnimatePresence, m } from "framer-motion";
-import {
-  Flame,
-  Star,
-  Store,
-} from "lucide-react";
+import { Flame } from "lucide-react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
@@ -18,11 +13,16 @@ import { BurnDealsSection } from "@/components/menu/burn-deals-section";
 import { DiscoveryFeed } from "@/components/menu/discovery-feed";
 import { MenuCinematicHeader } from "@/components/menu/menu-cinematic-header";
 import { SubCategoryPillsBar } from "@/components/menu/sub-category-pills-bar";
+import { NearbyStoreCard } from "@/components/menu/nearby-store-card";
 import { WorthTryingRail } from "@/components/menu/worth-trying-rail";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { BRAND_LOGO_SRC } from "@/lib/brand";
 import { calculateDistance } from "@/lib/geo";
+import {
+  DEFAULT_DELIVERY_TIERS,
+  type DeliveryTier,
+} from "@/lib/platform/delivery-tiers";
 import {
   emptyCheckoutDraft,
   locationLabel,
@@ -50,14 +50,16 @@ export function StoreDiscoveryApp({
   offers,
   phone,
   headerBackgroundUrl = null,
+  deliveryTiers = DEFAULT_DELIVERY_TIERS,
 }: {
   stores: DirectoryStore[];
   storeTypes: StoreTypeRecord[];
   offers: PublicOffer[];
   phone: string;
   headerBackgroundUrl?: string | null;
+  deliveryTiers?: DeliveryTier[];
 }): ReactNode {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const router = useRouter();
   const [draft, setDraft] = useState<MenuCheckoutDraft>(() => emptyCheckoutDraft(phone));
   const [hydrated, setHydrated] = useState(false);
@@ -351,16 +353,17 @@ export function StoreDiscoveryApp({
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         {showStoresSkeleton ? (
-          <div className="space-y-2.5">
-            {Array.from({ length: 4 }, (_, index) => (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }, (_, index) => (
               <div
                 key={index}
-                className="flex gap-3 rounded-3xl border border-slate-100 bg-white p-3 shadow-sm"
+                className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950"
               >
-                <div className="size-16 shrink-0 animate-pulse rounded-2xl bg-slate-100" />
-                <div className="flex flex-1 flex-col justify-center gap-2">
-                  <div className="h-3.5 w-2/3 animate-pulse rounded bg-slate-100" />
-                  <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+                <div className="h-36 animate-pulse bg-slate-100 dark:bg-slate-900" />
+                <div className="space-y-3 px-4 pb-4 pt-8">
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-10 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
                 </div>
               </div>
             ))}
@@ -378,7 +381,11 @@ export function StoreDiscoveryApp({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index * 0.04, 0.24), duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
               >
-                <StoreCard store={store} distanceKm={distanceKm} locale={locale} t={t} />
+                <NearbyStoreCard
+                  store={store}
+                  distanceKm={distanceKm}
+                  deliveryTiers={deliveryTiers}
+                />
               </m.div>
             ))}
           </AnimatePresence>
@@ -393,6 +400,7 @@ export function StoreDiscoveryApp({
         onDraftChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
         onLocate={locate}
         onCheckoutOpenChange={setCheckoutOpen}
+        deliveryTiers={deliveryTiers}
       />
       <SavedStoresSheet open={savedOpen} onClose={() => setSavedOpen(false)} />
     </div>
@@ -436,68 +444,5 @@ function TypeChip({
       {icon}
       {label}
     </button>
-  );
-}
-
-function StoreCard({
-  store,
-  distanceKm,
-  locale,
-  t,
-}: {
-  store: DirectoryStore;
-  distanceKm: number;
-  locale: string;
-  t: (path: string, vars?: Record<string, string | number>) => string;
-}): ReactNode {
-  const Icon = storeTypeIcon(store.storeType.icon);
-  const ratingLabel =
-    store.rating > 0
-      ? store.rating.toFixed(1)
-      : t("menu.noRating");
-  const distanceLabel = Number.isFinite(distanceKm)
-    ? t("menu.distanceKm", {
-        value: locale === "ar" ? distanceKm.toFixed(1) : distanceKm.toFixed(1),
-      })
-    : t("menu.distanceUnknown");
-
-  return (
-    <Link
-      href={`/menu/stores/${store.id}`}
-      className="glass block overflow-hidden rounded-3xl"
-    >
-      {store.coverImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={store.coverImage} alt="" className="h-24 w-full object-cover" />
-      ) : (
-        <div className="h-16 bg-gradient-to-l from-primary/15 to-transparent" />
-      )}
-      <div className="flex items-center gap-3 p-4">
-        {store.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={store.logoUrl}
-            alt=""
-            className="-mt-10 size-16 rounded-full border-4 border-background object-cover shadow-sm"
-          />
-        ) : (
-          <span className="-mt-10 flex size-16 items-center justify-center rounded-full border-4 border-background bg-primary/10 text-primary shadow-sm">
-            <Icon className="size-6" />
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate font-heading text-base font-semibold">{store.name}</h2>
-          <p className="truncate text-xs text-muted-foreground">{store.storeType.name}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-medium">
-            <span className="inline-flex items-center gap-1 text-amber-500">
-              <Star className="size-3.5 fill-current" />
-              {ratingLabel}
-            </span>
-            <span className="text-muted-foreground">{distanceLabel}</span>
-          </div>
-        </div>
-        <Store className="size-4 shrink-0 text-muted-foreground" />
-      </div>
-    </Link>
   );
 }

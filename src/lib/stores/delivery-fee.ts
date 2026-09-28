@@ -1,6 +1,11 @@
 import { calculateDistance } from "@/lib/geo";
+import {
+  DEFAULT_DELIVERY_TIERS,
+  feeFromDistanceKm,
+  type DeliveryTier,
+} from "@/lib/platform/delivery-tiers";
 
-export const DELIVERY_BASE_FEE = 4000;
+export const DELIVERY_BASE_FEE = DEFAULT_DELIVERY_TIERS[0]?.fee ?? 4000;
 export const DELIVERY_PER_KM = 2000;
 export const DELIVERY_EXTRA_STOP = 1500;
 
@@ -33,6 +38,7 @@ function finitePoint(stop: DeliveryStop): { lat: number; lng: number } | null {
 export function planPickupRoute(
   stops: DeliveryStop[],
   customer: { latitude: number; longitude: number } | null,
+  tiers: DeliveryTier[] = DEFAULT_DELIVERY_TIERS,
 ): DeliveryQuote {
   const unique = new Map<string, DeliveryStop>();
   for (const stop of stops) {
@@ -97,14 +103,14 @@ export function planPickupRoute(
     }
   }
 
+  const roundedDistance = Math.round(distanceKm * 10) / 10;
+  const distanceFee = feeFromDistanceKm(roundedDistance, tiers);
   const extraStops = Math.max(0, ordered.length - 1);
-  const fee = Math.round(
-    DELIVERY_BASE_FEE + extraStops * DELIVERY_EXTRA_STOP + Math.max(0, distanceKm) * DELIVERY_PER_KM,
-  );
+  const fee = Math.round(distanceFee + extraStops * DELIVERY_EXTRA_STOP);
 
   return {
     orderedStops: ordered,
-    distanceKm: Math.round(distanceKm * 10) / 10,
+    distanceKm: roundedDistance,
     stopCount: ordered.length,
     fee: Number.isFinite(fee) ? Math.max(DELIVERY_BASE_FEE, fee) : DELIVERY_BASE_FEE * ordered.length,
   };

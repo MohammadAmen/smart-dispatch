@@ -236,7 +236,7 @@ function revalidateGlobalCategories(): void {
 }
 
 function revalidateMenuHeader(): void {
-  for (const path of ["/admin/menu-header", "/menu"]) {
+  for (const path of ["/admin/menu-header", "/admin/delivery-pricing", "/menu"]) {
     revalidatePath(path);
     revalidatePath(`/ar${path}`);
     revalidatePath(`/en${path}`);
@@ -265,6 +265,30 @@ export async function saveMenuHeaderAction(formData: FormData): Promise<ActionRe
     }
 
     await updateAppConfig({ menuHeaderBackgroundUrl });
+    revalidateMenuHeader();
+    return { ok: true };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function saveDeliveryTiersAction(formData: FormData): Promise<ActionResult> {
+  const denied = await requireAdmin();
+  if (denied) {
+    return denied;
+  }
+
+  try {
+    const { updateAppConfig } = await import("@/lib/platform/app-config");
+    const { normalizeDeliveryTiers } = await import("@/lib/platform/delivery-tiers");
+    const raw = asString(formData, "tiersJson");
+    let parsed: unknown = [];
+    try {
+      parsed = JSON.parse(raw) as unknown;
+    } catch {
+      throw new Error("Invalid delivery tiers payload.");
+    }
+    await updateAppConfig({ deliveryTiers: normalizeDeliveryTiers(parsed) });
     revalidateMenuHeader();
     return { ok: true };
   } catch (error) {

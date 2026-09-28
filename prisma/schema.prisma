@@ -574,10 +574,11 @@ model Upload {
   @@map("uploads")
 }
 
-/** Singleton platform settings (menu header background, etc.). */
+/** Singleton platform settings (menu header background, delivery tiers, etc.). */
 model AppConfig {
   id                      String   @id @default("default")
   menuHeaderBackgroundUrl String?  @map("menuHeaderBackgroundUrl") @db.VarChar(2048)
+  deliveryTiersJson       String?  @map("deliveryTiersJson") @db.Text
   updatedAt               DateTime @updatedAt
 
   @@map("app_config")

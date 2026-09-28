@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { MenuBoard } from "@/components/stores/menu-board";
 import { MotionProvider } from "@/components/providers/motion-provider";
-import { getMenuHeaderBackgroundUrl } from "@/lib/platform/app-config";
+import { getDeliveryTiers, getMenuHeaderBackgroundUrl } from "@/lib/platform/app-config";
 import { listLiveOffers } from "@/lib/stores/offers";
 import { listDirectoryStores } from "@/lib/stores/menu";
 import { listStoreTypes } from "@/lib/stores/store-types";
@@ -15,11 +15,12 @@ export default async function MenuPage({
   searchParams: Promise<{ phone?: string }>;
 }): Promise<ReactNode> {
   const { phone } = await searchParams;
-  const [stores, storeTypes, offers, headerBackgroundUrl] = await Promise.all([
+  const [stores, storeTypes, offers, headerBackgroundUrl, deliveryTiers] = await Promise.all([
     listDirectoryStores(),
     listStoreTypes(),
     listLiveOffers(),
     getMenuHeaderBackgroundUrl(),
+    getDeliveryTiers(),
   ]);
 
   return (
@@ -31,6 +32,7 @@ export default async function MenuPage({
           offers={offers}
           phone={phone?.trim() ?? ""}
           headerBackgroundUrl={headerBackgroundUrl}
+          deliveryTiers={deliveryTiers}
         />
       </div>
     </MotionProvider>

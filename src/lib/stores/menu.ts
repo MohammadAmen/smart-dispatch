@@ -294,6 +294,8 @@ export async function placeMenuOrder(input: {
     : input.longitude != null && Number.isFinite(input.longitude)
       ? input.longitude
       : depot[1];
+  const { getDeliveryTiers } = await import("@/lib/platform/app-config");
+  const deliveryTiers = await getDeliveryTiers();
   const quote = planPickupRoute(
     [...byStore.values()].map((group) => ({
       id: group.store.id,
@@ -302,6 +304,7 @@ export async function placeMenuOrder(input: {
       longitude: group.store.longitude,
     })),
     { latitude: deliveryLat, longitude: deliveryLng },
+    deliveryTiers,
   );
 
   const trackingToken = createTrackingToken();

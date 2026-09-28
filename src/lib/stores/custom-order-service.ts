@@ -58,9 +58,12 @@ export async function placeSpecialCustomOrder(input: {
     input.latitude != null && Number.isFinite(input.latitude) ? input.latitude : depot[0];
   const deliveryLng =
     input.longitude != null && Number.isFinite(input.longitude) ? input.longitude : depot[1];
+  const { getDeliveryTiers } = await import("@/lib/platform/app-config");
+  const deliveryTiers = await getDeliveryTiers();
   const quote = planPickupRoute(
     [{ id: store.id, name: store.name, latitude: store.latitude, longitude: store.longitude }],
     { latitude: deliveryLat, longitude: deliveryLng },
+    deliveryTiers,
   );
   const trackingToken = createTrackingToken();
   const orderNumber = nextOrderNumber();
