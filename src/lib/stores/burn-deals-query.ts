@@ -16,7 +16,7 @@ function normalizeStore(value: unknown): BurnDealStore | null {
     return null;
   }
   const products = Array.isArray(row.products)
-    ? row.products.flatMap((item) => {
+    ? (row.products as unknown[]).flatMap((item) => {
         if (typeof item !== "object" || item === null) {
           return [];
         }
