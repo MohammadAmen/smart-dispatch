@@ -4,6 +4,7 @@ import { AnimatePresence, m } from "framer-motion";
 import {
   Bookmark,
   ClipboardList,
+  Flame,
   LoaderCircle,
   MapPin,
   Navigation,
@@ -18,12 +19,14 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
+import { BurnDealsSection } from "@/components/menu/burn-deals-section";
 import { DiscoveryFeed } from "@/components/menu/discovery-feed";
 import { WorthTryingRail } from "@/components/menu/worth-trying-rail";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BRAND_SPLASH_BEE_SRC } from "@/lib/brand";
 import { calculateDistance } from "@/lib/geo";
 import {
   emptyCheckoutDraft,
@@ -62,6 +65,7 @@ export function StoreDiscoveryApp({
   const [locating, setLocating] = useState(false);
   const [search, setSearch] = useState("");
   const [typeId, setTypeId] = useState("all");
+  const [burnActive, setBurnActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
@@ -263,9 +267,28 @@ export function StoreDiscoveryApp({
 
       <div className="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <TypeChip
-          active={typeId === "all"}
+          active={typeId === "all" && !burnActive}
           label={t("menu.allTypes")}
-          onClick={() => setTypeId("all")}
+          icon={
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={BRAND_SPLASH_BEE_SRC}
+              alt=""
+              className="size-4 bg-transparent object-contain"
+              draggable={false}
+            />
+          }
+          onClick={() => {
+            setTypeId("all");
+            setBurnActive(false);
+          }}
+        />
+        <TypeChip
+          active={burnActive}
+          label={t("menu.burnTitle")}
+          tone="burn"
+          icon={<Flame className="size-3.5 animate-pulse fill-current" />}
+          onClick={() => setBurnActive((current) => !current)}
         />
         {storeTypes.map((type) => {
           const Icon = storeTypeIcon(type.icon);
@@ -291,12 +314,17 @@ export function StoreDiscoveryApp({
         }}
       />
 
-      <DiscoveryFeed
-        category={typeId}
-        lat={draft.latitude}
-        lng={draft.longitude}
-      />
+      {!burnActive ? (
+        <DiscoveryFeed
+          category={typeId}
+          lat={draft.latitude}
+          lng={draft.longitude}
+        />
+      ) : null}
 
+      {burnActive ? (
+        <BurnDealsSection categoryType={typeId} />
+      ) : (
       <main className="space-y-3 px-4 pb-32">
         <div className="flex items-end justify-between gap-3">
           <h1 className="font-heading text-xl font-semibold">{t("menu.nearbyStores")}</h1>
@@ -323,6 +351,7 @@ export function StoreDiscoveryApp({
           </AnimatePresence>
         )}
       </main>
+      )}
 
       <MenuPersistentCart
         draft={draft}
@@ -341,22 +370,34 @@ function TypeChip({
   active,
   label,
   icon,
+  tone = "default",
   onClick,
 }: {
   active: boolean;
   label: string;
   icon?: ReactNode;
+  tone?: "default" | "burn";
   onClick: () => void;
 }): ReactNode {
+  const burnActive = tone === "burn" && active;
+  const burnIdle = tone === "burn" && !active;
+
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
         "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background/60 text-muted-foreground",
+        burnActive &&
+          "border-transparent bg-linear-to-r from-rose-600 via-orange-500 to-amber-400 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40",
+        burnIdle &&
+          "border-rose-400/40 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+        tone === "default" &&
+          active &&
+          "border-primary bg-primary text-primary-foreground",
+        tone === "default" &&
+          !active &&
+          "border-border bg-background/60 text-muted-foreground",
       )}
     >
       {icon}
