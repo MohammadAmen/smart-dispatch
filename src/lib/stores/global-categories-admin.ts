@@ -58,7 +58,10 @@ export async function listAdminGlobalCategories(
 ): Promise<GlobalCategoryRecord[]> {
   await ensureGlobalCategoriesReady();
   const rows = await prisma.globalCategory.findMany({
-    where: storeTypeId ? { storeTypeId } : undefined,
+    where: {
+      active: true,
+      ...(storeTypeId ? { storeTypeId } : {}),
+    },
     include,
     orderBy: [{ storeTypeId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
   });
@@ -119,9 +122,29 @@ export async function createGlobalCategory(
   let slug = (input.slug?.trim() || slugify(name)).slice(0, 48);
   const clash = await prisma.globalCategory.findFirst({
     where: { storeTypeId: input.storeTypeId, slug },
-    select: { id: true },
+    select: { id: true, active: true },
   });
   if (clash) {
+    if (!clash.active) {
+      // Reuse soft-deleted slug row instead of colliding on the unique index.
+      const row = await prisma.globalCategory.update({
+        where: { id: clash.id },
+        data: {
+          storeTypeId: input.storeTypeId,
+          parentId: input.parentId ?? null,
+          name,
+          slug,
+          icon: input.icon?.trim() || "📦",
+          imageUrl: input.imageUrl?.trim() || null,
+          sortOrder: input.sortOrder ?? 0,
+          isOther: input.isOther === true,
+          active: true,
+        },
+        include,
+      });
+      resetGlobalCategoriesSeedCache();
+      return serialize(row);
+    }
     slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
   }
 
@@ -150,9 +173,9 @@ export async function updateGlobalCategory(
   await ensureGlobalCategoriesReady();
   const existing = await prisma.globalCategory.findUnique({
     where: { id },
-    select: { id: true, storeTypeId: true, slug: true },
+    select: { id: true, storeTypeId: true, slug: true, active: true },
   });
-  if (!existing) {
+  if (!existing || !existing.active) {
     throw new Error("Category not found.");
   }
 
@@ -164,17 +187,21 @@ export async function updateGlobalCategory(
     throw new Error("Store type is required.");
   }
 
-  let slug = (input.slug?.trim() || slugify(name)).slice(0, 48);
-  const clash = await prisma.globalCategory.findFirst({
-    where: {
-      storeTypeId: input.storeTypeId,
-      slug,
-      NOT: { id },
-    },
-    select: { id: true },
-  });
-  if (clash) {
-    slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+  // Keep the stable slug so the seeder does not recreate a preset duplicate.
+  let slug = existing.slug;
+  if (input.slug?.trim()) {
+    slug = input.slug.trim().slice(0, 48);
+    const clash = await prisma.globalCategory.findFirst({
+      where: {
+        storeTypeId: input.storeTypeId,
+        slug,
+        NOT: { id },
+      },
+      select: { id: true },
+    });
+    if (clash) {
+      slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+    }
   }
 
   const row = await prisma.globalCategory.update({
@@ -200,17 +227,21 @@ export async function deleteGlobalCategory(id: string): Promise<void> {
   await ensureGlobalCategoriesReady();
   const existing = await prisma.globalCategory.findUnique({
     where: { id },
-    select: { id: true, _count: { select: { storeCategories: true } } },
+    select: { id: true, active: true },
   });
-  if (!existing) {
+  if (!existing || !existing.active) {
     throw new Error("Category not found.");
   }
 
-  // Unlink store categories first (non-destructive) then remove the global row.
+  // Unlink store categories, then soft-delete so the seeder will not recreate
+  // the same preset slug on the next boot.
   await prisma.category.updateMany({
     where: { globalCategoryId: id },
     data: { globalCategoryId: null },
   });
-  await prisma.globalCategory.delete({ where: { id } });
+  await prisma.globalCategory.update({
+    where: { id },
+    data: { active: false },
+  });
   resetGlobalCategoriesSeedCache();
 }

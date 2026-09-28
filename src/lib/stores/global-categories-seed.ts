@@ -99,7 +99,8 @@ export { slugify as slugifyCategoryLabel };
 
 /**
  * Seeds unified sub-categories per store type and links existing store
- * categories to the best matching global row (or "other") — never deletes data.
+ * categories to the best matching global row (or "other") — never deletes data,
+ * never overwrites admin edits, and never reactivates soft-deleted rows.
  */
 export async function seedAndLinkGlobalCategories(): Promise<void> {
   await ensureGlobalCategoriesSchema();
@@ -117,17 +118,8 @@ export async function seedAndLinkGlobalCategories(): Promise<void> {
         where: { storeTypeId: storeType.id, slug: item.slug },
         select: { id: true },
       });
+      // Preserve admin edits / soft-deletes — only create missing presets.
       if (existing) {
-        await prisma.globalCategory.update({
-          where: { id: existing.id },
-          data: {
-            name: item.name,
-            icon: item.icon,
-            sortOrder: index,
-            isOther: item.isOther === true,
-            active: true,
-          },
-        });
         continue;
       }
       await prisma.globalCategory.create({
@@ -143,6 +135,8 @@ export async function seedAndLinkGlobalCategories(): Promise<void> {
       });
     }
   }
+
+  await dedupeActiveGlobalCategories();
 
   const globals = await prisma.globalCategory.findMany({
     where: { active: true },
@@ -206,6 +200,77 @@ export async function seedAndLinkGlobalCategories(): Promise<void> {
       where: { id: category.id },
       data: { globalCategoryId: matched.id },
     });
+  }
+}
+
+/**
+ * Collapses duplicate active rows (same store type + normalized name) that
+ * appear when edits change slugs and the seeder recreates presets.
+ */
+async function dedupeActiveGlobalCategories(): Promise<void> {
+  const rows = await prisma.globalCategory.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      storeTypeId: true,
+      name: true,
+      slug: true,
+      imageUrl: true,
+      icon: true,
+      createdAt: true,
+      _count: { select: { storeCategories: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const groups = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!row.storeTypeId) {
+      continue;
+    }
+    const key = `${row.storeTypeId}::${normalizeCategoryLabel(row.name)}`;
+    const list = groups.get(key) ?? [];
+    list.push(row);
+    groups.set(key, list);
+  }
+
+  for (const list of groups.values()) {
+    if (list.length < 2) {
+      continue;
+    }
+
+    const winner = [...list].sort((left, right) => {
+      const linkDiff = right._count.storeCategories - left._count.storeCategories;
+      if (linkDiff !== 0) {
+        return linkDiff;
+      }
+      const leftHasImage = left.imageUrl ? 1 : 0;
+      const rightHasImage = right.imageUrl ? 1 : 0;
+      if (rightHasImage !== leftHasImage) {
+        return rightHasImage - leftHasImage;
+      }
+      // Prefer canonical preset slugs (ascii) over regenerated arabic slugs.
+      const leftAscii = /^[a-z0-9-]+$/.test(left.slug) ? 1 : 0;
+      const rightAscii = /^[a-z0-9-]+$/.test(right.slug) ? 1 : 0;
+      if (rightAscii !== leftAscii) {
+        return rightAscii - leftAscii;
+      }
+      return left.createdAt.getTime() - right.createdAt.getTime();
+    })[0];
+
+    for (const loser of list) {
+      if (loser.id === winner.id) {
+        continue;
+      }
+      await prisma.category.updateMany({
+        where: { globalCategoryId: loser.id },
+        data: { globalCategoryId: winner.id },
+      });
+      await prisma.globalCategory.update({
+        where: { id: loser.id },
+        data: { active: false },
+      });
+    }
   }
 }
 

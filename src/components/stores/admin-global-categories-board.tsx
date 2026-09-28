@@ -127,9 +127,13 @@ export function AdminGlobalCategoriesBoard({
                     <Pencil className="size-3.5" />
                     {t("common.edit")}
                   </Button>
-                  <form
-                    action={(formData) => {
+                  <Button
+                    variant="destructive"
+                    isDisabled={pending}
+                    onPress={() => {
                       startTransition(async () => {
+                        const formData = new FormData();
+                        formData.set("id", category.id);
                         const result = await deleteGlobalCategoryAction(formData);
                         if (!result.ok) {
                           setError(result.error ?? "Failed.");
@@ -140,12 +144,9 @@ export function AdminGlobalCategoriesBoard({
                       });
                     }}
                   >
-                    <input type="hidden" name="id" value={category.id} />
-                    <Button variant="destructive" type="submit" isDisabled={pending}>
-                      <Trash2 className="size-3.5" />
-                      {t("common.delete")}
-                    </Button>
-                  </form>
+                    <Trash2 className="size-3.5" />
+                    {t("common.delete")}
+                  </Button>
                 </div>
               </GlassCard>
             ))
