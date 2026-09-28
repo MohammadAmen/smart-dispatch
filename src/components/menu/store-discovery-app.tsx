@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import useSWR from "swr";
 
 import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
@@ -36,6 +37,7 @@ import {
   writeCheckoutDraft,
   type MenuCheckoutDraft,
 } from "@/lib/stores/menu-checkout";
+import { fetchMenuStores, menuStoresKey } from "@/lib/stores/menu-stores-query";
 import { reportMenuSearch } from "@/lib/stores/menu-signals";
 import { storeTypeIcon } from "@/lib/stores/store-type-icon";
 import type { PublicOffer } from "@/lib/stores/offer-types";
@@ -143,20 +145,35 @@ export function StoreDiscoveryApp({
     locate();
   }, [draft.latitude, draft.longitude, hydrated, locate]);
 
+  const subCategoryId = subCategory?.id ?? null;
+
+  const {
+    data: liveStores,
+    isLoading: storesLoading,
+    isValidating: storesValidating,
+  } = useSWR(
+    menuStoresKey(typeId, subCategoryId),
+    () => fetchMenuStores(typeId, subCategoryId),
+    {
+      fallbackData: typeId === "all" && !subCategoryId ? stores : undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 12_000,
+      keepPreviousData: true,
+    },
+  );
+
+  const directoryStores = liveStores ?? stores;
+  const showStoresSkeleton =
+    (storesLoading && !liveStores) || (storesValidating && Boolean(subCategoryId));
+
   const ranked = useMemo(() => {
     const query = search.trim().toLowerCase();
     const originLat = draft.latitude;
     const originLng = draft.longitude;
-    const subStoreIds = subCategory ? new Set(subCategory.storeIds) : null;
 
-    return stores
+    return directoryStores
       .filter((store) => {
-        if (typeId !== "all" && store.storeType.id !== typeId) {
-          return false;
-        }
-        if (subStoreIds && !subStoreIds.has(store.id)) {
-          return false;
-        }
         if (!query) {
           return true;
         }
@@ -177,7 +194,7 @@ export function StoreDiscoveryApp({
         return { store, distanceKm };
       })
       .sort((left, right) => left.distanceKm - right.distanceKm);
-  }, [draft.latitude, draft.longitude, search, stores, subCategory, typeId]);
+  }, [directoryStores, draft.latitude, draft.longitude, search]);
 
   useEffect(() => {
     setSubCategory(null);
@@ -341,6 +358,7 @@ export function StoreDiscoveryApp({
           category={typeId}
           lat={draft.latitude}
           lng={draft.longitude}
+          subCategoryId={subCategoryId}
         />
       ) : null}
 
@@ -357,7 +375,22 @@ export function StoreDiscoveryApp({
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        {ranked.length === 0 ? (
+        {showStoresSkeleton ? (
+          <div className="space-y-2.5">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div
+                key={index}
+                className="flex gap-3 rounded-3xl border border-slate-100 bg-white p-3 shadow-sm"
+              >
+                <div className="size-16 shrink-0 animate-pulse rounded-2xl bg-slate-100" />
+                <div className="flex flex-1 flex-col justify-center gap-2">
+                  <div className="h-3.5 w-2/3 animate-pulse rounded bg-slate-100" />
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : ranked.length === 0 ? (
           <p className="glass rounded-3xl px-4 py-10 text-center text-sm text-muted-foreground">
             {t("menu.noStores")}
           </p>

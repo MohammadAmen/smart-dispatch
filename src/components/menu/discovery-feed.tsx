@@ -111,20 +111,24 @@ export function DiscoveryFeed({
   category,
   lat,
   lng,
+  subCategoryId = null,
 }: {
   category: string;
   lat: number | null;
   lng: number | null;
+  subCategoryId?: string | null;
 }): ReactNode {
   const { t } = useLocale();
   const add = useMenuCartStore((state) => state.add);
   const [detailsProduct, setDetailsProduct] = useState<DiscoveryProduct | null>(null);
   const isAll = category === "all" || category === "ALL" || !category;
-  const key = discoveryKey(isAll ? "ALL" : category, lat, lng);
+  const resolvedCategory = isAll ? "ALL" : category;
+  const resolvedSub = subCategoryId?.trim() || null;
+  const key = discoveryKey(resolvedCategory, lat, lng, resolvedSub);
 
   const { data, isLoading } = useSWR(
     key,
-    () => fetchDiscoveryFeed(isAll ? "ALL" : category, lat, lng),
+    () => fetchDiscoveryFeed(resolvedCategory, lat, lng, resolvedSub),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,

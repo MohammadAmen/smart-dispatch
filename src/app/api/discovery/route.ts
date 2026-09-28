@@ -15,10 +15,12 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") ?? searchParams.get("typeId") ?? "ALL";
+    const subCategoryId =
+      searchParams.get("subCategoryId") ?? searchParams.get("subCategory") ?? null;
     const lat = parseCoord(searchParams.get("lat") ?? searchParams.get("userLat"));
     const lng = parseCoord(searchParams.get("lng") ?? searchParams.get("userLng"));
 
-    const feed = await getDiscoveryFeed({ category, lat, lng });
+    const feed = await getDiscoveryFeed({ category, subCategoryId, lat, lng });
 
     return Response.json({
       ok: true,

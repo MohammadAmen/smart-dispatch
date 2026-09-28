@@ -1,6 +1,7 @@
 "use client";
 
 import { m } from "framer-motion";
+import { LayoutGrid } from "lucide-react";
 import { type ReactNode } from "react";
 import useSWR from "swr";
 
@@ -10,62 +11,70 @@ import { fetchSubCategories, subCategoriesKey } from "@/lib/stores/global-catego
 import type { PublicSubCategory } from "@/lib/stores/global-categories-types";
 import { cn } from "@/lib/utils";
 
-function PillSkeleton(): ReactNode {
+function ChipSkeleton(): ReactNode {
   return (
-    <div className="flex gap-2.5 overflow-hidden px-4">
-      {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="h-[4.6rem] w-[4.4rem] shrink-0 animate-pulse rounded-2xl bg-muted/80" />
+    <div className="scrollbar-none flex gap-2 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {Array.from({ length: 7 }, (_, index) => (
+        <div
+          key={index}
+          className="flex h-10 shrink-0 items-center gap-2 rounded-2xl border border-slate-100 bg-white px-2.5 shadow-sm"
+        >
+          <div className="size-8 animate-pulse rounded-lg bg-slate-100" />
+          <div className="h-3 w-12 animate-pulse rounded bg-slate-100" />
+        </div>
       ))}
     </div>
   );
 }
 
-function SubCategoryPill({
-  item,
+function SubCategoryChip({
+  label,
+  imageUrl,
+  icon,
   active,
   onSelect,
 }: {
-  item: PublicSubCategory;
+  label: string;
+  imageUrl?: string | null;
+  icon?: string | null;
   active: boolean;
   onSelect: () => void;
 }): ReactNode {
   return (
     <m.button
       type="button"
-      whileTap={{ scale: 0.94 }}
+      whileTap={{ scale: 0.96 }}
       onClick={onSelect}
       className={cn(
-        "flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-1.5 py-2 text-center transition",
+        "flex h-10 shrink-0 items-center gap-2 rounded-2xl border px-2.5 shadow-sm transition",
         active
-          ? "border-primary bg-primary/12 shadow-sm shadow-primary/20 ring-2 ring-primary/30"
-          : "border-border/70 bg-card/70 hover:border-primary/30",
+          ? "border-amber-500 bg-amber-50/60"
+          : "border-slate-100 bg-white hover:border-amber-200",
       )}
       aria-pressed={active}
     >
-      <span
-        className={cn(
-          "flex size-11 items-center justify-center overflow-hidden rounded-2xl border bg-background text-lg shadow-sm transition",
-          active ? "border-primary/40 scale-105" : "border-border/60",
-        )}
-      >
-        {item.imageUrl ? (
+      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50">
+        {imageUrl ? (
           <MenuSafeImage
-            src={item.imageUrl}
+            src={imageUrl}
             alt=""
-            className="size-full object-cover"
-            fallback={<span className="leading-none">{item.icon}</span>}
+            className="h-8 w-8 object-contain"
+            fallback={
+              icon ? (
+                <span className="text-sm leading-none">{icon}</span>
+              ) : (
+                <LayoutGrid className="size-4 text-slate-400" />
+              )
+            }
           />
+        ) : icon ? (
+          <span className="text-sm leading-none">{icon}</span>
         ) : (
-          <span className="leading-none">{item.icon}</span>
+          <LayoutGrid className="size-4 text-slate-400" />
         )}
       </span>
-      <span
-        className={cn(
-          "line-clamp-2 min-h-[1.9rem] text-[10px] font-semibold leading-tight",
-          active ? "text-primary" : "text-foreground/85",
-        )}
-      >
-        {item.name}
+      <span className="max-w-[7.5rem] truncate text-xs font-semibold text-slate-800">
+        {label}
       </span>
     </m.button>
   );
@@ -111,30 +120,24 @@ export function SubCategoryPillsBar({
   }
 
   return (
-    <section className="space-y-2 pb-1 pt-1">
-      <div className="flex items-center justify-between gap-2 px-4">
-        <h2 className="text-sm font-semibold tracking-tight">{t("menu.subCategories")}</h2>
-        {selectedId ? (
-          <button
-            type="button"
-            onClick={() => onSelect(null)}
-            className="text-xs font-semibold text-primary"
-          >
-            {t("menu.clearSubCategory")}
-          </button>
-        ) : null}
-      </div>
-
+    <section className="pb-1 pt-0.5">
       {loading ? (
-        <PillSkeleton />
+        <ChipSkeleton />
       ) : (
-        <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-none flex gap-2 overflow-x-auto px-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SubCategoryChip
+            label={t("menu.allTypes")}
+            active={!selectedId}
+            onSelect={() => onSelect(null)}
+          />
           {items.map((item) => (
-            <SubCategoryPill
+            <SubCategoryChip
               key={item.id}
-              item={item}
+              label={item.name}
+              imageUrl={item.imageUrl}
+              icon={item.icon}
               active={selectedId === item.id}
-              onSelect={() => onSelect(selectedId === item.id ? null : item)}
+              onSelect={() => onSelect(item)}
             />
           ))}
         </div>

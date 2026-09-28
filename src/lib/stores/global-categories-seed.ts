@@ -95,6 +95,8 @@ function slugify(value: string): string {
     .slice(0, 48) || "cat";
 }
 
+export { slugify as slugifyCategoryLabel };
+
 /**
  * Seeds unified sub-categories per store type and links existing store
  * categories to the best matching global row (or "other") — never deletes data.

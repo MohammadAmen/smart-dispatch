@@ -7,11 +7,13 @@ export function discoveryKey(
   category: string,
   lat: number | null,
   lng: number | null,
+  subCategoryId: string | null = null,
 ): string {
   const cat = category.trim() || "ALL";
   const location =
     lat != null && lng != null ? `${lat.toFixed(3)},${lng.toFixed(3)}` : "none";
-  return `${DISCOVERY_KEY_PREFIX}?category=${encodeURIComponent(cat)}&loc=${location}&v=2`;
+  const sub = subCategoryId?.trim() || "all";
+  return `${DISCOVERY_KEY_PREFIX}?category=${encodeURIComponent(cat)}&sub=${encodeURIComponent(sub)}&loc=${location}&v=3`;
 }
 
 function asOptionGroups(value: unknown): ProductOptionGroupRecord[] {
@@ -63,6 +65,7 @@ export async function fetchDiscoveryFeed(
   category: string,
   lat: number | null,
   lng: number | null,
+  subCategoryId: string | null = null,
 ): Promise<DiscoveryFeed> {
   const params = new URLSearchParams({
     category: category.trim() || "ALL",
@@ -70,6 +73,9 @@ export async function fetchDiscoveryFeed(
   if (lat != null && lng != null) {
     params.set("lat", String(lat));
     params.set("lng", String(lng));
+  }
+  if (subCategoryId?.trim()) {
+    params.set("subCategoryId", subCategoryId.trim());
   }
 
   const response = await fetch(`${DISCOVERY_KEY_PREFIX}?${params.toString()}`, {

@@ -27,10 +27,28 @@ import { ensureProductOptionsSchema } from "@/lib/stores/product-options-schema"
 import { loadProductOptionsMap } from "@/lib/stores/product-options-store";
 import type { DirectoryStore, MenuStore } from "@/lib/stores/types";
 
-export async function listDirectoryStores(): Promise<DirectoryStore[]> {
+export async function listDirectoryStores(filters?: {
+  typeId?: string | null;
+  subCategoryId?: string | null;
+}): Promise<DirectoryStore[]> {
   await ensureStoreDirectory();
+
+  const typeId = filters?.typeId?.trim() ?? "";
+  const subCategoryId = filters?.subCategoryId?.trim() ?? "";
+
+  const { resolveStoreIdsForSubCategory } = await import("@/lib/stores/sub-category-filter");
+  const subStoreIds = await resolveStoreIdsForSubCategory(subCategoryId || null, typeId || null);
+
+  if (subStoreIds && subStoreIds.length === 0) {
+    return [];
+  }
+
   const stores = await prisma.store.findMany({
-    where: { active: true },
+    where: {
+      active: true,
+      ...(typeId && typeId !== "all" && typeId !== "ALL" ? { storeTypeId: typeId } : {}),
+      ...(subStoreIds ? { id: { in: subStoreIds } } : {}),
+    },
     include: { storeType: true },
     orderBy: { name: "asc" },
   });
