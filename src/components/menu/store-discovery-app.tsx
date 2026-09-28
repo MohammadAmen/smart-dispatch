@@ -29,7 +29,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { BRAND_SPLASH_BEE_SRC } from "@/lib/brand";
+import { BRAND_LOGO_SRC } from "@/lib/brand";
 import { calculateDistance } from "@/lib/geo";
 import {
   emptyCheckoutDraft,
@@ -150,7 +150,7 @@ export function StoreDiscoveryApp({
   const storeIdsFilter = subCategory?.storeIds ?? null;
   const debouncedStoreIds = useDebouncedValue(storeIdsFilter, 160);
 
-  // One cached fetch per main type — sub-category filtering is client-side.
+  // One cached fetch per main type — type + sub filters apply client-side immediately.
   const { data: liveStores, isLoading: storesLoading } = useSWR(
     menuStoresKey(typeId, null),
     () => fetchMenuStores(typeId, null),
@@ -163,22 +163,42 @@ export function StoreDiscoveryApp({
     },
   );
 
-  const directoryStores = liveStores ?? stores;
+  const directoryStores = useMemo(() => {
+    const source = liveStores ?? stores;
+    if (typeId === "all" || typeId === "ALL") {
+      return source;
+    }
+    // KeepPreviousData can briefly expose the previous type — clamp to selection.
+    return source.filter((store) => store.storeType.id === typeId);
+  }, [liveStores, stores, typeId]);
+
   const showStoresSkeleton = storesLoading && !liveStores;
 
+  const typeStoreIdSet = useMemo(() => {
+    if (typeId === "all" || typeId === "ALL") {
+      return null;
+    }
+    return new Set(directoryStores.map((store) => store.id));
+  }, [directoryStores, typeId]);
+
   const subStoreIdSet = useMemo(() => {
-    if (!debouncedStoreIds || debouncedStoreIds.length === 0) {
+    if (debouncedStoreIds == null) {
       return null;
     }
     return new Set(debouncedStoreIds);
   }, [debouncedStoreIds]);
 
   const filteredOffers = useMemo(() => {
-    if (!subStoreIdSet) {
-      return offers;
-    }
-    return offers.filter((offer) => subStoreIdSet.has(offer.storeId));
-  }, [offers, subStoreIdSet]);
+    return offers.filter((offer) => {
+      if (typeStoreIdSet && !typeStoreIdSet.has(offer.storeId)) {
+        return false;
+      }
+      if (subStoreIdSet && !subStoreIdSet.has(offer.storeId)) {
+        return false;
+      }
+      return true;
+    });
+  }, [offers, subStoreIdSet, typeStoreIdSet]);
 
   const ranked = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -187,6 +207,9 @@ export function StoreDiscoveryApp({
 
     return directoryStores
       .filter((store) => {
+        if (typeId !== "all" && typeId !== "ALL" && store.storeType.id !== typeId) {
+          return false;
+        }
         if (subStoreIdSet && !subStoreIdSet.has(store.id)) {
           return false;
         }
@@ -210,7 +233,7 @@ export function StoreDiscoveryApp({
         return { store, distanceKm };
       })
       .sort((left, right) => left.distanceKm - right.distanceKm);
-  }, [directoryStores, draft.latitude, draft.longitude, search, subStoreIdSet]);
+  }, [directoryStores, draft.latitude, draft.longitude, search, subStoreIdSet, typeId]);
 
   useEffect(() => {
     setSubCategory(null);
@@ -309,16 +332,16 @@ export function StoreDiscoveryApp({
         </label>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2 overflow-x-auto border-y border-border/70 bg-background/50 px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <TypeChip
           active={typeId === "all" && !burnActive}
           label={t("menu.allTypes")}
           icon={
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={BRAND_SPLASH_BEE_SRC}
+              src={BRAND_LOGO_SRC}
               alt=""
-              className="size-4 bg-transparent object-contain"
+              className="size-5 shrink-0 bg-transparent object-contain"
               draggable={false}
             />
           }
@@ -340,10 +363,14 @@ export function StoreDiscoveryApp({
           return (
             <TypeChip
               key={type.id}
-              active={typeId === type.id}
+              active={!burnActive && typeId === type.id}
               label={type.name}
               icon={<Icon className="size-3.5" />}
-              onClick={() => setTypeId(type.id)}
+              onClick={() => {
+                setTypeId(type.id);
+                setBurnActive(false);
+                setSubCategory(null);
+              }}
             />
           );
         })}
@@ -359,7 +386,14 @@ export function StoreDiscoveryApp({
         />
       ) : null}
 
-      <WorthTryingRail typeId={typeId} storeIdsFilter={storeIdsFilter} />
+      <WorthTryingRail
+        typeId={typeId}
+        storeIdsFilter={
+          storeIdsFilter && storeIdsFilter.length > 0
+            ? storeIdsFilter
+            : null
+        }
+      />
 
       <MenuOffersSlider
         offers={filteredOffers}
@@ -374,14 +408,26 @@ export function StoreDiscoveryApp({
           category={typeId}
           lat={draft.latitude}
           lng={draft.longitude}
-          storeIdsFilter={storeIdsFilter}
+          storeIdsFilter={
+            storeIdsFilter && storeIdsFilter.length > 0
+              ? storeIdsFilter
+              : typeStoreIdSet
+                ? Array.from(typeStoreIdSet)
+                : null
+          }
         />
       ) : null}
 
       {burnActive ? (
         <BurnDealsSection
           categoryType={typeId}
-          storeIdsFilter={storeIdsFilter}
+          storeIdsFilter={
+            storeIdsFilter && storeIdsFilter.length > 0
+              ? storeIdsFilter
+              : typeStoreIdSet
+                ? Array.from(typeStoreIdSet)
+                : null
+          }
         />
       ) : (
       <main className="space-y-3 px-4 pb-32">
@@ -468,10 +514,10 @@ function TypeChip({
           "border-rose-400/40 bg-rose-500/10 text-rose-600 dark:text-rose-300",
         tone === "default" &&
           active &&
-          "border-primary bg-primary text-primary-foreground",
+          "border-amber-500 bg-amber-400 text-slate-900 shadow-sm",
         tone === "default" &&
           !active &&
-          "border-border bg-background/60 text-muted-foreground",
+          "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-background/70 dark:text-muted-foreground",
       )}
     >
       {icon}

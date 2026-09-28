@@ -7,7 +7,7 @@ import { type ReactNode } from "react";
 import useSWR from "swr";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { BRAND_SPLASH_BEE_SRC } from "@/lib/brand";
+import { BRAND_LOGO_SRC } from "@/lib/brand";
 import { fetchSubCategories, subCategoriesKey } from "@/lib/stores/global-categories-query";
 import type { PublicSubCategory } from "@/lib/stores/global-categories-types";
 import { cn } from "@/lib/utils";
@@ -61,14 +61,18 @@ function SubCategoryGridCard({
           unoptimized
         />
       ) : allChip ? (
-        <span className="absolute inset-0 bg-linear-to-br from-amber-400 via-amber-500 to-orange-600">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={BRAND_SPLASH_BEE_SRC}
-            alt=""
-            className="absolute inset-0 m-auto size-12 object-contain opacity-90"
-            draggable={false}
-          />
+        <span className="absolute inset-0 bg-linear-to-br from-amber-300 via-amber-500 to-amber-800">
+          <span className="absolute inset-x-0 top-1.5 bottom-8 flex items-center justify-center px-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={BRAND_LOGO_SRC}
+              alt=""
+              width={72}
+              height={72}
+              className="h-[4.25rem] w-[4.25rem] object-contain drop-shadow-md"
+              draggable={false}
+            />
+          </span>
         </span>
       ) : (
         <span className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-700 to-slate-900 text-3xl">

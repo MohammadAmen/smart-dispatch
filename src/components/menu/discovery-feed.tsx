@@ -108,8 +108,11 @@ function filterByStores(
   products: DiscoveryProduct[],
   storeIds: Set<string> | null,
 ): DiscoveryProduct[] {
-  if (!storeIds) {
+  if (storeIds == null) {
     return products;
+  }
+  if (storeIds.size === 0) {
+    return [];
   }
   return products.filter((product) => storeIds.has(product.storeId));
 }
@@ -150,7 +153,7 @@ export function DiscoveryFeed({
   );
 
   const storeIdSet = useMemo(() => {
-    if (!debouncedStoreIds || debouncedStoreIds.length === 0) {
+    if (debouncedStoreIds == null) {
       return null;
     }
     return new Set(debouncedStoreIds);

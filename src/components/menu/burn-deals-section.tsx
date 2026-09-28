@@ -58,8 +58,11 @@ export function BurnDealsSection({
   const loading = isLoading && !data;
 
   const visible = useMemo(() => {
-    if (!debouncedStoreIds || debouncedStoreIds.length === 0) {
+    if (debouncedStoreIds == null) {
       return stores;
+    }
+    if (debouncedStoreIds.length === 0) {
+      return [];
     }
     const allowed = new Set(debouncedStoreIds);
     return stores.filter((store) => allowed.has(store.storeId));
