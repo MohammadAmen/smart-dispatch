@@ -60,7 +60,7 @@ export function productSubCategoryWhere(
   subCategoryId: string | null | undefined,
 ):
   | { category: { globalCategoryId: string } }
-  | { category: { globalCategoryId: null; name: { equals: string; mode: "insensitive" } } }
+  | { category: { globalCategoryId: null } }
   | Record<string, never> {
   const id = subCategoryId?.trim() ?? "";
   if (!id || id === "all" || id === "ALL") {
@@ -68,7 +68,7 @@ export function productSubCategoryWhere(
   }
   const fallbackSlug = parseFallbackSubCategoryId(id);
   if (fallbackSlug) {
-    // Name match is applied after fetch for fallbacks (slug vs display name).
+    // Exact name match for fallbacks is applied after fetch (slug vs display name).
     return { category: { globalCategoryId: null } };
   }
   return { category: { globalCategoryId: id } };
