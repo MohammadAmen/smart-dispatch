@@ -1,12 +1,16 @@
+import type { ProductOptionGroupRecord } from "@/lib/stores/product-options";
+
 export type DiscoveryBadge = "TRENDING" | "DEAL" | "NEW";
 
 export interface DiscoveryProduct {
   id: string;
   name: string;
+  description: string;
   price: number;
   hasDiscount: boolean;
   discountPrice: number | null;
   imageUrl: string | null;
+  images: string[];
   soldCount: number;
   storeId: string;
   storeName: string;
@@ -15,6 +19,7 @@ export interface DiscoveryProduct {
   storeLng: number | null;
   distanceKm: number | null;
   badge: DiscoveryBadge;
+  optionGroups: ProductOptionGroupRecord[];
 }
 
 export interface DiscoveryFeed {

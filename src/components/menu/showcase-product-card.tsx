@@ -7,8 +7,8 @@ import { useState, type MouseEvent, type ReactNode } from "react";
 
 import { MenuSafeImage } from "@/components/menu/menu-safe-image";
 import { useLocale } from "@/components/providers/locale-provider";
-import { baseCartExtras } from "@/lib/stores/menu-cart";
 import type { DiscoveryProduct } from "@/lib/stores/discovery-types";
+import { hasConfigurableOptions } from "@/lib/stores/product-options";
 import {
   discountPercentOff,
   effectiveProductPrice,
@@ -16,39 +16,31 @@ import {
   isDiscountedProduct,
 } from "@/lib/stores/pricing";
 import { cn } from "@/lib/utils";
-import { useMenuCartStore } from "@/stores/menu-cart-store";
 
 export function ShowcaseProductCard({
   product,
   orientation = "vertical",
+  onAddRequest,
 }: {
   product: DiscoveryProduct;
   orientation?: "vertical" | "horizontal";
+  onAddRequest: (product: DiscoveryProduct) => void;
 }): ReactNode {
   const { t } = useLocale();
-  const add = useMenuCartStore((state) => state.add);
   const [added, setAdded] = useState(false);
   const discounted = isDiscountedProduct(product);
   const percent = discountPercentOff(product);
   const price = effectiveProductPrice(product);
+  const needsOptions = hasConfigurableOptions(product.optionGroups ?? []);
 
   const onAdd = (event: MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    add({
-      ...baseCartExtras(product.id),
-      productId: product.id,
-      storeId: product.storeId,
-      storeName: product.storeName,
-      storeLogoUrl: product.storeLogoUrl,
-      storeLat: product.storeLat,
-      storeLng: product.storeLng,
-      name: product.name,
-      price,
-      imageUrl: product.imageUrl,
-    });
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1400);
+    onAddRequest(product);
+    if (!needsOptions) {
+      setAdded(true);
+      window.setTimeout(() => setAdded(false), 1400);
+    }
   };
 
   const badge = (() => {

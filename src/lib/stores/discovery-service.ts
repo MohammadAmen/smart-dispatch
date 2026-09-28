@@ -2,7 +2,7 @@ import "server-only";
 
 import { calculateDistance } from "@/lib/geo";
 import { prisma } from "@/lib/db";
-import { primaryProductImage } from "@/lib/stores/product-images";
+import { primaryProductImage, productImages } from "@/lib/stores/product-images";
 import {
   DISCOVERY_SECTION_LIMIT,
   DISCOVERY_TRENDING_DAYS,
@@ -11,10 +11,13 @@ import {
   type DiscoveryProduct,
 } from "@/lib/stores/discovery-types";
 import { isDiscountedProduct } from "@/lib/stores/pricing";
+import type { ProductOptionGroupRecord } from "@/lib/stores/product-options";
+import { loadProductOptionsByProductIds } from "@/lib/stores/product-options-store";
 
 type ProductRow = {
   id: string;
   name: string;
+  description: string;
   price: number;
   hasDiscount: boolean;
   discountPrice: number | null;
@@ -57,14 +60,18 @@ function serializeProduct(
   soldCount: number,
   userLat: number | null,
   userLng: number | null,
+  optionGroups: ProductOptionGroupRecord[] = [],
 ): DiscoveryProduct {
+  const images = productImages(row);
   return {
     id: row.id,
     name: row.name,
+    description: row.description ?? "",
     price: row.price,
     hasDiscount: row.hasDiscount,
     discountPrice: row.discountPrice,
-    imageUrl: primaryProductImage(row),
+    imageUrl: primaryProductImage(row) ?? images[0] ?? null,
+    images,
     soldCount,
     storeId: row.store.id,
     storeName: row.store.name,
@@ -73,6 +80,7 @@ function serializeProduct(
     storeLng: row.store.longitude,
     distanceKm: distanceToStore(row.store, userLat, userLng),
     badge,
+    optionGroups,
   };
 }
 
@@ -92,6 +100,7 @@ function byProximityThen<T extends { distanceKm: number | null }>(
 const productSelect = {
   id: true,
   name: true,
+  description: true,
   price: true,
   hasDiscount: true,
   discountPrice: true,
@@ -231,20 +240,38 @@ export async function getDiscoveryFeed(input: {
 
   // Curated mix for "ALL": prioritize trending, fill with fresh deals + arrivals.
   const curatedIds = new Set<string>();
-  const curated: DiscoveryProduct[] = [];
+  const curatedBase: DiscoveryProduct[] = [];
   for (const item of [...trending, ...deals, ...newArrivals]) {
     if (curatedIds.has(item.id)) {
       continue;
     }
     curatedIds.add(item.id);
-    curated.push({
+    curatedBase.push({
       ...item,
       badge: item.badge === "DEAL" ? "DEAL" : item.badge === "NEW" ? "NEW" : "TRENDING",
     });
-    if (curated.length >= DISCOVERY_SECTION_LIMIT) {
+    if (curatedBase.length >= DISCOVERY_SECTION_LIMIT) {
       break;
     }
   }
 
-  return { trending, deals, newArrivals, curated };
+  const optionsMap = await loadProductOptionsByProductIds([
+    ...trending.map((item) => item.id),
+    ...deals.map((item) => item.id),
+    ...newArrivals.map((item) => item.id),
+    ...curatedBase.map((item) => item.id),
+  ]);
+
+  const withOptions = (list: DiscoveryProduct[]): DiscoveryProduct[] =>
+    list.map((item) => ({
+      ...item,
+      optionGroups: optionsMap.get(item.id) ?? [],
+    }));
+
+  return {
+    trending: withOptions(trending),
+    deals: withOptions(deals),
+    newArrivals: withOptions(newArrivals),
+    curated: withOptions(curatedBase),
+  };
 }

@@ -77,6 +77,28 @@ export async function loadProductOptionsMap(
   return map;
 }
 
+export async function loadProductOptionsByProductIds(
+  productIds: string[],
+): Promise<Map<string, ProductOptionGroupRecord[]>> {
+  const ids = [...new Set(productIds.filter(Boolean))];
+  const map = new Map<string, ProductOptionGroupRecord[]>();
+  if (ids.length === 0) {
+    return map;
+  }
+  await ensureProductOptionsSchema();
+  const rows = await prisma.productOptionGroup.findMany({
+    where: { productId: { in: ids } },
+    include: { values: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+  for (const row of rows) {
+    const list = map.get(row.productId) ?? [];
+    list.push(serializeGroup(row));
+    map.set(row.productId, list);
+  }
+  return map;
+}
+
 export async function replaceProductOptionGroups(
   productId: string,
   groups: ProductOptionGroupWriteInput[],
