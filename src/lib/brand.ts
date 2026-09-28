@@ -2,6 +2,8 @@ export const BRAND_NAME = "BEEV";
 export const BRAND_TAGLINE_EN = "Speedy Tech Delivery";
 export const BRAND_TAGLINE_AR = "توصيل تقني سريع";
 export const BRAND_LOGO_SRC = "/brand/beev-logo.png";
+/** Menu header lockup — chef bee + BEEV wordmark (transparent PNG). */
+export const BRAND_CHEF_LOCKUP_SRC = "/brand/beev-chef-lockup.png";
 
 /** Cinematic splash lockup — transparent PNGs in /public/images */
 export const BRAND_SPLASH_WORDMARK_SRC =
