@@ -98,9 +98,12 @@
       "COMPLETED": "Completed"
     },
     "role": {
+      "SUPER_ADMIN": "Super admin",
       "ADMIN": "Admin",
+      "STORE_OWNER": "Store owner",
       "DISPATCHER": "Dispatcher",
-      "DRIVER": "Driver"
+      "DRIVER": "Driver",
+      "CUSTOMER": "Customer"
     },
     "driver": {
       "AVAILABLE": "Available",
@@ -224,8 +227,8 @@
     "demoPassword": "Password"
   },
   "users": {
-    "title": "Users & fleet mapping",
-    "description": "Add operators, assign Admin / Dispatcher / Driver roles, and map vehicles to couriers.",
+    "title": "Users and operations",
+    "description": "Follow accounts and their real work: orders, stores, and driver activity.",
     "add": "Add user",
     "edit": "Edit user",
     "manage": "Manage",
@@ -241,7 +244,29 @@
     "vehicleHint": "Pick an unassigned vehicle or register a new one for this driver.",
     "newVehicle": "New vehicle",
     "empty": "No users yet.",
-    "confirmDelete": "Delete this user? Assigned vehicles will be released."
+    "confirmDelete": "Delete this user? Assigned vehicles will be released.",
+    "search": "Search name, phone, or email",
+    "all": "All",
+    "noResults": "No matching user.",
+    "operations": "Operations",
+    "open": "Open",
+    "delivered": "Delivered",
+    "canceled": "Canceled",
+    "stores": "Stores",
+    "recorded": "Recorded actions",
+    "follow": "Follow operations",
+    "hide": "Hide",
+    "loading": "Loading operations…",
+    "activityEmpty": "No operations are linked to this account.",
+    "activityError": "Operations could not be loaded. Try again.",
+    "asCustomer": "Order as customer",
+    "asDriver": "Order as driver",
+    "asStore": "Order on their store",
+    "asRecorded": "Action recorded on the account",
+    "lastActive": "Last seen",
+    "joined": "Account since",
+    "call": "Call",
+    "none": "No linked operations"
   },
   "map": {
     "liveOrders": "Live orders",
@@ -422,7 +447,7 @@
     "offline": { "label": "Offline cache", "detail": "Driver actions are stored in IndexedDB and sync automatically when the connection returns." },
     "bandwidth": { "label": "Low-bandwidth mode", "detail": "Prefers status chips over heavy map tiles." },
     "alerts": { "label": "Alerts", "detail": "Delay and geofence events surface in the top bar." },
-    "users": { "label": "Users & roles", "detail": "Create accounts, assign RBAC roles, and map vehicles to drivers." },
+    "users": { "label": "Users and operations", "detail": "Follow accounts and the orders, stores, and driver work tied to them." },
     "zones": { "label": "Delivery zones", "detail": "Create, edit, and activate operational areas such as الشعلان and المزة." },
     "vehicleTypes": { "label": "Vehicle types", "detail": "Manage categories like فان صغير, دراجة نارية, and شاحنة تبريد." }
   },

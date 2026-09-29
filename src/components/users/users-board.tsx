@@ -1,8 +1,8 @@
 "use client";
 
 import { AnimatePresence, m } from "framer-motion";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Pencil, Plus, Search, Trash2, Users } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { AddVehicleModal } from "@/components/fleet/AddVehicleModal";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -16,6 +16,7 @@ import { fetchCatalogLists } from "@/lib/catalog/client";
 import type { CatalogVehicleType } from "@/lib/catalog/types";
 import { fetchFleetVehicles } from "@/lib/fleet/client";
 import type { FleetVehicle } from "@/lib/fleet/types";
+import { UserActivityPanel } from "@/components/users/user-activity-panel";
 import {
   createManagedUserRequest,
   deleteManagedUserRequest,
@@ -90,6 +91,9 @@ export function UsersBoard({
   const [working, setWorking] = useState(false);
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [catalogTypes, setCatalogTypes] = useState<CatalogVehicleType[]>([]);
+  const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchCatalogLists(true).then((catalog) => {
@@ -197,12 +201,41 @@ export function UsersBoard({
     }
 
     setUsers((current) => current.filter((user) => user.id !== id));
+    if (openId === id) {
+      setOpenId(null);
+    }
     if (editingId === id) {
       closeForm();
     }
   };
 
   const showForm = creating || editingId !== null;
+  const roleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const user of users) {
+      counts.set(user.role, (counts.get(user.role) ?? 0) + 1);
+    }
+    return counts;
+  }, [users]);
+
+  const visibleUsers = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const digits = needle.replace(/\D/g, "");
+    return users.filter((user) => {
+      if (roleFilter !== "all" && user.role !== roleFilter) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+      const haystack = `${user.name} ${user.email} ${user.phone}`.toLowerCase();
+      return haystack.includes(needle) || (digits.length > 0 && user.phone.replace(/\D/g, "").includes(digits));
+    });
+  }, [query, roleFilter, users]);
+
+  const roleOptions = ["SUPER_ADMIN", "ADMIN", "DISPATCHER", "STORE_OWNER", "DRIVER", "CUSTOMER"].filter(
+    (role) => roleCounts.has(role),
+  );
 
   return (
     <div className="space-y-6">
@@ -401,68 +434,157 @@ export function UsersBoard({
         }}
       />
 
+      <div className="flex flex-col gap-3">
+        <label className="relative block">
+          <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("users.search")}
+            className="h-11 w-full rounded-2xl border border-border bg-card ps-10 pe-3 text-sm outline-none focus-visible:border-primary"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setRoleFilter("all")}
+            className={
+              roleFilter === "all"
+                ? "rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                : "rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground"
+            }
+          >
+            {t("users.all")} · {users.length}
+          </button>
+          {roleOptions.map((role) => (
+            <button
+              key={role}
+              type="button"
+              onClick={() => setRoleFilter(role)}
+              className={
+                roleFilter === role
+                  ? "rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                  : "rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground"
+              }
+            >
+              {t(`status.role.${role}`)} · {roleCounts.get(role) ?? 0}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <GlassCard hover={false} className="overflow-hidden p-0">
         {users.length === 0 ? (
           <div className="flex items-center gap-3 px-5 py-8 text-sm text-muted-foreground">
             <Users className="size-4" />
             {t("users.empty")}
           </div>
+        ) : visibleUsers.length === 0 ? (
+          <div className="px-5 py-8 text-sm text-muted-foreground">{t("users.noResults")}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead className="border-b border-border/70 text-start text-xs text-muted-foreground">
                 <tr>
                   <th className="px-5 py-3 font-medium">{t("users.name")}</th>
                   <th className="px-5 py-3 font-medium">{t("users.role")}</th>
-                  <th className="px-5 py-3 font-medium">{t("users.email")}</th>
+                  <th className="px-5 py-3 font-medium">{t("users.operations")}</th>
                   <th className="px-5 py-3 font-medium">{t("users.vehicle")}</th>
                   <th className="px-5 py-3 font-medium">{t("orders.actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-border/50 last:border-0">
-                    <td className="px-5 py-3">
-                      <p className="font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.phone}</p>
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge
-                        label={t(`status.role.${user.role}`)}
-                        tone={roleTone[user.role] ?? "muted"}
-                      />
-                    </td>
-                    <td className="px-5 py-3 font-mono text-xs">{user.email}</td>
-                    <td className="px-5 py-3">
-      {user.driver?.vehicle
-                        ? `${user.driver.vehicle.plateNumber} · ${user.driver.vehicleType}`
-                        : t("common.unassigned")}
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("users.edit")}
-                          onPress={() => openEdit(user)}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("common.delete")}
-                          isDisabled={working}
-                          onPress={() => {
-                            void onDelete(user.id);
-                          }}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {visibleUsers.map((user) => {
+                  const expanded = openId === user.id;
+                  const hasOps =
+                    user.stats.openOrders + user.stats.deliveredOrders + user.stats.canceledOrders > 0;
+                  return (
+                    <Fragment key={user.id}>
+                      <tr className="border-b border-border/50">
+                        <td className="px-5 py-3">
+                          <p className="font-medium">{user.name}</p>
+                          <p className="text-xs text-muted-foreground">{user.phone}</p>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            <StatusBadge
+                              label={t(`status.role.${user.role}`)}
+                              tone={roleTone[user.role] ?? "muted"}
+                            />
+                            {user.driver ? (
+                              <StatusBadge
+                                label={t(`status.driver.${user.driver.status}`)}
+                                tone={user.driver.status === "BUSY" ? "warning" : user.driver.status === "AVAILABLE" ? "success" : "muted"}
+                              />
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-xs">
+                          {hasOps ? (
+                            <p>
+                              {t("users.open")} {user.stats.openOrders} · {t("users.delivered")}{" "}
+                              {user.stats.deliveredOrders} · {t("users.canceled")} {user.stats.canceledOrders}
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground">{t("users.none")}</p>
+                          )}
+                          {user.stats.stores > 0 ? (
+                            <p className="text-muted-foreground">
+                              {t("users.stores")} {user.stats.stores}
+                            </p>
+                          ) : null}
+                          {user.stats.recordedActions > 0 ? (
+                            <p className="text-muted-foreground">
+                              {t("users.recorded")} {user.stats.recordedActions}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="px-5 py-3">
+                          {user.driver?.vehicle
+                            ? `${user.driver.vehicle.plateNumber} · ${user.driver.vehicleType}`
+                            : t("common.unassigned")}
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onPress={() => setOpenId(expanded ? null : user.id)}
+                            >
+                              {expanded ? t("users.hide") : t("users.follow")}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t("users.edit")}
+                              onPress={() => openEdit(user)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t("common.delete")}
+                              isDisabled={working}
+                              onPress={() => {
+                                void onDelete(user.id);
+                              }}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expanded ? (
+                        <tr className="border-b border-border/50">
+                          <td colSpan={5} className="p-0">
+                            <UserActivityPanel user={user} />
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

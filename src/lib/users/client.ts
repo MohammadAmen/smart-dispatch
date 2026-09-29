@@ -1,4 +1,4 @@
-import type { ManagedUser, UsersListResponse, UserWriteInput } from "@/lib/users/types";
+import type { ManagedUser, UserActivity, UsersListResponse, UserWriteInput } from "@/lib/users/types";
 
 async function readJson(response: Response): Promise<unknown> {
   try {
@@ -67,6 +67,29 @@ export async function updateManagedUserRequest(
 
     if (!body || body.ok !== true) {
       return { ok: false, error: body && "error" in body && body.error ? body.error : "Save failed." };
+    }
+
+    return body;
+  } catch {
+    return { ok: false, error: "Could not reach the server." };
+  }
+}
+
+export async function fetchUserActivity(
+  id: string,
+): Promise<{ ok: true; activity: UserActivity } | { ok: false; error: string }> {
+  try {
+    const response = await fetch(`/api/users/${id}/activity`, { cache: "no-store" });
+    const body = (await readJson(response)) as
+      | { ok: true; activity: UserActivity }
+      | { ok: false; error?: string }
+      | null;
+
+    if (!response.ok || !body || body.ok !== true) {
+      return {
+        ok: false,
+        error: body && "error" in body && body.error ? body.error : "Load failed.",
+      };
     }
 
     return body;
