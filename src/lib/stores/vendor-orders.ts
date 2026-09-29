@@ -124,17 +124,20 @@ async function attachItems(rows: OrderRow[]): Promise<VendorOrderRecord[]> {
       quantity: number;
       unitPrice: number;
       status: string | null;
+      imageUrl: string | null;
     }[]
   >`
     SELECT
-      id,
-      "orderId",
-      name,
-      quantity,
-      "unitPrice",
-      COALESCE(status, 'PENDING') AS status
-    FROM order_items
-    WHERE "orderId" IN (${Prisma.join(orderIds)})
+      oi.id,
+      oi."orderId",
+      oi.name,
+      oi.quantity,
+      oi."unitPrice",
+      COALESCE(oi.status, 'PENDING') AS status,
+      p."imageUrl" AS "imageUrl"
+    FROM order_items oi
+    LEFT JOIN products p ON p.id = oi."productId"
+    WHERE oi."orderId" IN (${Prisma.join(orderIds)})
   `;
 
   const itemsByOrder = new Map<string, VendorOrderItemRecord[]>();
@@ -146,6 +149,7 @@ async function attachItems(rows: OrderRow[]): Promise<VendorOrderRecord[]> {
       quantity: item.quantity,
       unitPrice: Number(item.unitPrice),
       status: item.status === "SERVED" ? "SERVED" : "PENDING",
+      imageUrl: item.imageUrl,
     });
     itemsByOrder.set(item.orderId, current);
   }
@@ -166,7 +170,16 @@ async function attachPublicBundleItems(rows: OrderRow[]): Promise<VendorOrderRec
       parentOrderId: true,
       storeNotes: true,
       store: { select: { name: true } },
-      items: { select: { id: true, name: true, quantity: true, unitPrice: true } },
+      items: {
+        select: {
+          id: true,
+          name: true,
+          quantity: true,
+          unitPrice: true,
+          status: true,
+          product: { select: { imageUrl: true } },
+        },
+      },
     },
     orderBy: { orderNumber: "asc" },
   });
@@ -184,7 +197,8 @@ async function attachPublicBundleItems(rows: OrderRow[]): Promise<VendorOrderRec
         name: item.name,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        status: "PENDING",
+        status: item.status === "SERVED" ? "SERVED" : "PENDING",
+        imageUrl: item.product?.imageUrl ?? null,
         storeName: child.store?.name ?? undefined,
       });
     }
@@ -292,6 +306,7 @@ const ORDER_SELECT = Prisma.sql`
 
 export interface VendorOrdersPageResult {
   orders: VendorOrderRecord[];
+  queue: VendorOrderRecord[];
   quotes: VendorOrderRecord[];
   prepAlerts: VendorOrderRecord[];
   total: number;
@@ -385,7 +400,7 @@ export async function listStoreOrdersPage(input: {
   const source = input.orderSource;
   const status = input.status;
 
-  const [rows, totalRows, counts, channelCounts, quoteRows, alertRows] = await Promise.all([
+  const [rows, queueRows, totalRows, counts, channelCounts, quoteRows, alertRows] = await Promise.all([
     prisma.$queryRaw<OrderRow[]>`
       SELECT ${ORDER_SELECT}
       FROM orders o
@@ -399,6 +414,34 @@ export async function listStoreOrdersPage(input: {
         ${statusFilter(status)}
       ORDER BY o."createdAt" DESC
       LIMIT ${VENDOR_ORDERS_PAGE_SIZE} OFFSET ${offset}
+    `,
+    prisma.$queryRaw<OrderRow[]>`
+      SELECT ${ORDER_SELECT}
+      FROM orders o
+      LEFT JOIN users u ON u.id = o."customerId"
+      LEFT JOIN drivers d ON d.id = o."driverId"
+      LEFT JOIN users du ON du.id = d."userId"
+      LEFT JOIN stores s ON s.id = o."storeId"
+      WHERE o."storeId" = ${input.storeId}
+        AND COALESCE(o."bundleRole", 'SINGLE') <> 'PARENT'
+        ${fulfillmentFilter(source)}
+        AND CAST(o.status AS TEXT) IN (
+          'PENDING',
+          'PENDING_QUOTE',
+          'QUOTE_ACCEPTED',
+          'PREPARING',
+          'READY_FOR_PICKUP'
+        )
+      ORDER BY
+        CASE CAST(o.status AS TEXT)
+          WHEN 'PENDING' THEN 0
+          WHEN 'PENDING_QUOTE' THEN 0
+          WHEN 'QUOTE_ACCEPTED' THEN 0
+          WHEN 'PREPARING' THEN 1
+          ELSE 2
+        END,
+        o."createdAt" ASC
+      LIMIT 120
     `,
     prisma.$queryRaw<{ count: bigint | number }[]>`
       SELECT COUNT(*) AS count
@@ -445,8 +488,9 @@ export async function listStoreOrdersPage(input: {
     `,
   ]);
 
-  const [orders, quotes, prepAlerts] = await Promise.all([
+  const [orders, queue, quotes, prepAlerts] = await Promise.all([
     attachItems(rows),
+    attachItems(queueRows),
     attachItems(quoteRows),
     attachItems(alertRows),
   ]);
@@ -459,6 +503,7 @@ export async function listStoreOrdersPage(input: {
 
   return {
     orders,
+    queue,
     quotes,
     prepAlerts,
     total,

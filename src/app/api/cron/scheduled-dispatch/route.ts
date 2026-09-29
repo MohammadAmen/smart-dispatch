@@ -1,6 +1,7 @@
 import { readSession } from "@/lib/auth/server";
 import { isDispatchRole, isSuperAdminRole } from "@/lib/auth/constants";
 import { runScheduledDispatch } from "@/lib/dispatch/scheduled-dispatch";
+import { purgeExpiredStories } from "@/lib/stores/story-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +23,11 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const result = await runScheduledDispatch();
-    return Response.json({ ok: true, ...result });
+    const [result, purgedStories] = await Promise.all([
+      runScheduledDispatch(),
+      purgeExpiredStories().catch(() => 0),
+    ]);
+    return Response.json({ ok: true, ...result, purgedStories });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Scheduled dispatch failed.";
     return Response.json({ ok: false, error: message }, { status: 500 });

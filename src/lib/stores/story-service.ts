@@ -182,8 +182,43 @@ const storyInclude = {
   },
 } as const;
 
+export async function purgeExpiredStories(): Promise<number> {
+  await ensureStoreStoriesSchema();
+  const expired = await prisma.storeStory.findMany({
+    where: { expiresAt: { lte: new Date() } },
+    select: { id: true, videoUrl: true },
+    take: 40,
+  });
+  if (expired.length === 0) {
+    return 0;
+  }
+
+  await prisma.storeStory.deleteMany({
+    where: { id: { in: expired.map((row) => row.id) } },
+  });
+
+  for (const row of expired) {
+    try {
+      await deleteStoryVideo(row.videoUrl);
+    } catch {
+      // The database row is already gone. A missing file must not stop the rest.
+    }
+  }
+
+  return expired.length;
+}
+
+async function purgeExpiredStoriesQuietly(): Promise<void> {
+  try {
+    await purgeExpiredStories();
+  } catch {
+    // Lists stay available if cleanup fails on this request.
+  }
+}
+
 export async function listActiveStoryStores(guestKey: string): Promise<PublicStoryStore[]> {
   await ensureStoreStoriesSchema();
+  await purgeExpiredStoriesQuietly();
   const rows = await prisma.storeStory.findMany({
     where: {
       expiresAt: { gt: new Date() },
@@ -234,6 +269,7 @@ export async function listActiveStoryStores(guestKey: string): Promise<PublicSto
 
 export async function listVendorStories(storeId: string): Promise<VendorStoryRecord[]> {
   await ensureStoreStoriesSchema();
+  await purgeExpiredStoriesQuietly();
   const rows = await prisma.storeStory.findMany({
     where: { storeId, isAdminAd: false },
     include: { product: { select: { name: true } } },
@@ -244,6 +280,7 @@ export async function listVendorStories(storeId: string): Promise<VendorStoryRec
 
 export async function listAdminStories(): Promise<VendorStoryRecord[]> {
   await ensureStoreStoriesSchema();
+  await purgeExpiredStoriesQuietly();
   const rows = await prisma.storeStory.findMany({
     where: { isAdminAd: true },
     include: { product: { select: { name: true } } },

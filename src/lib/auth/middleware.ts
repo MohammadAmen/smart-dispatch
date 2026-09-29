@@ -179,6 +179,14 @@ export function decideAccess(
     return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
   }
 
+  if (pathname === "/api/vendor/stories" || pathname.startsWith("/api/vendor/stories/")) {
+    if (role === "STORE_OWNER" || isSuperAdminRole(role)) {
+      return { action: "allow" };
+    }
+
+    return { action: "redirect", to: homePathForRole(role, localePrefix.replace("/", "")) };
+  }
+
   if (pathname.startsWith("/api/driver")) {
     if (role === "DRIVER" || isSuperAdminRole(role)) {
       return { action: "allow" };

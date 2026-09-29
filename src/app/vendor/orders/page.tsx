@@ -26,6 +26,7 @@ export default async function VendorOrdersPage({
       store={store}
       products={products}
       orders={page?.orders ?? []}
+      queue={page?.queue ?? []}
       quotes={page?.quotes ?? []}
       prepAlerts={page?.prepAlerts ?? []}
       total={page?.total ?? 0}

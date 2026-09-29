@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "25mb",
     },
+    proxyClientMaxBodySize: "25mb",
   },
   // Next.js 16 builds with Turbopack by default. next-pwa adds a webpack
   // plugin, and an empty turbopack key keeps that default build from exiting.

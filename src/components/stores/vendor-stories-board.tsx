@@ -11,11 +11,36 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { deleteStoryAction, saveStoryAction } from "@/lib/stores/story-actions";
+import { useStoryUploadStore } from "@/stores/story-upload-store";
 import { invalidateActiveStories } from "@/lib/stores/story-query";
 import { STORY_MAX_SECONDS, type VendorStoryRecord } from "@/lib/stores/story-types";
 import type { ProductRecord, StoreRecord } from "@/lib/stores/types";
 import { formatCountdown } from "@/lib/stores/offer-types";
 import { cn } from "@/lib/utils";
+
+const UPLOAD_WIDTH = [
+  "w-0",
+  "w-[5%]",
+  "w-[10%]",
+  "w-[15%]",
+  "w-[20%]",
+  "w-[25%]",
+  "w-[30%]",
+  "w-[35%]",
+  "w-[40%]",
+  "w-[45%]",
+  "w-[50%]",
+  "w-[55%]",
+  "w-[60%]",
+  "w-[65%]",
+  "w-[70%]",
+  "w-[75%]",
+  "w-[80%]",
+  "w-[85%]",
+  "w-[90%]",
+  "w-[95%]",
+  "w-full",
+] as const;
 
 const fieldClass =
   "h-10 w-full rounded-xl border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -35,6 +60,10 @@ export function VendorStoriesBoard({
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<VendorStoryRecord | null>(null);
   const [pending, startTransition] = useTransition();
+  const uploads = useStoryUploadStore((state) => state.jobs);
+  const enqueueUpload = useStoryUploadStore((state) => state.enqueue);
+  const retryUpload = useStoryUploadStore((state) => state.retry);
+  const dismissUpload = useStoryUploadStore((state) => state.dismiss);
 
   const stats = useMemo(
     () => ({
@@ -99,6 +128,42 @@ export function VendorStoriesBoard({
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {uploads.length > 0 ? (
+        <div className="space-y-2">
+          {uploads.map((job) => (
+            <GlassCard key={job.id} hover={false} className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-semibold">{job.title}</p>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {job.status === "failed" ? t("vendor.storyUploadFailed") : t("vendor.storyUploadProgress", { percent: job.progress })}
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full",
+                    job.status === "failed" ? "w-full bg-destructive" : cn("bg-primary", UPLOAD_WIDTH[Math.round(job.progress / 5)]),
+                  )}
+                />
+              </div>
+              {job.error ? <p className="text-xs text-destructive">{job.error}</p> : null}
+              {job.status === "failed" ? (
+                <div className="flex gap-2">
+                  <Button size="sm" onPress={() => retryUpload(job.id)}>
+                    {t("vendor.storyRetry")}
+                  </Button>
+                  <Button size="sm" variant="ghost" onPress={() => dismissUpload(job.id)}>
+                    {t("common.close")}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t("vendor.storyUploading")}</p>
+              )}
+            </GlassCard>
+          ))}
+        </div>
+      ) : null}
 
       {stories.length === 0 ? (
         <GlassCard hover={false}>
@@ -173,7 +238,20 @@ export function VendorStoriesBoard({
           story={null}
           pending={pending}
           onClose={() => setCreating(false)}
-          onSubmit={(formData) => run(() => saveStoryAction(formData), true)}
+          onSubmit={(formData) => {
+            const title = String(formData.get("title") ?? "").trim();
+            const video = formData.get("video");
+            if (!title || !(video instanceof File) || video.size === 0) {
+              setError(t("vendor.storyVideoHint"));
+              return;
+            }
+            setError(null);
+            setCreating(false);
+            enqueueUpload(formData, () => {
+              void invalidateActiveStories();
+              router.refresh();
+            });
+          }}
         />
       ) : null}
       {editing ? (

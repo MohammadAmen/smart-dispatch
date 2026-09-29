@@ -6,6 +6,7 @@ export interface VendorOrderItemRecord {
   quantity: number;
   unitPrice: number;
   status: "PENDING" | "SERVED";
+  imageUrl?: string | null;
   storeName?: string;
 }
 

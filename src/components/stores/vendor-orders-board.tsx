@@ -1,18 +1,18 @@
 ﻿"use client";
 
 import { AnimatePresence, m } from "framer-motion";
-import { AlertTriangle, CalendarClock, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { FadeIn } from "@/components/ui/fade-in";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { VendorOrderTicket, formatOrderWhen } from "@/components/stores/vendor-order-ticket";
+import { formatOrderWhen } from "@/components/stores/vendor-order-ticket";
+import { VendorOrderWorkspace, type VendorQueueLane } from "@/components/stores/vendor-order-workspace";
 import { VendorThermalReceipt } from "@/components/stores/vendor-thermal-receipt";
 import { VendorOrdersPagination } from "@/components/stores/vendor-orders-pagination";
 import {
@@ -26,7 +26,7 @@ import {
   toggleDineInItemAction,
 } from "@/lib/stores/dine-in-pos-actions";
 import { formatCountdown, isVendorPrepAlert } from "@/lib/stores/custom-order";
-import { VENDOR_ORDER_FILTERS, type VendorOrderFilter } from "@/lib/stores/order-status";
+import { type VendorOrderFilter } from "@/lib/stores/order-status";
 import type { VendorOrderRecord } from "@/lib/stores/order-types";
 import { formatMoney, PRICE_CURRENCY } from "@/lib/stores/pricing";
 import type { ProductRecord, StoreRecord } from "@/lib/stores/types";
@@ -47,19 +47,51 @@ const fieldClass =
 const inputClass =
   "h-10 w-full rounded-xl border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-const STATUS_COUNT_CLASS: Record<VendorOrderFilter, string> = {
-  ALL: "bg-muted text-muted-foreground",
-  PENDING_QUOTE: "bg-warning/20 text-warning-foreground dark:text-warning",
-  PENDING:
-    "bg-destructive text-destructive-foreground shadow-[0_0_14px_oklch(0.63_0.22_25/0.6)]",
-  PREPARING: "bg-amber-500 text-white",
-  READY_FOR_PICKUP: "bg-emerald-500 text-white",
-  DELIVERED: "bg-muted text-muted-foreground",
+const FILTER_DOT: Record<VendorOrderFilter, string> = {
+  ALL: "bg-primary",
+  PENDING_QUOTE: "bg-amber-400",
+  PENDING: "bg-rose-500",
+  PREPARING: "bg-orange-500",
+  READY_FOR_PICKUP: "bg-emerald-500",
+  DELIVERED: "bg-emerald-700",
 };
+
+function queueRank(status: string): number {
+  if (status === "PENDING" || status === "PENDING_QUOTE" || status === "QUOTE_ACCEPTED") {
+    return 0;
+  }
+  if (status === "PREPARING") {
+    return 1;
+  }
+  if (status === "READY_FOR_PICKUP") {
+    return 2;
+  }
+  return 9;
+}
+
+function matchesQueueFilter(orderStatus: string, filter: VendorOrderFilter): boolean {
+  if (filter === "ALL") {
+    return queueRank(orderStatus) < 9;
+  }
+  if (filter === "PENDING") {
+    return orderStatus === "PENDING" || orderStatus === "QUOTE_ACCEPTED";
+  }
+  return orderStatus === filter;
+}
+
+const FILTER_DISPLAY: VendorOrderFilter[] = [
+  "ALL",
+  "PENDING",
+  "PREPARING",
+  "READY_FOR_PICKUP",
+  "DELIVERED",
+  "PENDING_QUOTE",
+];
 
 export function VendorOrdersBoard({
   store,
   orders,
+  queue = [],
   quotes = [],
   prepAlerts = [],
   products = [],
@@ -73,6 +105,7 @@ export function VendorOrdersBoard({
 }: {
   store: StoreRecord | null;
   orders: VendorOrderRecord[];
+  queue?: VendorOrderRecord[];
   quotes?: VendorOrderRecord[];
   prepAlerts?: VendorOrderRecord[];
   products?: ProductRecord[];
@@ -98,18 +131,63 @@ export function VendorOrdersBoard({
   const [posBusy, setPosBusy] = useState<string | null>(null);
   const [quoteDrafts, setQuoteDrafts] = useState<Record<string, string>>({});
   const [printing, setPrinting] = useState<VendorOrderRecord | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileDetail, setMobileDetail] = useState(false);
+  const [search, setSearch] = useState("");
   const closePrint = useCallback(() => setPrinting(null), []);
 
   useEffect(() => {
-    hydrate(orders, counts);
-  }, [counts, hydrate, orders]);
+    hydrate(queue, counts);
+  }, [counts, hydrate, queue]);
 
-  const visible = liveOrders.length > 0 ? liveOrders : orders;
+  const visible = liveOrders.length > 0 ? liveOrders : queue;
   const visiblePrepAlerts = useMemo(
     () => prepAlerts.filter((order) => isVendorPrepAlert(order.scheduledDate)),
     [prepAlerts],
   );
   const channelQuotes = status === "PENDING_QUOTE" ? [] : quotes;
+  const historyMode = status === "DELIVERED";
+  const openQueue = useMemo(() => {
+    const seen = new Set(visible.map((order) => order.id));
+    const extra = channelQuotes.filter((order) => !seen.has(order.id));
+    return [...visible, ...extra].filter((order) => queueRank(order.status) < 9);
+  }, [channelQuotes, visible]);
+  const filtered = useMemo(() => {
+    const source = historyMode ? orders : openQueue;
+    const needle = search.trim().toLowerCase();
+    const digits = needle.replace(/\D/g, "");
+    return source
+      .filter((order) => historyMode || matchesQueueFilter(order.status, status))
+      .filter((order) => {
+        if (!needle) {
+          return true;
+        }
+        const haystack = `${order.orderNumber} ${order.customerName} ${order.customerPhone} ${order.addressText}`.toLowerCase();
+        return haystack.includes(needle) || (digits.length >= 3 && order.customerPhone.replace(/\D/g, "").includes(digits));
+      })
+      .sort((left, right) => {
+        if (historyMode) {
+          return right.createdAt.localeCompare(left.createdAt);
+        }
+        const byRank = queueRank(left.status) - queueRank(right.status);
+        if (byRank !== 0) {
+          return byRank;
+        }
+        return left.createdAt.localeCompare(right.createdAt);
+      });
+  }, [historyMode, openQueue, orders, search, status]);
+  const lanes = useMemo((): VendorQueueLane[] | null => {
+    if (historyMode) {
+      return null;
+    }
+    const groups: VendorQueueLane[] = [
+      { id: "accept", title: t("vendor.queueAccept"), orders: filtered.filter((order) => queueRank(order.status) === 0) },
+      { id: "prepare", title: t("vendor.queuePrepare"), orders: filtered.filter((order) => queueRank(order.status) === 1) },
+      { id: "ready", title: t("vendor.queueReady"), orders: filtered.filter((order) => queueRank(order.status) === 2) },
+    ];
+    return groups.filter((lane) => lane.orders.length > 0);
+  }, [filtered, historyMode, t]);
+  const selected = filtered.find((order) => order.id === selectedId) ?? filtered[0] ?? null;
 
   if (!store) {
     return (
@@ -235,68 +313,74 @@ export function VendorOrdersBoard({
   return (
     <FadeIn className="space-y-6">
       <div className="space-y-6 print:hidden">
-      <PageHeader title={t("vendor.orders")} description={t("vendor.ordersDesc")} />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <PageHeader title={t("vendor.orders")} description={t("vendor.ordersDesc")} />
+        <label className="relative hidden w-full max-w-md lg:block">
+          <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("vendor.deskSearch")}
+            className="h-11 w-full rounded-2xl border border-border bg-card ps-10 pe-3 text-sm outline-none focus-visible:border-primary"
+          />
+        </label>
+      </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <div className="flex flex-wrap gap-2">
-        {VENDOR_ORDER_SOURCES.map((value) => (
-          <Link
-            key={value}
-            href={vendorOrdersHref(pathname, { status, orderSource: value, page: 1 })}
-            scroll={false}
-            className={buttonVariants({
-              size: "sm",
-              variant: orderSource === value ? "default" : "outline",
-            })}
-          >
-            {t(`vendor.channel.${value}`)}
-            <span
-              className={cn(
-                "ms-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-                orderSource === value ? "bg-primary-foreground/15" : "bg-muted text-muted-foreground",
-              )}
-            >
-              {channelCounts[value]}
-            </span>
-          </Link>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {VENDOR_ORDER_FILTERS.map((value) => {
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {FILTER_DISPLAY.map((value) => {
+          const active = status === value;
           const count = counts[value];
           return (
             <Link
               key={value}
               href={vendorOrdersHref(pathname, { status: value, orderSource, page: 1 })}
               scroll={false}
-              className={buttonVariants({
-                size: "sm",
-                variant: status === value ? "default" : "outline",
-              })}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold",
+                active ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
+              )}
             >
+              <span className={cn("size-2 rounded-full", active ? "bg-primary-foreground" : FILTER_DOT[value])} />
               {t(`vendor.filter.${value}`)}
-              <span
-                className={cn(
-                  "ms-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                  STATUS_COUNT_CLASS[value],
-                  value === "PENDING" && count > 0 && "animate-pulse",
-                )}
-              >
-                {count}
-              </span>
+              <span className={cn(value === "PENDING" && count > 0 && !active && "text-rose-600")}>{count}</span>
             </Link>
           );
         })}
       </div>
+      <div className="flex gap-2 overflow-x-auto">
+        {VENDOR_ORDER_SOURCES.map((value) => (
+          <Link
+            key={value}
+            href={vendorOrdersHref(pathname, { status, orderSource: value, page: 1 })}
+            scroll={false}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium",
+              orderSource === value ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
+            )}
+          >
+            {t(`vendor.channel.${value}`)}
+            <span>{channelCounts[value]}</span>
+          </Link>
+        ))}
+      </div>
 
       {visiblePrepAlerts.length > 0 ? (
-        <div className="space-y-2">
+        <div className="flex gap-2 overflow-x-auto">
           {visiblePrepAlerts.map((order) => (
-            <GlassCard key={`alert-${order.id}`} hover={false} className="flex items-start gap-3 border-warning/40">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning" />
-              <div>
-                <p className="text-sm font-semibold">{t("vendor.prepAlertTitle", { orderNumber: order.orderNumber })}</p>
-                <p className="text-xs text-muted-foreground">
+            <button
+              key={`alert-${order.id}`}
+              type="button"
+              onClick={() => {
+                setSelectedId(order.id);
+                setMobileDetail(true);
+              }}
+              className="flex min-w-64 items-start gap-2 rounded-2xl border border-warning/40 bg-warning/10 px-3 py-2 text-start"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+              <span>
+                <span className="block text-sm font-semibold">{t("vendor.prepAlertTitle", { orderNumber: order.orderNumber })}</span>
+                <span className="block text-xs text-muted-foreground">
                   {t("vendor.prepAlertBody", {
                     when: order.scheduledDate ? formatOrderWhen(order.scheduledDate, locale) : "—",
                     left: formatCountdown(
@@ -304,81 +388,81 @@ export function VendorOrdersBoard({
                       locale,
                     ),
                   })}
-                </p>
-              </div>
-            </GlassCard>
+                </span>
+              </span>
+            </button>
           ))}
         </div>
       ) : null}
 
-      {channelQuotes.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-heading text-base font-semibold">
-            <Sparkles className="size-4 text-primary" />
-            {t("vendor.customQuoteQueue")}
-          </h2>
-          {channelQuotes.map((order) => (
-            <CustomQuoteCard
-              key={order.id}
-              order={order}
-              locale={locale}
-              pending={pending}
-              price={quoteDrafts[order.id] ?? ""}
-              onPrice={(value) => setQuoteDrafts((current) => ({ ...current, [order.id]: value }))}
-              onQuote={() => quote(order.id)}
-              onCancel={() => setCanceling(order)}
-            />
-          ))}
-        </section>
-      ) : null}
-
-      {visible.length === 0 ? (
-        <GlassCard hover={false}>
-          <p className="text-sm text-muted-foreground">{t("vendor.emptyOrders")}</p>
-        </GlassCard>
-      ) : (
-        <div className="space-y-3">
-          {visible.map((order) => {
-            if (order.status === "PENDING_QUOTE") {
-              return (
-                <CustomQuoteCard
-                  key={order.id}
-                  order={order}
-                  locale={locale}
-                  pending={pending}
-                  price={quoteDrafts[order.id] ?? ""}
-                  onPrice={(value) => setQuoteDrafts((current) => ({ ...current, [order.id]: value }))}
-                  onQuote={() => quote(order.id)}
-                  onCancel={() => setCanceling(order)}
-                />
-              );
-            }
-            return (
-              <VendorOrderTicket
-                key={order.id}
-                order={order}
-                locale={locale}
-                pending={pending}
-                posBusy={posBusy !== null}
-                onToggleItem={(itemId) => toggleItem(order, itemId)}
-                onServeAll={() => serveAll(order)}
-                onAddItem={() => setAddingTo(order)}
-                onAdvance={() => advance(order.id)}
-                onCancel={() => setCanceling(order)}
-                onPrint={() => setPrinting(order)}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      <VendorOrdersPagination
-        pathname={pathname}
-        page={page}
-        pageSize={pageSize}
+      <VendorOrderWorkspace
+        orders={filtered}
+        lanes={lanes}
+        selected={selected}
         total={total}
-        status={status}
-        orderSource={orderSource}
+        search={search}
+        mobileDetail={mobileDetail}
+        pending={pending}
+        posBusy={posBusy !== null}
+        quotePrice={selected ? quoteDrafts[selected.id] ?? "" : ""}
+        onSearch={setSearch}
+        onRefresh={() => router.refresh()}
+        onSelect={(id) => {
+          setSelectedId(id);
+          setMobileDetail(true);
+        }}
+        onBack={() => setMobileDetail(false)}
+        onQuotePrice={(value) => {
+          if (!selected) {
+            return;
+          }
+          setQuoteDrafts((current) => ({ ...current, [selected.id]: value }));
+        }}
+        onQuote={() => {
+          if (selected) {
+            quote(selected.id);
+          }
+        }}
+        onToggleItem={(itemId) => {
+          if (selected) {
+            toggleItem(selected, itemId);
+          }
+        }}
+        onServeAll={() => {
+          if (selected) {
+            serveAll(selected);
+          }
+        }}
+        onAddItem={() => {
+          if (selected) {
+            setAddingTo(selected);
+          }
+        }}
+        onAdvance={() => {
+          if (selected) {
+            advance(selected.id);
+          }
+        }}
+        onCancel={() => {
+          if (selected) {
+            setCanceling(selected);
+          }
+        }}
+        onPrint={() => {
+          if (selected) {
+            setPrinting(selected);
+          }
+        }}
+        pagination={
+          <VendorOrdersPagination
+            pathname={pathname}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            status={status}
+            orderSource={orderSource}
+          />
+        }
       />
 
       <CancelOrderDialog
@@ -496,82 +580,6 @@ function CancelOrderDialog({
         </m.div>
       ) : null}
     </AnimatePresence>
-  );
-}
-
-function CustomQuoteCard({
-  order,
-  locale,
-  pending,
-  price,
-  onPrice,
-  onQuote,
-  onCancel,
-}: {
-  order: VendorOrderRecord;
-  locale: string;
-  pending: boolean;
-  price: string;
-  onPrice: (value: string) => void;
-  onQuote: () => void;
-  onCancel: () => void;
-}): ReactNode {
-  const { t } = useLocale();
-  const quoteValue = Number.parseFloat(price);
-
-  return (
-    <GlassCard hover={false} className="space-y-4 print:hidden">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="font-heading text-lg font-semibold tracking-tight">{order.orderNumber}</p>
-          <p className="text-xs text-muted-foreground">{formatOrderWhen(order.createdAt, locale)}</p>
-        </div>
-        <StatusBadge
-          label={t(`status.order.${order.status}`)}
-          tone="warning"
-          className="normal-case tracking-normal"
-        />
-      </div>
-      {order.customImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={order.customImage} alt="" className="h-44 w-full rounded-2xl object-cover" />
-      ) : null}
-      <div className="space-y-2 text-sm">
-        <p>
-          <span className="text-muted-foreground">{t("vendor.customer")}: </span>
-          {order.customerName} · {order.customerPhone}
-        </p>
-        {order.scheduledDate ? (
-          <p className="flex items-center gap-1.5">
-            <CalendarClock className="size-3.5 text-primary" />
-            {t("vendor.scheduledFor")}: {formatOrderWhen(order.scheduledDate, locale)}
-          </p>
-        ) : null}
-        {order.customNotes ? <p className="rounded-xl bg-muted/50 px-3 py-2">{order.customNotes}</p> : null}
-        <p>
-          <span className="text-muted-foreground">{t("menu.address")}: </span>
-          {order.addressText}
-        </p>
-      </div>
-      <label className="block space-y-1.5 text-xs font-medium text-muted-foreground">
-        {t("vendor.quotedPrice")}
-        <input
-          inputMode="decimal"
-          value={price}
-          onChange={(event) => onPrice(event.target.value)}
-          placeholder="0"
-          className="h-10 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        />
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <Button onPress={onQuote} isDisabled={pending || !Number.isFinite(quoteValue) || quoteValue <= 0}>
-          {t("vendor.sendQuote")}
-        </Button>
-        <Button variant="destructive" onPress={onCancel} isDisabled={pending}>
-          {t("vendor.cancelOrder")}
-        </Button>
-      </div>
-    </GlassCard>
   );
 }
 

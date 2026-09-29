@@ -40,6 +40,7 @@ export default async function LocaleVendorOrdersPage({
       store={store}
       products={products}
       orders={page?.orders ?? []}
+      queue={page?.queue ?? []}
       quotes={page?.quotes ?? []}
       prepAlerts={page?.prepAlerts ?? []}
       total={page?.total ?? 0}
