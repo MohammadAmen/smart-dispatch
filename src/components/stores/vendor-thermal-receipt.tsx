@@ -13,6 +13,15 @@ import { cn } from "@/lib/utils";
 
 type PaperWidth = 58 | 80;
 
+interface ReceiptStore {
+  name: string;
+  phone: string | null;
+  logoUrl: string | null;
+  address: string | null;
+  city: string | null;
+  receiptFooterNote: string | null;
+}
+
 function formatPrintWhen(value: string, locale: string): string {
   return new Intl.DateTimeFormat(locale === "ar" ? "ar-SY" : "en-GB", {
     dateStyle: "short",
@@ -35,7 +44,7 @@ function ReceiptPaper({
   printedAt,
   paperMm,
 }: {
-  store: StoreRecord;
+  store: ReceiptStore;
   order: VendorOrderRecord;
   qr: string | null;
   printedAt: string;
@@ -242,5 +251,79 @@ export function VendorThermalReceipt({
         <ReceiptPaper store={store} order={order} qr={qr} printedAt={printedAt} paperMm={paperMm} />
       </div>
     </>
+  );
+}
+
+export function CustomerReceiptPreview({
+  order,
+  onClose,
+}: {
+  order: VendorOrderRecord;
+  onClose: () => void;
+}): ReactNode {
+  const { t, locale } = useLocale();
+  const [qr, setQr] = useState<string | null>(null);
+  const printedAt = formatPrintWhen(new Date().toISOString(), locale);
+  const store: ReceiptStore = {
+    name: order.storeName?.trim() || t("brand.name"),
+    phone: order.storePhone,
+    logoUrl: order.storeLogoUrl ?? null,
+    address: order.storeAddress ?? null,
+    city: order.storeCity ?? null,
+    receiptFooterNote: order.receiptFooterNote ?? null,
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async (): Promise<void> => {
+      try {
+        const QRCode = (await import("qrcode")).default;
+        const dataUrl = await QRCode.toDataURL(receiptUrl(order.trackingToken), {
+          width: 160,
+          margin: 0,
+          errorCorrectionLevel: "M",
+          color: { dark: "#000000", light: "#ffffff" },
+        });
+        if (!cancelled) {
+          setQr(dataUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setQr(null);
+        }
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [order.trackingToken]);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-3 sm:items-center">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[#1a1610]/55 backdrop-blur-sm"
+        aria-label={t("common.close")}
+        onClick={onClose}
+      />
+      <div className="relative z-10 flex max-h-[min(88dvh,760px)] w-full max-w-sm flex-col overflow-hidden rounded-[1.6rem] border border-[#1a1610]/10 bg-[#f6f1e4] shadow-[0_30px_80px_-30px_rgba(26,22,16,0.7)]">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <p className="font-heading text-base font-semibold text-[#1a1610]">{t("menu.receiptTitle")}</p>
+          <button
+            type="button"
+            className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#1a1610]"
+            onClick={onClose}
+          >
+            {t("common.close")}
+          </button>
+        </div>
+        <div className="overflow-y-auto px-4 pb-5">
+          <div className="rounded-2xl bg-white px-2 py-3 shadow-sm">
+            <ReceiptPaper store={store} order={order} qr={qr} printedAt={printedAt} paperMm={80} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

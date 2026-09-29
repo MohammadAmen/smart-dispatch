@@ -1,18 +1,12 @@
 "use client";
 
-import { Lightbulb, Sparkles } from "lucide-react";
-import dynamic from "next/dynamic";
+import { Lightbulb } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 
-const StoryReelsModal = dynamic(
-  () => import("@/components/menu/story-reels-modal").then((mod) => mod.StoryReelsModal),
-  { ssr: false },
-);
-const StoryFeedModal = dynamic(
-  () => import("@/components/menu/story-feed-modal").then((mod) => mod.StoryFeedModal),
-  { ssr: false },
-);
+import { StoryFeedModal } from "@/components/menu/story-feed-modal";
+import { StoryReelsModal } from "@/components/menu/story-reels-modal";
+import { StoryBrandMark } from "@/components/menu/story-brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { sortRailStores } from "@/lib/stores/story-feed";
 import { preloadStoryMedia } from "@/lib/stores/story-playback";
@@ -60,7 +54,6 @@ export function WorthTryingRail({
   }), [mutate]);
 
   useEffect(() => {
-    // Warm the first few clips so opening a story feels instant on weak networks.
     for (const store of stores.slice(0, 4)) {
       const first = store.stories[0];
       if (first?.videoUrl) {
@@ -123,6 +116,23 @@ export function WorthTryingRail({
     void mutate((current) => patchActiveStory(current, storyId, patch), { revalidate: false });
   };
 
+  const openStoreStories = (storeId: string): void => {
+    const target = visible.find((entry) => entry.storeId === storeId);
+    const first = target?.stories[0];
+    if (first?.videoUrl) {
+      preloadStoryMedia(first.videoUrl);
+    }
+    setOpenStoreId(storeId);
+  };
+
+  const openFeed = (): void => {
+    const first = visible[0]?.stories[0];
+    if (first?.videoUrl) {
+      preloadStoryMedia(first.videoUrl);
+    }
+    setFeedOpen(true);
+  };
+
   if (visible.length === 0) {
     return null;
   }
@@ -136,7 +146,7 @@ export function WorthTryingRail({
         </div>
         <button
           type="button"
-          onClick={() => setFeedOpen(true)}
+          onClick={openFeed}
           className="text-xs font-semibold text-primary"
         >
           {t("menu.viewAll")}
@@ -145,12 +155,12 @@ export function WorthTryingRail({
       <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"
-          onClick={() => setFeedOpen(true)}
+          onClick={openFeed}
           className="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 text-center"
         >
           <span className="relative block w-full rounded-full bg-linear-to-tr from-primary via-warning to-glow p-[3px]">
-            <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-background">
-              <Sparkles className="size-5 text-primary" />
+            <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-background p-2">
+              <StoryBrandMark className="size-full" />
             </span>
           </span>
           <span className="line-clamp-1 text-[11px] font-medium">{t("menu.viewAll")}</span>
@@ -161,7 +171,7 @@ export function WorthTryingRail({
             <button
               key={store.storeId}
               type="button"
-              onClick={() => setOpenStoreId(store.storeId)}
+              onClick={() => openStoreStories(store.storeId)}
               className={cn(
                 "flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 text-center",
                 allSeen && "opacity-60",
@@ -185,7 +195,7 @@ export function WorthTryingRail({
                 ) : null}
                 <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-background">
                   {store.isAdminAd ? (
-                    <Sparkles className="size-5 text-amber-500" />
+                    <StoryBrandMark className="size-[70%]" />
                   ) : store.storeLogoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={store.storeLogoUrl} alt="" className="size-full object-cover" />

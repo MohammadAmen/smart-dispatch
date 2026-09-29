@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { StoryReelMedia, StoryReelOverlay } from "@/components/menu/story-reel-slide";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { baseCartExtras } from "@/lib/stores/menu-cart";
 import { readStoryGuestKey } from "@/lib/stores/story-guest";
 import { preloadStoryMedia } from "@/lib/stores/story-playback";
@@ -52,6 +53,8 @@ export function StoryReelsModal({
   const storeIndex = stores.findIndex((item) => item.storeId === currentStoreId);
   const store = storeIndex >= 0 ? stores[storeIndex] : null;
   const story = store?.stories[storyIndex] ?? store?.stories[0] ?? null;
+
+  useBodyScrollLock(Boolean(store && story));
 
   useEffect(() => {
     const nextStore = stores.find((item) => item.storeId === currentStoreId);
@@ -203,7 +206,7 @@ export function StoryReelsModal({
   return (
     <AnimatePresence>
       <m.div
-        className="fixed inset-0 z-[70] bg-black"
+        className="fixed inset-0 z-[70] touch-none overscroll-none overflow-hidden bg-black"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -213,6 +216,7 @@ export function StoryReelsModal({
           active={!storeOpen}
           muted={muted}
           videoRef={videoRef}
+          posterUrl={story.productImage ?? store.storeCoverImage ?? store.storeLogoUrl}
           onProgress={setProgress}
           onEnded={() => goStory(storyIndex + 1)}
         />

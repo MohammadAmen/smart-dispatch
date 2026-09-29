@@ -22,6 +22,11 @@ export interface VendorOrderRecord {
   driverName: string | null;
   driverPhone: string | null;
   storePhone: string | null;
+  storeName?: string | null;
+  storeLogoUrl?: string | null;
+  storeAddress?: string | null;
+  storeCity?: string | null;
+  receiptFooterNote?: string | null;
   trackingToken: string | null;
   storeNotes: string | null;
   orderType: "STANDARD" | "SPECIAL_CUSTOM";

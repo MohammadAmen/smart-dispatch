@@ -6,15 +6,16 @@ import {
   Eye,
   EyeOff,
   Heart,
+  Loader2,
   Phone,
   ShoppingBag,
-  Sparkles,
   Volume2,
   VolumeX,
   X,
 } from "lucide-react";
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
+import { StoryBrandMark } from "@/components/menu/story-brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { storyActionHref } from "@/lib/stores/story-contact";
 import {
@@ -27,11 +28,16 @@ import { formatMoney } from "@/lib/stores/pricing";
 import type { PublicStory, PublicStoryStore } from "@/lib/stores/story-types";
 import { cn } from "@/lib/utils";
 
+function storyPosterUrl(story: PublicStory): string | null {
+  return story.productImage ?? story.storeLogoUrl ?? null;
+}
+
 export function StoryReelMedia({
   story,
   active,
   muted,
   preload = false,
+  posterUrl: posterOverride,
   videoRef,
   onProgress,
   onEnded,
@@ -41,6 +47,7 @@ export function StoryReelMedia({
   muted: boolean;
   /** Warm the next/prev clip without playing audio. */
   preload?: boolean;
+  posterUrl?: string | null;
   videoRef?: RefObject<HTMLVideoElement | null>;
   onProgress: (value: number) => void;
   onEnded: () => void;
@@ -48,6 +55,12 @@ export function StoryReelMedia({
   const localRef = useRef<HTMLVideoElement | null>(null);
   const nodeRef = videoRef ?? localRef;
   const mediaUrl = story.videoUrl;
+  const posterUrl = posterOverride ?? storyPosterUrl(story);
+  const [mediaReady, setMediaReady] = useState(story.mediaType === "IMAGE");
+
+  useEffect(() => {
+    setMediaReady(story.mediaType === "IMAGE");
+  }, [story.id, story.mediaType]);
 
   useEffect(() => {
     if ((active || preload) && mediaUrl) {
@@ -93,11 +106,16 @@ export function StoryReelMedia({
       });
     };
 
-    if (node.readyState >= 2) {
+    const markReady = (): void => {
+      setMediaReady(true);
       tryPlay();
+    };
+
+    if (node.readyState >= 2) {
+      markReady();
     } else {
       const onReady = (): void => {
-        tryPlay();
+        markReady();
       };
       node.addEventListener("loadeddata", onReady);
       node.addEventListener("canplay", onReady);
@@ -133,6 +151,25 @@ export function StoryReelMedia({
     node.volume = muted ? 0 : 1;
   }, [active, muted, nodeRef, story.mediaType]);
 
+  const loadingOverlay =
+    active && !mediaReady ? (
+      <div className="absolute inset-0 z-[1] flex items-center justify-center bg-black">
+        {posterUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={posterUrl}
+            alt=""
+            className="absolute inset-0 size-full scale-105 object-cover blur-sm brightness-75"
+            draggable={false}
+          />
+        ) : null}
+        <div className="relative flex flex-col items-center gap-2">
+          <Loader2 className="size-8 animate-spin text-white/90" />
+          <StoryBrandMark className="size-10 opacity-80" />
+        </div>
+      </div>
+    ) : null;
+
   if (story.mediaType === "IMAGE") {
     return (
       <div className="absolute inset-0 overflow-hidden bg-black">
@@ -142,36 +179,57 @@ export function StoryReelMedia({
           alt=""
           className={cn("size-full object-cover", active && "albal-ken-burns")}
           draggable={false}
+          onLoad={() => setMediaReady(true)}
         />
+        {loadingOverlay}
       </div>
     );
   }
 
   return (
-    <video
-      key={story.id}
-      ref={nodeRef}
-      src={mediaUrl}
-      className="absolute inset-0 size-full object-cover"
-      autoPlay={active}
-      muted={!active || muted}
-      playsInline
-      preload={active || preload ? "auto" : "metadata"}
-      controls={false}
-      disablePictureInPicture
-      onTimeUpdate={(event) => {
-        if (!active) {
-          return;
-        }
-        const node = event.currentTarget;
-        onProgress(node.duration > 0 ? node.currentTime / node.duration : 0);
-      }}
-      onEnded={() => {
-        if (active) {
-          onEnded();
-        }
-      }}
-    />
+    <div className="absolute inset-0 overflow-hidden bg-black">
+      {posterUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={posterUrl}
+          alt=""
+          className={cn(
+            "absolute inset-0 size-full object-cover transition-opacity duration-300",
+            mediaReady ? "opacity-0" : "opacity-100",
+          )}
+          draggable={false}
+        />
+      ) : null}
+      <video
+        key={story.id}
+        ref={nodeRef}
+        src={mediaUrl}
+        poster={posterUrl ?? undefined}
+        className={cn(
+          "absolute inset-0 size-full object-cover transition-opacity duration-300",
+          mediaReady ? "opacity-100" : "opacity-0",
+        )}
+        autoPlay={active}
+        muted={!active || muted}
+        playsInline
+        preload={active || preload ? "auto" : "metadata"}
+        controls={false}
+        disablePictureInPicture
+        onTimeUpdate={(event) => {
+          if (!active) {
+            return;
+          }
+          const node = event.currentTarget;
+          onProgress(node.duration > 0 ? node.currentTime / node.duration : 0);
+        }}
+        onEnded={() => {
+          if (active) {
+            onEnded();
+          }
+        }}
+      />
+      {loadingOverlay}
+    </div>
   );
 }
 
@@ -237,7 +295,7 @@ export function StoryReelOverlay({
           >
             <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20 ring-2 ring-white/50 shadow-lg shadow-black/30">
               {store.isAdminAd ? (
-                <Sparkles className="size-4 text-amber-200" />
+                <StoryBrandMark className="size-full p-1" />
               ) : store.storeLogoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={store.storeLogoUrl} alt="" className="size-full object-cover" />

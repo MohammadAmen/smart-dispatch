@@ -4,6 +4,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
 import { StoryReelMedia, StoryReelOverlay } from "@/components/menu/story-reel-slide";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { baseCartExtras } from "@/lib/stores/menu-cart";
 import { flattenStoryFeed, firstUnseenFeedIndex } from "@/lib/stores/story-feed";
 import { readStoryGuestKey } from "@/lib/stores/story-guest";
@@ -55,6 +56,8 @@ export function StoryFeedModal({
   const startY = useRef(0);
   const viewed = useRef(new Set<string>());
   const item = items[index] ?? null;
+
+  useBodyScrollLock(Boolean(item));
 
   const go = useCallback(
     (next: number): void => {
@@ -196,7 +199,7 @@ export function StoryFeedModal({
   return (
     <AnimatePresence>
       <m.div
-        className="fixed inset-0 z-[70] overflow-hidden bg-black"
+        className="fixed inset-0 z-[70] touch-none overscroll-none overflow-hidden bg-black"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -222,6 +225,11 @@ export function StoryFeedModal({
                 active={itemIndex === index}
                 muted={muted}
                 preload={itemIndex !== index}
+                posterUrl={
+                  entry.story.productImage ??
+                  entry.store.storeCoverImage ??
+                  entry.store.storeLogoUrl
+                }
                 onProgress={itemIndex === index ? setProgress : () => undefined}
                 onEnded={() => {
                   if (itemIndex === index) {

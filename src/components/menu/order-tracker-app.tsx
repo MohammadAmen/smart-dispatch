@@ -14,17 +14,19 @@ import {
   PackageCheck,
   Phone,
   Plus,
+  ReceiptText,
   ShoppingBag,
   Sparkles,
+  Store,
   Truck,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { useLocale } from "@/components/providers/locale-provider";
-import { LocaleToggle } from "@/components/ui/locale-toggle";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { CustomerReceiptPreview } from "@/components/stores/vendor-thermal-receipt";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, type BadgeTone } from "@/components/ui/status-badge";
 import { TRACKING_STEPS, trackingStepIndex } from "@/lib/stores/order-status";
@@ -42,6 +44,53 @@ import { cn } from "@/lib/utils";
 
 const POLL_MS = 4000;
 const PAGE_SIZE = 5;
+const FILTERS = [
+  "ALL",
+  "PENDING",
+  "PREPARING",
+  "READY_FOR_PICKUP",
+  "IN_TRANSIT",
+  "DELIVERED",
+  "CANCELED",
+] as const;
+const RECEIPT_STATUSES = new Set(["READY_FOR_PICKUP", "ASSIGNED", "IN_TRANSIT", "DELIVERED"]);
+
+type TrackerFilter = (typeof FILTERS)[number];
+
+function matchesFilter(status: string, filter: TrackerFilter): boolean {
+  if (filter === "ALL") {
+    return true;
+  }
+  if (filter === "PENDING") {
+    return status === "PENDING" || status === "PENDING_QUOTE" || status === "QUOTE_ACCEPTED";
+  }
+  if (filter === "IN_TRANSIT") {
+    return status === "IN_TRANSIT" || status === "ASSIGNED";
+  }
+  return status === filter;
+}
+
+function telHref(phone: string | null | undefined): string | null {
+  const raw = phone?.trim() ?? "";
+  if (!raw || raw.toUpperCase() === "COUNTER" || !/\d/.test(raw)) {
+    return null;
+  }
+  const dial = raw.replace(/[^\d+]/g, "");
+  return dial ? `tel:${dial}` : null;
+}
+
+function filterLabel(
+  filter: TrackerFilter,
+  t: (path: string, vars?: Record<string, string | number>) => string,
+): string {
+  if (filter === "ALL") {
+    return t("menu.filterAll");
+  }
+  if (filter === "IN_TRANSIT") {
+    return t("menu.filterOnTheWay");
+  }
+  return t(`status.order.${filter}`);
+}
 
 const statusTone: Record<string, BadgeTone> = {
   PENDING: "info",
@@ -81,6 +130,7 @@ export function OrderTrackerApp({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [statusFilter, setStatusFilter] = useState<TrackerFilter>("ALL");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -152,8 +202,19 @@ export function OrderTrackerApp({
     };
   }, [hydrated, t, tokens]);
 
-  const visibleOrders = orders.slice(0, visibleCount);
-  const remaining = Math.max(0, orders.length - visibleCount);
+  const filteredOrders = useMemo(
+    () => orders.filter((order) => matchesFilter(order.status, statusFilter)),
+    [orders, statusFilter],
+  );
+  const visibleOrders = filteredOrders.slice(0, visibleCount);
+  const remaining = Math.max(0, filteredOrders.length - visibleCount);
+  const filterCounts = useMemo(() => {
+    const counts = new Map<TrackerFilter, number>();
+    for (const filter of FILTERS) {
+      counts.set(filter, orders.filter((order) => matchesFilter(order.status, filter)).length);
+    }
+    return counts;
+  }, [orders]);
 
   const loadMore = useCallback((): void => {
     setVisibleCount((current) => current + PAGE_SIZE);
@@ -179,34 +240,48 @@ export function OrderTrackerApp({
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg pb-[max(6.5rem,env(safe-area-inset-bottom))]">
-      <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <Link href="/menu" className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-            {t("brand.name")}
-          </Link>
-          <div className="flex items-center gap-0.5">
-            <LocaleToggle className="h-8 px-2" />
-            <ThemeToggle />
+      <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.85rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-3">
+          <BrandMark size={48} className="size-12 rounded-2xl" />
+          <div className="min-w-0">
+            <h1 className="font-heading text-[1.7rem] leading-none font-semibold tracking-tight">
+              {t("menu.myOrders")}
+            </h1>
+            <p className="mt-1.5 text-xs text-muted-foreground">{t("menu.trackSubtitle")}</p>
           </div>
         </div>
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <Link
-            href="/menu"
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-border bg-background/70 text-sm font-medium"
-          >
-            <ArrowRight className="size-3.5 rotate-180 rtl:rotate-0" />
-            {t("menu.backToMenu")}
-          </Link>
-          <Link
-            href="/menu"
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground"
-          >
-            <Plus className="size-3.5" />
-            {t("menu.newOrder")}
-          </Link>
+        <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FILTERS.map((filter) => {
+            const active = statusFilter === filter;
+            const count = filterCounts.get(filter) ?? 0;
+            return (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(filter);
+                  setVisibleCount(PAGE_SIZE);
+                }}
+                className={cn(
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background/70 text-foreground",
+                )}
+              >
+                {filterLabel(filter, t)}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                    active ? "bg-primary-foreground/15" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <h1 className="font-heading text-2xl font-semibold">{t("menu.trackTitle")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("menu.trackSubtitle")}</p>
       </header>
 
       <div className="space-y-4 px-4 py-4">
@@ -228,6 +303,11 @@ export function OrderTrackerApp({
             {t("menu.trackEmpty")}
           </p>
         ) : null}
+        {!loading && orders.length > 0 && filteredOrders.length === 0 ? (
+          <p className="glass rounded-3xl px-4 py-10 text-center text-sm text-muted-foreground">
+            {t("menu.filterEmpty")}
+          </p>
+        ) : null}
 
         <AnimatePresence>
           {visibleOrders.map((order) => (
@@ -237,7 +317,14 @@ export function OrderTrackerApp({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
             >
-              <TrackingCard order={order} locale={locale} t={t} />
+              <TrackingCard
+                order={order}
+                locale={locale}
+                t={t}
+                onUpdated={(next) => {
+                  setOrders((current) => current.map((row) => (row.id === next.id ? next : row)));
+                }}
+              />
             </m.div>
           ))}
         </AnimatePresence>
@@ -277,15 +364,21 @@ function TrackingCard({
   order,
   locale,
   t,
+  onUpdated,
 }: {
   order: VendorOrderRecord;
   locale: string;
   t: (path: string, vars?: Record<string, string | number>) => string;
+  onUpdated: (order: VendorOrderRecord) => void;
 }): ReactNode {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [askCancel, setAskCancel] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const canceled = order.status === "CANCELED";
   const activeIndex = trackingStepIndex(order.status);
   const token = order.trackingToken;
@@ -297,11 +390,43 @@ function TrackingCard({
   const driverWhatsApp = order.driverPhone ? whatsappHref(order.driverPhone) : null;
   const supportPhone = supportWhatsAppPhone(order.storePhone);
   const supportWhatsApp = supportPhone ? whatsappHref(supportPhone) : null;
+  const storeTel = telHref(order.storePhone);
+  const driverTel = telHref(order.driverPhone);
+  const canCancel = order.status === "PENDING" && Boolean(token);
+  const canViewReceipt = RECEIPT_STATUSES.has(order.status);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  const cancelOrder = async (): Promise<void> => {
+    if (!token) {
+      return;
+    }
+    setCanceling(true);
+    setCancelError(null);
+    try {
+      const response = await fetch("/api/menu/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const body = (await response.json()) as
+        | { ok: true; order: VendorOrderRecord }
+        | { ok: false; error?: string };
+      if (!body.ok || !body.order) {
+        setCancelError(t("menu.cancelFailed"));
+        return;
+      }
+      onUpdated(body.order);
+      setAskCancel(false);
+    } catch {
+      setCancelError(t("menu.cancelFailed"));
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   const copyLink = async (): Promise<void> => {
     if (!shareUrl) {
@@ -324,12 +449,88 @@ function TrackingCard({
             {formatWhen(order.createdAt, locale)}
           </p>
           <h2 className="font-heading text-xl font-semibold">{order.orderNumber}</h2>
+          {order.storeName ? (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Store className="size-3.5" />
+              {order.storeName}
+            </p>
+          ) : null}
         </div>
         <StatusBadge
           label={t(`status.order.${order.status}`)}
           tone={statusTone[order.status] ?? "muted"}
         />
       </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {storeTel ? (
+          <a
+            href={storeTel}
+            className={cn(
+              "inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-border bg-background/70 text-sm font-semibold",
+              driverTel ? "" : "col-span-2",
+            )}
+          >
+            <Phone className="size-4" />
+            {t("menu.callStore")}
+          </a>
+        ) : null}
+        {driverTel ? (
+          <a
+            href={driverTel}
+            className={cn(
+              "inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground",
+              storeTel ? "" : "col-span-2",
+            )}
+          >
+            <Phone className="size-4" />
+            {t("menu.callDriver")}
+          </a>
+        ) : null}
+        {canViewReceipt ? (
+          <button
+            type="button"
+            onClick={() => setReceiptOpen(true)}
+            className="col-span-2 inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/10 text-sm font-semibold text-primary"
+          >
+            <ReceiptText className="size-4" />
+            {t("menu.viewReceipt")}
+          </button>
+        ) : null}
+        {canCancel ? (
+          <button
+            type="button"
+            onClick={() => {
+              setAskCancel(true);
+              setCancelError(null);
+            }}
+            className="col-span-2 inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-destructive/40 text-sm font-semibold text-destructive"
+          >
+            {t("menu.cancelOrder")}
+          </button>
+        ) : null}
+      </div>
+
+      {askCancel ? (
+        <div className="space-y-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-3">
+          <p className="text-sm font-medium">{t("menu.cancelConfirm")}</p>
+          {cancelError ? <p className="text-sm text-destructive">{cancelError}</p> : null}
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="rounded-2xl" onPress={() => setAskCancel(false)} isDisabled={canceling}>
+              {t("menu.keepOrder")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-2xl"
+              onPress={() => void cancelOrder()}
+              isDisabled={canceling}
+            >
+              {canceling ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              {t("menu.confirmCancel")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {order.orderType === "SPECIAL_CUSTOM" ? (
         <div className="space-y-3 rounded-2xl border border-primary/25 bg-primary/5 p-3">
@@ -509,6 +710,7 @@ function TrackingCard({
           </a>
         ) : null}
       </div>
+      {receiptOpen ? <CustomerReceiptPreview order={order} onClose={() => setReceiptOpen(false)} /> : null}
     </article>
   );
 }

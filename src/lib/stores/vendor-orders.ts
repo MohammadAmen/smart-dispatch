@@ -8,7 +8,7 @@ import { publishDispatchEvent } from "@/lib/dispatch/events";
 import { notifyCustomerOrderUpdate } from "@/lib/stores/order-notify";
 import { ensureOrderTrackingToken } from "@/lib/stores/order-token";
 import { vendorCanCancel, vendorNextStatus } from "@/lib/stores/order-status";
-import { uniqueTrackingTokens } from "@/lib/stores/tracking-token";
+import { isTrackingToken, uniqueTrackingTokens } from "@/lib/stores/tracking-token";
 import { ensureOrderBundleSchema, refreshParentBundleStatus } from "@/lib/stores/order-bundle";
 import { ensureCustomOrderSchema } from "@/lib/stores/custom-order-schema";
 import { isRealCustomerPhone } from "@/lib/stores/indoor-service";
@@ -50,6 +50,11 @@ interface OrderRow {
   driverName: string | null;
   driverPhone: string | null;
   storePhone: string | null;
+  storeName?: string | null;
+  storeLogoUrl?: string | null;
+  storeAddress?: string | null;
+  storeCity?: string | null;
+  receiptFooterNote?: string | null;
   trackingToken: string | null;
   storeNotes: string | null;
   bundleRole: string | null;
@@ -90,6 +95,11 @@ function serializeVendorOrder(
     driverName: row.driverName,
     driverPhone: row.driverPhone,
     storePhone: row.storePhone,
+    storeName: row.storeName ?? null,
+    storeLogoUrl: row.storeLogoUrl ?? null,
+    storeAddress: row.storeAddress ?? null,
+    storeCity: row.storeCity ?? null,
+    receiptFooterNote: row.receiptFooterNote ?? null,
     trackingToken: row.trackingToken,
     storeNotes: row.storeNotes,
     orderType: row.orderType === "SPECIAL_CUSTOM" ? "SPECIAL_CUSTOM" : "STANDARD",
@@ -627,7 +637,12 @@ export async function getPublicOrdersByTokens(tokens: string[]): Promise<VendorO
       u.name AS "customerName",
       du.name AS "driverName",
       du.phone AS "driverPhone",
-      s.phone AS "storePhone"
+      s.phone AS "storePhone",
+      s.name AS "storeName",
+      s."logoUrl" AS "storeLogoUrl",
+      s.address AS "storeAddress",
+      s.city AS "storeCity",
+      s."receiptFooterNote" AS "receiptFooterNote"
     FROM orders o
     LEFT JOIN users u ON u.id = o."customerId"
     LEFT JOIN drivers d ON d.id = o."driverId"
@@ -785,4 +800,54 @@ export async function cancelVendorOrder(
   }
 
   return record;
+}
+
+const CUSTOMER_CANCEL_REASON = "ألغاه العميل";
+
+export async function cancelPublicOrderByToken(token: string): Promise<VendorOrderRecord> {
+  if (!isTrackingToken(token)) {
+    throw new Error("Invalid tracking link.");
+  }
+
+  await ensureOrderBundleSchema();
+  const existing = await prisma.order.findFirst({
+    where: { trackingToken: token },
+    select: { id: true, status: true, bundleRole: true },
+  });
+  if (!existing || existing.bundleRole === "CHILD") {
+    throw new Error("Order not found.");
+  }
+  if (existing.status !== "PENDING") {
+    throw new Error("This order can no longer be canceled.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({
+      where: { id: existing.id },
+      data: { status: "CANCELED", cancelReason: CUSTOMER_CANCEL_REASON },
+    });
+    if (existing.bundleRole === "PARENT") {
+      await tx.order.updateMany({
+        where: {
+          parentOrderId: existing.id,
+          status: { in: ["PENDING", "PREPARING", "READY_FOR_PICKUP"] },
+        },
+        data: { status: "CANCELED", cancelReason: CUSTOMER_CANCEL_REASON },
+      });
+    }
+    await tx.auditLog.create({
+      data: {
+        orderId: existing.id,
+        action: "ORDER_CANCELED",
+        details: { from: "PENDING", to: "CANCELED", reason: CUSTOMER_CANCEL_REASON, source: "customer" },
+      },
+    });
+  });
+
+  publishDispatchEvent({ type: "orders.changed" });
+  const [order] = await getPublicOrdersByTokens([token]);
+  if (!order) {
+    throw new Error("Order not found.");
+  }
+  return order;
 }

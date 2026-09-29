@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, m } from "framer-motion";
-import { Flame } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -11,13 +10,13 @@ import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
 import { BurnDealsSection } from "@/components/menu/burn-deals-section";
 import { DiscoveryFeed } from "@/components/menu/discovery-feed";
+import { MenuDiscoveryTypeBar } from "@/components/menu/menu-discovery-type-bar";
 import { MenuCinematicHeader } from "@/components/menu/menu-cinematic-header";
 import { SubCategoryPillsBar } from "@/components/menu/sub-category-pills-bar";
 import { NearbyStoreCard } from "@/components/menu/nearby-store-card";
 import { WorthTryingRail } from "@/components/menu/worth-trying-rail";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { BRAND_LOGO_SRC } from "@/lib/brand";
 import { calculateDistance } from "@/lib/geo";
 import {
   DEFAULT_DELIVERY_TIERS,
@@ -32,11 +31,9 @@ import {
 } from "@/lib/stores/menu-checkout";
 import { fetchMenuStores, menuStoresKey } from "@/lib/stores/menu-stores-query";
 import { reportMenuSearch } from "@/lib/stores/menu-signals";
-import { storeTypeIcon } from "@/lib/stores/store-type-icon";
 import type { PublicOffer } from "@/lib/stores/offer-types";
 import type { PublicSubCategory } from "@/lib/stores/global-categories-types";
 import type { DirectoryStore, StoreTypeRecord } from "@/lib/stores/types";
-import { cn } from "@/lib/utils";
 import { useSavedStoresStore } from "@/stores/saved-stores-store";
 
 const SavedStoresSheet = dynamic(
@@ -252,6 +249,17 @@ export function StoreDiscoveryApp({
 
   const headerLabel = locationLabel(draft, t("menu.detectingLocation"));
 
+  const coverByTypeId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const store of directoryStores) {
+      const typeKey = store.storeType.id;
+      if (store.coverImage && !map.has(typeKey)) {
+        map.set(typeKey, store.coverImage);
+      }
+    }
+    return map;
+  }, [directoryStores]);
+
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
       <MenuCinematicHeader
@@ -266,49 +274,23 @@ export function StoreDiscoveryApp({
         onSavedOpen={() => setSavedOpen(true)}
       />
 
-      <div className="flex gap-2 overflow-x-auto border-b border-border/70 bg-background/50 px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <TypeChip
-          active={typeId === "all" && !burnActive}
-          label={t("menu.allTypes")}
-          icon={
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={BRAND_LOGO_SRC}
-              alt=""
-              className="size-5 shrink-0 bg-transparent object-contain"
-              draggable={false}
-            />
-          }
-          onClick={() => {
-            setTypeId("all");
-            setBurnActive(false);
-            setSubCategory(null);
-          }}
-        />
-        <TypeChip
-          active={burnActive}
-          label={t("menu.burnTitle")}
-          tone="burn"
-          icon={<Flame className="size-3.5 animate-pulse fill-current" />}
-          onClick={() => setBurnActive((current) => !current)}
-        />
-        {storeTypes.map((type) => {
-          const Icon = storeTypeIcon(type.icon);
-          return (
-            <TypeChip
-              key={type.id}
-              active={!burnActive && typeId === type.id}
-              label={type.name}
-              icon={<Icon className="size-3.5" />}
-              onClick={() => {
-                setTypeId(type.id);
-                setBurnActive(false);
-                setSubCategory(null);
-              }}
-            />
-          );
-        })}
-      </div>
+      <MenuDiscoveryTypeBar
+        storeTypes={storeTypes}
+        typeId={typeId}
+        burnActive={burnActive}
+        coverByTypeId={coverByTypeId}
+        onSelectAll={() => {
+          setTypeId("all");
+          setBurnActive(false);
+          setSubCategory(null);
+        }}
+        onToggleBurn={() => setBurnActive((current) => !current)}
+        onSelectType={(id) => {
+          setTypeId(id);
+          setBurnActive(false);
+          setSubCategory(null);
+        }}
+      />
 
       {typeId !== "all" ? (
         <SubCategoryPillsBar
@@ -404,45 +386,5 @@ export function StoreDiscoveryApp({
       />
       <SavedStoresSheet open={savedOpen} onClose={() => setSavedOpen(false)} />
     </div>
-  );
-}
-
-function TypeChip({
-  active,
-  label,
-  icon,
-  tone = "default",
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  icon?: ReactNode;
-  tone?: "default" | "burn";
-  onClick: () => void;
-}): ReactNode {
-  const burnActive = tone === "burn" && active;
-  const burnIdle = tone === "burn" && !active;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-        burnActive &&
-          "border-transparent bg-linear-to-r from-rose-600 via-orange-500 to-amber-400 text-white shadow-lg shadow-rose-500/35 ring-2 ring-rose-400/40",
-        burnIdle &&
-          "border-rose-400/40 bg-rose-500/10 text-rose-600 dark:text-rose-300",
-        tone === "default" &&
-          active &&
-          "border-amber-500 bg-amber-400 text-slate-900 shadow-sm",
-        tone === "default" &&
-          !active &&
-          "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-background/70 dark:text-muted-foreground",
-      )}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
