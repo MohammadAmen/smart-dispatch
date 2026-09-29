@@ -5,6 +5,7 @@ import { SESSION_COOKIE } from "@/lib/auth/constants";
 import { decideAccess } from "@/lib/auth/middleware";
 import { decodeSession } from "@/lib/auth/session-cookie";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { PATHNAME_HEADER } from "@/lib/pwa/surface";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,7 +34,11 @@ export async function proxy(request: NextRequest) {
     target.search = "";
     response = NextResponse.redirect(target);
   } else {
-    response = NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(PATHNAME_HEADER, pathname);
+    response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   const current = request.cookies.get(LOCALE_COOKIE)?.value;

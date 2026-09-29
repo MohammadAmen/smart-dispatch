@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { Metadata, Viewport } from "next";
 import { Cairo, Geist_Mono } from "next/font/google";
 
@@ -12,6 +12,7 @@ import {
   localeDirection,
   LOCALE_COOKIE,
 } from "@/i18n/config";
+import { manifestForSurface, PATHNAME_HEADER, pwaSurfaceFromPath } from "@/lib/pwa/surface";
 import { THEME_COOKIE, THEME_RESOLVED_COOKIE, themeFromCookies } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -27,20 +28,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: BRAND_NAME,
-    template: `%s · ${BRAND_NAME}`,
-  },
-  description:
-    "BEEV — مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
-  applicationName: BRAND_NAME,
-  manifest: "/manifest.json",
-  icons: {
-    icon: [{ url: "/brand/beev-logo.png", type: "image/png" }],
-    apple: [{ url: "/apple-icon.png", type: "image/png" }],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const pathname = (await headers()).get(PATHNAME_HEADER) ?? "";
+  const surface = pwaSurfaceFromPath(pathname);
+  const vendor = surface === "vendor";
+
+  return {
+    title: {
+      default: BRAND_NAME,
+      template: `%s · ${BRAND_NAME}`,
+    },
+    description: vendor
+      ? "بوابة BEEV للتاجر: الطلبات، المنتجات، ومنيو المتجر."
+      : "BEEV — مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
+    applicationName: vendor ? "BEEV تاجر" : BRAND_NAME,
+    manifest: manifestForSurface(surface),
+    icons: {
+      icon: [{ url: "/brand/beev-logo.png", type: "image/png" }],
+      apple: [{ url: "/apple-icon.png", type: "image/png" }],
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -71,9 +79,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       )}
       suppressHydrationWarning
     >
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-      </head>
       <body className="min-h-full flex flex-col">
         <LocaleProvider initialLocale={locale}>
           <SplashGate>{children}</SplashGate>

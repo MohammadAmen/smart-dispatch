@@ -1,0 +1,33 @@
+{
+  "id": "/menu",
+  "name": "BEEV",
+  "short_name": "BEEV",
+  "description": "منيو BEEV: شعار المتاجر، البحث، والمتاجر القريبة.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/menu",
+  "scope": "/menu",
+  "display": "standalone",
+  "background_color": "#faf6ea",
+  "theme_color": "#1a1610",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

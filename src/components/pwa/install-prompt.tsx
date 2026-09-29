@@ -1,11 +1,13 @@
 "use client";
 
 import { Download, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { registerOfflineWorker } from "@/lib/offline/register-sw";
+import { pwaSurfaceFromPath } from "@/lib/pwa/surface";
 import type { Locale } from "@/lib/localized";
 
 const DISMISS_KEY = "beev-pwa-install-dismissed";
@@ -28,6 +30,21 @@ const copy: Record<Locale, { title: string; action: string; later: string }> = {
   },
 };
 
+const vendorCopy: Record<Locale, { title: string; action: string; later: string }> = {
+  ar: {
+    title: "ثبّت بوابة التاجر",
+    action: "تثبيت",
+    later: "لاحقاً",
+  },
+  en: {
+    title: "Install the vendor portal",
+    action: "Install",
+    later: "Not now",
+  },
+};
+
+const VENDOR_DISMISS_KEY = "beev-vendor-pwa-install-dismissed";
+
 function isStandalone(): boolean {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -38,13 +55,16 @@ function isStandalone(): boolean {
 
 export function PwaInstallPrompt(): ReactElement | null {
   const { locale } = useLocale();
+  const pathname = usePathname();
+  const surface = pwaSurfaceFromPath(pathname);
+  const dismissKey = surface === "vendor" ? VENDOR_DISMISS_KEY : DISMISS_KEY;
+  const text = surface === "vendor" ? vendorCopy[locale] : copy[locale];
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const text = copy[locale];
 
   useEffect(() => {
     void registerOfflineWorker();
 
-    if (isStandalone() || localStorage.getItem(DISMISS_KEY) === "1") {
+    if (isStandalone() || localStorage.getItem(dismissKey) === "1") {
       return;
     }
 
@@ -55,10 +75,10 @@ export function PwaInstallPrompt(): ReactElement | null {
 
     window.addEventListener("beforeinstallprompt", onPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+  }, [dismissKey]);
 
   const dismiss = (): void => {
-    localStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(dismissKey, "1");
     setPromptEvent(null);
   };
 
@@ -70,7 +90,7 @@ export function PwaInstallPrompt(): ReactElement | null {
     await promptEvent.prompt();
     const choice = await promptEvent.userChoice;
     if (choice.outcome === "dismissed") {
-      localStorage.setItem(DISMISS_KEY, "1");
+      localStorage.setItem(dismissKey, "1");
     }
     setPromptEvent(null);
   };
