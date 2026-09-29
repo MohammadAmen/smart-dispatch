@@ -13,6 +13,10 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
+  if (pathname === "/manifest.json" || pathname === "/manifest.webmanifest") {
+    return true;
+  }
+
   if (pathname.startsWith("/api/auth/")) {
     return true;
   }

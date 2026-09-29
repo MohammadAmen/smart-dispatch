@@ -22,6 +22,11 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("fetch", () => {
+  // Presence of a fetch listener makes the app installable.
+  // Requests stay on the network; this worker does not cache pages or APIs.
+});
+
 self.addEventListener("sync", (event) => {
   if (event.tag === SYNC_TAG) {
     event.waitUntil(flushOutboxFromWorker());
