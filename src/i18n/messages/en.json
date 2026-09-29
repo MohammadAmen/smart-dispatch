@@ -65,7 +65,8 @@
     "add": "Add",
     "edit": "Edit",
     "unassigned": "Unassigned",
-    "upload": "Upload image"
+    "upload": "Upload image",
+    "loading": "Loading..."
   },
   "status": {
     "order": {

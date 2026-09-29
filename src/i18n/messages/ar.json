@@ -65,7 +65,8 @@
     "add": "إضافة",
     "edit": "تعديل",
     "unassigned": "غير معيّن",
-    "upload": "رفع صورة"
+    "upload": "رفع صورة",
+    "loading": "جاري التحميل..."
   },
   "status": {
     "order": {
