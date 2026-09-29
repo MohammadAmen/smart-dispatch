@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 
+import { DeliveryInstallLinkCard } from "@/components/admin/delivery-install-link-card";
 import { SettingsPage } from "@/components/settings/settings-page";
 import { isLocale, LOCALES } from "@/i18n/config";
 
@@ -20,5 +21,10 @@ export default async function LocaleSettingsPage({
     notFound();
   }
 
-  return <SettingsPage />;
+  return (
+    <>
+      <SettingsPage />
+      <DeliveryInstallLinkCard />
+    </>
+  );
 }

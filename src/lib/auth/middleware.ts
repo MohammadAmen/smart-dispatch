@@ -17,6 +17,10 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
+  if (pathname === "/delivery/install") {
+    return true;
+  }
+
   if (pathname.startsWith("/api/auth/")) {
     return true;
   }
