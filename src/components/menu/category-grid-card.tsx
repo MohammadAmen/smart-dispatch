@@ -30,7 +30,7 @@ export function CategoryGridCard({
       onClick={onSelect}
       aria-pressed={active}
       className={cn(
-        "relative h-[6.75rem] w-[5.65rem] shrink-0 cursor-pointer overflow-hidden rounded-3xl border shadow-md transition-all sm:h-28 sm:w-36",
+        "relative h-[5rem] w-[8.75rem] shrink-0 cursor-pointer overflow-hidden rounded-2xl border shadow-sm transition-all sm:h-[5.5rem] sm:w-40",
         active
           ? "scale-[1.02] border-amber-400 ring-2 ring-amber-500 shadow-lg shadow-amber-500/20"
           : "border-slate-100/90 dark:border-slate-800",
@@ -44,19 +44,16 @@ export function CategoryGridCard({
     >
       {variant === "beev-all" ? (
         <span className="absolute inset-0 bg-linear-to-b from-amber-300 via-amber-500 to-amber-700">
-          <span className="absolute inset-x-0 top-1 bottom-9 flex flex-col items-center justify-center gap-0.5 px-1">
+          <span className="absolute inset-x-0 top-1 bottom-7 flex items-center justify-center px-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={BRAND_LOGO_SRC}
               alt=""
-              width={80}
-              height={80}
-              className="h-[3.25rem] w-[3.25rem] object-contain drop-shadow-md sm:h-[4.25rem] sm:w-[4.25rem]"
+              width={56}
+              height={56}
+              className="h-11 w-11 object-contain drop-shadow-md sm:h-12 sm:w-12"
               draggable={false}
             />
-            <span className="font-heading text-[10px] font-extrabold tracking-wide text-slate-900 sm:text-xs">
-              BEEV
-            </span>
           </span>
         </span>
       ) : variant === "burn" ? (
@@ -64,7 +61,7 @@ export function CategoryGridCard({
           {icon}
         </span>
       ) : imageUrl ? (
-        <Image src={imageUrl} alt="" fill sizes="144px" className="object-cover" unoptimized />
+        <Image src={imageUrl} alt="" fill sizes="160px" className="object-cover" unoptimized />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-700 to-slate-900">
           {icon ?? <LayoutGrid className="size-8 text-white/80" />}

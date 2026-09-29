@@ -15,7 +15,7 @@ function GridSkeleton(): ReactNode {
       {Array.from({ length: 5 }, (_, index) => (
         <div
           key={index}
-          className="h-[6.75rem] w-[5.65rem] shrink-0 animate-pulse rounded-3xl border border-slate-100 bg-slate-100 shadow-sm sm:h-28 sm:w-36"
+          className="h-[5rem] w-[8.75rem] shrink-0 animate-pulse rounded-2xl border border-slate-100 bg-slate-100 shadow-sm sm:h-[5.5rem] sm:w-40"
         />
       ))}
     </div>
