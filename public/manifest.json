@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "BEEV",
+  "short_name": "BEEV",
+  "description": "BEEV — مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf6ea",
+  "theme_color": "#1a1610",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "316x289",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/beev-logo.png",
+      "sizes": "316x289",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

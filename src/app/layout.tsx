@@ -34,6 +34,7 @@ export const metadata: Metadata = {
   description:
     "BEEV — مركز قيادة لوجستي يعمل أولاً دون اتصال لإدارة الأسطول والتوصيل في الوقت الفعلي.",
   applicationName: BRAND_NAME,
+  manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/brand/beev-logo.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],
@@ -69,6 +70,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       )}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className="min-h-full flex flex-col">
         <LocaleProvider initialLocale={locale}>
           <SplashGate>{children}</SplashGate>
