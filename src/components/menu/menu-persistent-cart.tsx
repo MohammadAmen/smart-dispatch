@@ -7,6 +7,12 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { MenuCheckoutSheet } from "@/components/menu/menu-checkout-sheet";
 import { useLocale } from "@/components/providers/locale-provider";
+import {
+  CUSTOMER_READY_EVENT,
+  fetchCustomerProfile,
+  requestCustomerAuth,
+  type CustomerProfile,
+} from "@/lib/auth/customer-client";
 import { planPickupRoute } from "@/lib/stores/delivery-fee";
 import { cartTotals, groupCartByStore, MENU_CART_KEY } from "@/lib/stores/menu-cart";
 import { composeDeliveryAddress, type MenuCheckoutDraft } from "@/lib/stores/menu-checkout";
@@ -38,6 +44,21 @@ export function MenuPersistentCart({
 }): ReactNode {
   const { t } = useLocale();
   const router = useRouter();
+
+  useEffect(() => {
+    const onReady = (event: Event): void => {
+      const profile = (event as CustomEvent<CustomerProfile>).detail;
+      if (!profile?.phone) {
+        return;
+      }
+      onDraftChange({
+        phone: profile.phone,
+        guestName: draft.guestName.trim() || profile.name,
+      });
+    };
+    window.addEventListener(CUSTOMER_READY_EVENT, onReady);
+    return () => window.removeEventListener(CUSTOMER_READY_EVENT, onReady);
+  }, [draft.guestName, onDraftChange]);
   const lines = useMenuCartStore((state) => state.lines);
   const storeNotes = useMenuCartStore((state) => state.storeNotes);
   const hydrated = useMenuCartStore((state) => state.hydrated);
@@ -92,6 +113,17 @@ export function MenuPersistentCart({
   );
 
   const placeOrder = async (): Promise<void> => {
+    const authed = await fetchCustomerProfile();
+    if (!authed) {
+      requestCustomerAuth();
+      return;
+    }
+    if (!draft.phone.trim()) {
+      onDraftChange({
+        phone: authed.phone,
+        guestName: draft.guestName.trim() || authed.name,
+      });
+    }
     const addressText = dineIn ? dineIn.tableLabel : composeDeliveryAddress(draft);
     if (!dineIn && (!draft.phone.trim() || !addressText)) {
       setError(t("menu.addressMissing"));

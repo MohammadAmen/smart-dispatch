@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CustomerPhoneGate } from "@/components/menu/customer-phone-gate";
+
 export const metadata: Metadata = {
   applicationName: "BEEV",
   manifest: "/menu.webmanifest",
@@ -8,5 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function MenuLayout({ children }: { children: ReactNode }): ReactNode {
-  return children;
+  return (
+    <>
+      {children}
+      <CustomerPhoneGate />
+    </>
+  );
 }

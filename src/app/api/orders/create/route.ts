@@ -1,3 +1,4 @@
+import { readPhoneSessionUser } from "@/lib/auth/customer-profile";
 import { appendMenuTrackToken } from "@/lib/stores/menu-track-cookie";
 import { placeMenuOrder } from "@/lib/stores/menu";
 
@@ -82,9 +83,14 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ ok: false, error: "Select at least one product." }, { status: 400 });
   }
 
+  const sessionUser = await readPhoneSessionUser();
+  if (!sessionUser) {
+    return Response.json({ ok: false, error: "Sign in with your mobile number first." }, { status: 401 });
+  }
+
   try {
     const result = await placeMenuOrder({
-      phone: typeof record.phone === "string" ? record.phone : "",
+      phone: sessionUser.phone,
       addressText: typeof record.addressText === "string" ? record.addressText : "",
       items,
       latitude: asCoord(record.latitude),
@@ -93,7 +99,10 @@ export async function POST(request: Request): Promise<Response> {
       fulfillment: record.fulfillment === "DINE_IN" ? "DINE_IN" : "DELIVERY",
       tableId: typeof record.tableId === "string" ? record.tableId : null,
       tableLabel: typeof record.tableLabel === "string" ? record.tableLabel : null,
-      guestName: typeof record.guestName === "string" ? record.guestName : null,
+      guestName:
+        typeof record.guestName === "string" && record.guestName.trim()
+          ? record.guestName
+          : sessionUser.name,
     });
     await appendMenuTrackToken(result.trackingToken);
     return Response.json({

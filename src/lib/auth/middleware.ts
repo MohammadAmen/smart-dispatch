@@ -25,6 +25,10 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
+  if (pathname === "/notifications") {
+    return true;
+  }
+
   if (pathname.startsWith("/api/auth/")) {
     return true;
   }

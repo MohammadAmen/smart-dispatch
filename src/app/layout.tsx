@@ -4,6 +4,7 @@ import { Cairo, Geist_Mono } from "next/font/google";
 
 import { BRAND_NAME } from "@/lib/brand";
 import { SplashGate } from "@/components/brand/splash-gate";
+import { PushBootstrap } from "@/components/notifications/push-bootstrap";
 import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import {
@@ -83,6 +84,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <LocaleProvider initialLocale={locale}>
           <SplashGate>{children}</SplashGate>
           <PwaInstallPrompt />
+          <PushBootstrap />
         </LocaleProvider>
       </body>
     </html>

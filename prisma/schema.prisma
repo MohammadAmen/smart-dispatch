@@ -70,6 +70,7 @@ model User {
   role         Role     @default(DISPATCHER)
   language     String   @default("ar") // "ar" or "en"
   passwordHash String?
+  fcmToken     String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -80,6 +81,7 @@ model User {
   storyLikes       StoryLike[]
 
   @@index([role])
+  @@index([fcmToken])
   @@map("users")
 }
 

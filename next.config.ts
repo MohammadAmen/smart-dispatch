@@ -55,6 +55,7 @@ const nextConfig: NextConfig = {
     "ws",
     "libsignal",
     "qrcode",
+    "firebase-admin",
   ],
   async headers() {
     return [
