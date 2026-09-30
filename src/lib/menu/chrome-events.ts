@@ -1,13 +1,17 @@
+"use client";
+
+import { useMenuUiStore } from "@/stores/menu-ui-store";
+
 export const MENU_OPEN_CART_EVENT = "beev-menu-open-cart";
 export const MENU_OPEN_SAVED_EVENT = "beev-menu-open-saved";
 export const MENU_CHECKOUT_STATE_EVENT = "beev-menu-checkout-state";
 export const MENU_NAV_START_EVENT = "beev-menu-nav-start";
 
 export function requestMenuCartOpen(): void {
-  if (typeof window === "undefined") {
-    return;
+  useMenuUiStore.getState().openCart();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(MENU_OPEN_CART_EVENT));
   }
-  window.dispatchEvent(new Event(MENU_OPEN_CART_EVENT));
 }
 
 export function requestMenuSavedOpen(): void {

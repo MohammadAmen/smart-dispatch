@@ -2,37 +2,50 @@
 
 import { ClipboardList, Heart, Home, ShoppingBag, UserRound } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { MENU_NAV_START_EVENT, requestMenuCartOpen } from "@/lib/menu/chrome-events";
+import { MENU_NAV_START_EVENT } from "@/lib/menu/chrome-events";
 import { MENU_CART_KEY } from "@/lib/stores/menu-cart";
 import { readTrackingTokens } from "@/lib/stores/menu-track-store";
 import { cn } from "@/lib/utils";
 import { useMenuCartStore } from "@/stores/menu-cart-store";
+import { useMenuUiStore } from "@/stores/menu-ui-store";
 import { useSavedStoresStore } from "@/stores/saved-stores-store";
 
 function isActivePath(pathname: string, href: string): boolean {
+  const bare = pathname.replace(/^\/(ar|en)(?=\/|$)/, "") || "/";
   if (href === "/menu") {
-    return pathname === "/menu" || pathname === "/menu/";
+    return bare === "/menu" || bare === "/menu/";
   }
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return bare === href || bare.startsWith(`${href}/`);
+}
+
+function readDineInFromLocation(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return Boolean(params.get("table") || params.get("tableId"));
 }
 
 export function MenuBottomNav(): ReactNode {
   const { t } = useLocale();
   const pathname = usePathname() ?? "/menu";
-  const searchParams = useSearchParams();
   const hydrateCart = useMenuCartStore((state) => state.hydrate);
   const cartCount = useMenuCartStore((state) =>
     state.lines.reduce((sum, line) => sum + line.quantity, 0),
   );
   const hydrateSaved = useSavedStoresStore((state) => state.hydrate);
   const savedCount = useSavedStoresStore((state) => state.stores.length);
+  const checkoutOpen = useMenuUiStore((state) => state.checkoutOpen);
   const [ordersCount, setOrdersCount] = useState(0);
+  const [dineIn, setDineIn] = useState(false);
 
-  const dineIn = Boolean(searchParams?.get("table") || searchParams?.get("tableId"));
+  useEffect(() => {
+    setDineIn(readDineInFromLocation());
+  }, [pathname]);
 
   useEffect(() => {
     hydrateCart();
@@ -105,7 +118,7 @@ export function MenuBottomNav(): ReactNode {
       <div className="pointer-events-auto border-t border-slate-200/80 bg-white/95 px-2 pb-[max(0.45rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-10px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
         <ul className="grid grid-cols-5 items-end gap-0.5">
           {items.map((item) => {
-            const active = item.href ? isActivePath(pathname, item.href) : false;
+            const active = item.href ? isActivePath(pathname, item.href) : checkoutOpen && item.key === "cart";
             const Icon = item.icon;
             const homeGlow = item.center;
 
@@ -154,7 +167,16 @@ export function MenuBottomNav(): ReactNode {
                 <li key={item.key} className="flex justify-center">
                   <button
                     type="button"
-                    onClick={() => requestMenuCartOpen()}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (checkoutOpen) {
+                        useMenuUiStore.getState().closeCart();
+                      } else {
+                        useMenuUiStore.getState().openCart();
+                      }
+                    }}
+                    aria-expanded={checkoutOpen}
                     className="flex w-full flex-col items-center gap-0.5 px-1 py-1"
                   >
                     {inner}

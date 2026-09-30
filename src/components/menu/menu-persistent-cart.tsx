@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -13,7 +12,6 @@ import {
   requestCustomerAuth,
   type CustomerProfile,
 } from "@/lib/auth/customer-client";
-import { MENU_OPEN_CART_EVENT } from "@/lib/menu/chrome-events";
 import { planPickupRoute } from "@/lib/stores/delivery-fee";
 import { cartTotals, groupCartByStore, MENU_CART_KEY } from "@/lib/stores/menu-cart";
 import { composeDeliveryAddress, type MenuCheckoutDraft } from "@/lib/stores/menu-checkout";
@@ -80,16 +78,11 @@ export function MenuPersistentCart({
         hydrate();
       }
     };
-    const onOpenCart = (): void => {
-      onCheckoutOpenChange(true);
-    };
     window.addEventListener("storage", onStorage);
-    window.addEventListener(MENU_OPEN_CART_EVENT, onOpenCart);
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener(MENU_OPEN_CART_EVENT, onOpenCart);
     };
-  }, [hydrate, onCheckoutOpenChange]);
+  }, [hydrate]);
 
   useEffect(() => {
     if (lines.length === 0) {
@@ -201,39 +194,31 @@ export function MenuPersistentCart({
 
   return (
     <>
-      <AnimatePresence>
-        {hydrated && totals.itemCount > 0 && !checkoutOpen ? (
-          <m.div
-            initial={{ y: 88, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 88, opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-x-0 bottom-[calc(4.85rem+env(safe-area-inset-bottom))] z-40 mx-auto w-full max-w-lg px-4"
+      {hydrated && totals.itemCount > 0 && !checkoutOpen ? (
+        <div className="fixed inset-x-0 bottom-[calc(4.85rem+env(safe-area-inset-bottom))] z-40 mx-auto w-full max-w-lg px-4">
+          <button
+            type="button"
+            onClick={() => onCheckoutOpenChange(true)}
+            className="glass-strong flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start shadow-[0_18px_40px_-24px_color-mix(in_oklch,var(--primary)_35%,transparent)]"
           >
-            <button
-              type="button"
-              onClick={() => onCheckoutOpenChange(true)}
-              className="glass-strong flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start shadow-[0_18px_40px_-24px_color-mix(in_oklch,var(--primary)_35%,transparent)]"
-            >
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <ShoppingBag className="size-4" />
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <ShoppingBag className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs text-muted-foreground">
+                {t("menu.cartCount", { count: totals.itemCount })}
+                {groups.length > 1 ? ` · ${t("menu.storeCount", { count: groups.length })}` : ""}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-xs text-muted-foreground">
-                  {t("menu.cartCount", { count: totals.itemCount })}
-                  {groups.length > 1 ? ` · ${t("menu.storeCount", { count: groups.length })}` : ""}
-                </span>
-                <span className="block font-heading text-base font-semibold">
-                  {formatMoney(totals.subtotal + (dineIn ? 0 : quote.fee))} {t("menu.currency")}
-                </span>
+              <span className="block font-heading text-base font-semibold">
+                {formatMoney(totals.subtotal + (dineIn ? 0 : quote.fee))} {t("menu.currency")}
               </span>
-              <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-                {t("menu.checkout")}
-              </span>
-            </button>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+            </span>
+            <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+              {t("menu.checkout")}
+            </span>
+          </button>
+        </div>
+      ) : null}
 
       <MenuCheckoutSheet
         open={checkoutOpen}
@@ -268,23 +253,16 @@ export function MenuPersistentCart({
         onCancelClear={() => setConfirmClear(false)}
       />
 
-      <AnimatePresence>
-        {placedNumber ? (
-          <m.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-success/30 bg-background/95 px-4 py-3 shadow-lg"
-          >
-            <CheckCircle2 className="size-5 text-success" />
-            <p className="text-sm font-medium">
-              {dineIn
-                ? t("menu.dineInPlaced", { orderNumber: placedNumber })
-                : t("menu.placed", { orderNumber: placedNumber })}
-            </p>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+      {placedNumber ? (
+        <div className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-success/30 bg-background/95 px-4 py-3 shadow-lg">
+          <CheckCircle2 className="size-5 text-success" />
+          <p className="text-sm font-medium">
+            {dineIn
+              ? t("menu.dineInPlaced", { orderNumber: placedNumber })
+              : t("menu.placed", { orderNumber: placedNumber })}
+          </p>
+        </div>
+      ) : null}
     </>
   );
 }

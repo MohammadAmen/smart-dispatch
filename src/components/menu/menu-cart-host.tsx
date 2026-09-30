@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
@@ -11,15 +11,25 @@ import {
   writeCheckoutDraft,
   type MenuCheckoutDraft,
 } from "@/lib/stores/menu-checkout";
+import { useMenuUiStore } from "@/stores/menu-ui-store";
 
-/** Global checkout host so the bottom-nav cart works on every menu route. */
+function readDineInFlag(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return Boolean(params.get("table") || params.get("tableId"));
+}
+
+/** Global checkout host — always mounted; opens via menu UI store. */
 export function MenuCartHost(): ReactNode {
-  const searchParams = useSearchParams();
-  const dineIn = Boolean(searchParams?.get("table") || searchParams?.get("tableId"));
+  const pathname = usePathname();
+  const checkoutOpen = useMenuUiStore((state) => state.checkoutOpen);
+  const setCheckoutOpen = useMenuUiStore((state) => state.setCheckoutOpen);
   const [draft, setDraft] = useState<MenuCheckoutDraft>(() => emptyCheckoutDraft());
   const [hydrated, setHydrated] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [dineIn, setDineIn] = useState(false);
   const writeTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -28,8 +38,16 @@ export function MenuCartHost(): ReactNode {
   }, []);
 
   useEffect(() => {
+    setDineIn(readDineInFlag());
+  }, [pathname]);
+
+  useEffect(() => {
     publishMenuCheckoutState(checkoutOpen);
-    return () => publishMenuCheckoutState(false);
+    return () => {
+      if (checkoutOpen) {
+        publishMenuCheckoutState(false);
+      }
+    };
   }, [checkoutOpen]);
 
   useEffect(() => {
@@ -52,10 +70,6 @@ export function MenuCartHost(): ReactNode {
 
   const onDraftChange = useCallback((patch: Partial<MenuCheckoutDraft>): void => {
     setDraft((current) => ({ ...current, ...patch }));
-  }, []);
-
-  const onCheckoutOpenChange = useCallback((open: boolean): void => {
-    setCheckoutOpen(open);
   }, []);
 
   const locate = useCallback((): void => {
@@ -88,7 +102,7 @@ export function MenuCartHost(): ReactNode {
       checkoutOpen={checkoutOpen}
       onDraftChange={onDraftChange}
       onLocate={locate}
-      onCheckoutOpenChange={onCheckoutOpenChange}
+      onCheckoutOpenChange={setCheckoutOpen}
     />
   );
 }
