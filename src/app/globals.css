@@ -341,16 +341,20 @@
 .beev-loader-honeycomb {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath fill='none' stroke='%23C48C48' stroke-width='1' d='M28 0 L56 16 L56 48 L28 64 L0 48 L0 16 Z M28 64 L56 80 L56 112 L28 128 L0 112 L0 80 Z'/%3E%3C/svg%3E");
   background-size: 56px 100px;
+  background-repeat: repeat;
+}
+
+.beev-splash-bee {
+  animation: beev-loader-float 2.8s ease-in-out 0.7s infinite;
+  will-change: transform;
 }
 
 @keyframes beev-loader-enter {
   from {
     opacity: 0;
-    transform: scale(0.985);
   }
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -360,7 +364,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-7px);
+    transform: translateY(-6px);
   }
 }
 
@@ -380,7 +384,8 @@
   .albal-ken-burns,
   .beev-loader-float,
   .beev-loader-ring,
-  .beev-loader-enter {
+  .beev-loader-enter,
+  .beev-splash-bee {
     animation: none;
   }
 }
