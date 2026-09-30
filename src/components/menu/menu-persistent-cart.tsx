@@ -13,6 +13,7 @@ import {
   requestCustomerAuth,
   type CustomerProfile,
 } from "@/lib/auth/customer-client";
+import { MENU_OPEN_CART_EVENT } from "@/lib/menu/chrome-events";
 import { planPickupRoute } from "@/lib/stores/delivery-fee";
 import { cartTotals, groupCartByStore, MENU_CART_KEY } from "@/lib/stores/menu-cart";
 import { composeDeliveryAddress, type MenuCheckoutDraft } from "@/lib/stores/menu-checkout";
@@ -79,9 +80,16 @@ export function MenuPersistentCart({
         hydrate();
       }
     };
+    const onOpenCart = (): void => {
+      onCheckoutOpenChange(true);
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [hydrate]);
+    window.addEventListener(MENU_OPEN_CART_EVENT, onOpenCart);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(MENU_OPEN_CART_EVENT, onOpenCart);
+    };
+  }, [hydrate, onCheckoutOpenChange]);
 
   useEffect(() => {
     if (lines.length === 0) {
@@ -200,7 +208,7 @@ export function MenuPersistentCart({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 88, opacity: 0 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-lg px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            className="fixed inset-x-0 bottom-[calc(4.85rem+env(safe-area-inset-bottom))] z-40 mx-auto w-full max-w-lg px-4"
           >
             <button
               type="button"

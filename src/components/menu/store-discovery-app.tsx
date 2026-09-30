@@ -2,13 +2,11 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { Flame } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
 
 import { MenuOffersSlider } from "@/components/menu/menu-offers-slider";
-import { MenuPersistentCart } from "@/components/menu/menu-persistent-cart";
 import { BurnDealsSection } from "@/components/menu/burn-deals-section";
 import { DiscoveryFeed } from "@/components/menu/discovery-feed";
 import { MenuCinematicHeader } from "@/components/menu/menu-cinematic-header";
@@ -39,11 +37,6 @@ import type { DirectoryStore, StoreTypeRecord } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 import { useSavedStoresStore } from "@/stores/saved-stores-store";
 
-const SavedStoresSheet = dynamic(
-  () => import("@/components/menu/saved-stores-sheet").then((mod) => mod.SavedStoresSheet),
-  { ssr: false },
-);
-
 export function StoreDiscoveryApp({
   stores,
   storeTypes,
@@ -69,10 +62,7 @@ export function StoreDiscoveryApp({
   const [burnActive, setBurnActive] = useState(false);
   const [subCategory, setSubCategory] = useState<PublicSubCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [savedOpen, setSavedOpen] = useState(false);
   const hydrateSaved = useSavedStoresStore((state) => state.hydrate);
-  const savedCount = useSavedStoresStore((state) => state.stores.length);
 
   const locate = useCallback((): void => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -260,10 +250,8 @@ export function StoreDiscoveryApp({
         hydrated={hydrated}
         locating={locating}
         search={search}
-        savedCount={savedCount}
         onLocate={locate}
         onSearchChange={setSearch}
-        onSavedOpen={() => setSavedOpen(true)}
       />
 
       <div className="flex gap-2 overflow-x-auto border-b border-border/70 bg-background/50 px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -393,16 +381,6 @@ export function StoreDiscoveryApp({
       </main>
       )}
 
-      <MenuPersistentCart
-        draft={draft}
-        locating={locating}
-        checkoutOpen={checkoutOpen}
-        onDraftChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
-        onLocate={locate}
-        onCheckoutOpenChange={setCheckoutOpen}
-        deliveryTiers={deliveryTiers}
-      />
-      <SavedStoresSheet open={savedOpen} onClose={() => setSavedOpen(false)} />
     </div>
   );
 }

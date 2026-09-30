@@ -2,7 +2,6 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import {
-  ArrowRight,
   CalendarClock,
   Check,
   ChefHat,
@@ -13,7 +12,6 @@ import {
   MessageCircle,
   PackageCheck,
   Phone,
-  Plus,
   ReceiptText,
   ShoppingBag,
   Sparkles,
@@ -239,7 +237,7 @@ export function OrderTrackerApp({
   }, [loadMore, remaining, visibleOrders.length]);
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-lg pb-[max(6.5rem,env(safe-area-inset-bottom))]">
+    <div className="mx-auto min-h-dvh w-full max-w-lg">
       <header className="glass-strong sticky top-0 z-30 border-b px-4 pb-3 pt-[max(0.85rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-3">
           <BrandMark size={48} className="size-12 rounded-2xl" />
@@ -336,25 +334,6 @@ export function OrderTrackerApp({
             </Button>
           </div>
         ) : null}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-lg px-4 pb-[max(0.85rem,env(safe-area-inset-bottom))]">
-        <div className="glass-strong grid grid-cols-2 gap-2 rounded-2xl border p-2 shadow-[0_18px_40px_-24px_color-mix(in_oklch,var(--primary)_35%,transparent)]">
-          <Link
-            href="/menu"
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-medium"
-          >
-            <ArrowRight className="size-3.5 rotate-180 rtl:rotate-0" />
-            {t("menu.backToMenu")}
-          </Link>
-          <Link
-            href="/menu"
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-semibold text-primary-foreground"
-          >
-            <Plus className="size-3.5" />
-            {t("menu.newOrder")}
-          </Link>
-        </div>
       </div>
     </div>
   );

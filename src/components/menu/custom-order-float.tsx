@@ -49,8 +49,8 @@ export function CustomOrderFloat({
           className={cn(
             "pointer-events-none fixed inset-x-0 z-[45] mx-auto w-full max-w-lg px-3",
             lifted
-              ? "bottom-[calc(6rem+env(safe-area-inset-bottom))]"
-              : "bottom-[max(1rem,env(safe-area-inset-bottom))]",
+              ? "bottom-[calc(10.5rem+env(safe-area-inset-bottom))]"
+              : "bottom-[calc(5.35rem+env(safe-area-inset-bottom))]",
           )}
         >
           <div className="flex justify-start">

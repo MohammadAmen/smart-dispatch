@@ -3,7 +3,6 @@
 import { AnimatePresence, m } from "framer-motion";
 import {
   ArrowRight,
-  ClipboardList,
   LoaderCircle,
   MapPin,
   Pencil,
@@ -35,7 +34,7 @@ import { MenuViewSwitcher } from "@/components/menu/menu-view-switcher";
 import { SpecialOrderSheet } from "@/components/menu/special-order-sheet";
 import { SplashOverlay } from "@/components/menu/splash-overlay";
 import { useLocale } from "@/components/providers/locale-provider";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { requestMenuCartOpen } from "@/lib/menu/chrome-events";
 import {
   emptyCheckoutDraft,
   locationLabel,
@@ -452,7 +451,6 @@ export function MenuApp({
               >
                 {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
               </button>
-              <ThemeToggle />
             </div>
           </div>
           <AnimatePresence>
@@ -506,7 +504,7 @@ export function MenuApp({
           />
           <div className="absolute inset-0 bg-linear-to-t from-background via-background/40 to-black/35" />
           {isDineIn ? null : (
-          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="absolute inset-x-0 top-0 z-10 flex items-center px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <Link
               href="/menu"
               className="inline-flex items-center gap-1 rounded-full bg-background/75 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase backdrop-blur-md"
@@ -514,16 +512,6 @@ export function MenuApp({
               <ArrowRight className="size-3.5 rotate-180 rtl:rotate-0" />
               {t("menu.backToStores")}
             </Link>
-            <div className="flex items-center gap-0.5 rounded-full bg-background/75 p-0.5 backdrop-blur-md">
-              <Link
-                href="/menu/orders"
-                className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={t("menu.trackTitle")}
-              >
-                <ClipboardList className="size-4" />
-              </Link>
-              <ThemeToggle />
-            </div>
           </div>
           )}
         </div>
@@ -560,7 +548,11 @@ export function MenuApp({
           <button
             type="button"
             onClick={() => {
-              setCheckoutOpen(true);
+              if (dineIn) {
+                setCheckoutOpen(true);
+              } else {
+                requestMenuCartOpen();
+              }
             }}
             className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl bg-background/55 px-3 py-2 text-start"
           >
@@ -720,19 +712,21 @@ export function MenuApp({
         </AnimatePresence>
       </main>
 
-      <MenuPersistentCart
-        draft={draft}
-        locating={locating}
-        checkoutOpen={checkoutOpen}
-        dineIn={
-          dineIn
-            ? { storeId: store.id, tableId: dineIn.tableId, tableLabel: dineIn.tableLabel }
-            : null
-        }
-        onDraftChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
-        onLocate={() => locate(true)}
-        onCheckoutOpenChange={setCheckoutOpen}
-      />
+      {isDineIn ? (
+        <MenuPersistentCart
+          draft={draft}
+          locating={locating}
+          checkoutOpen={checkoutOpen}
+          dineIn={
+            dineIn
+              ? { storeId: store.id, tableId: dineIn.tableId, tableLabel: dineIn.tableLabel }
+              : null
+          }
+          onDraftChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+          onLocate={() => locate(true)}
+          onCheckoutOpenChange={setCheckoutOpen}
+        />
+      ) : null}
 
       <MenuProductDetailsModal
         product={detailsProduct}
@@ -746,7 +740,7 @@ export function MenuApp({
       <CustomOrderFloat
         visible={allowsCustom && !isDineIn}
         lifted={itemCount > 0}
-        hidden={checkoutOpen || specialOpen}
+        hidden={specialOpen}
         onPress={() => {
           setError(null);
           setSpecialOpen(true);

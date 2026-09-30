@@ -4,37 +4,15 @@ import {
   Clock3,
   LoaderCircle,
   MapPin,
-  Moon,
   Navigation,
   Search,
-  Store,
 } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { BRAND_CHEF_LOCKUP_SRC, BRAND_NAME } from "@/lib/brand";
 import { DEFAULT_MENU_HEADER_BACKGROUND } from "@/lib/platform/app-config-defaults";
-import { readTrackingTokens } from "@/lib/stores/menu-track-store";
-import {
-  applyTheme,
-  isThemePreference,
-  THEME_STORAGE_KEY,
-  type ThemePreference,
-} from "@/lib/theme";
 import { cn } from "@/lib/utils";
-
-const THEME_EVENT = "sd-theme-change";
-const themeCycle: ThemePreference[] = ["light", "dark", "system"];
-
-function readThemePreference(): ThemePreference {
-  if (typeof window === "undefined") {
-    return "system";
-  }
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  return isThemePreference(stored) ? stored : "system";
-}
 
 export function MenuCinematicHeader({
   backgroundUrl,
@@ -42,48 +20,22 @@ export function MenuCinematicHeader({
   hydrated,
   locating,
   search,
-  savedCount,
   onLocate,
   onSearchChange,
-  onSavedOpen,
 }: {
   backgroundUrl: string | null;
   headerLabel: string;
   hydrated: boolean;
   locating: boolean;
   search: string;
-  savedCount: number;
   onLocate: () => void;
   onSearchChange: (value: string) => void;
-  onSavedOpen: () => void;
 }): ReactNode {
   const { t } = useLocale();
   const bg = backgroundUrl?.trim() || DEFAULT_MENU_HEADER_BACKGROUND;
-  const [ordersCount, setOrdersCount] = useState(0);
-  const [themePref, setThemePref] = useState<ThemePreference>("system");
-
-  useEffect(() => {
-    setOrdersCount(readTrackingTokens().length);
-    setThemePref(readThemePreference());
-    const onTheme = (): void => setThemePref(readThemePreference());
-    window.addEventListener(THEME_EVENT, onTheme);
-    window.addEventListener("storage", onTheme);
-    return () => {
-      window.removeEventListener(THEME_EVENT, onTheme);
-      window.removeEventListener("storage", onTheme);
-    };
-  }, []);
-
-  const cycleTheme = (): void => {
-    const next = themeCycle[(themeCycle.indexOf(themePref) + 1) % themeCycle.length];
-    applyTheme(next);
-    setThemePref(next);
-    window.dispatchEvent(new Event(THEME_EVENT));
-  };
 
   return (
     <section className="relative z-30">
-      {/* Cinematic hero */}
       <div className="relative overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -96,15 +48,7 @@ export function MenuCinematicHeader({
         <div className="absolute inset-0 bg-linear-to-r from-black/50 via-transparent to-black/40" />
 
         <div className="relative px-4 pb-16 pt-3">
-          <div className="mb-2 flex justify-end">
-            <LocaleToggle
-              compact
-              className="size-8 rounded-full border border-white/20 bg-black/30 text-white/90 hover:bg-white/15 hover:text-white"
-            />
-          </div>
-
           <div className="flex items-start justify-between gap-3">
-            {/* Brand lockup (chef bee + BEEV) — start/right in RTL */}
             <div className="shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -117,7 +61,6 @@ export function MenuCinematicHeader({
               />
             </div>
 
-            {/* Slogan + golden underline */}
             <div className="min-w-0 flex-1 pt-3 text-end">
               <p
                 className={cn(
@@ -143,7 +86,7 @@ export function MenuCinematicHeader({
             </div>
           </div>
 
-          {/* Compact location */}
+          {/* Address stays on home only — edit/locate under the location chip */}
           <button
             type="button"
             onClick={onLocate}
@@ -164,7 +107,6 @@ export function MenuCinematicHeader({
           </button>
         </div>
 
-        {/* Soft concave wave */}
         <svg
           className="pointer-events-none absolute inset-x-0 -bottom-px h-12 w-full text-background"
           viewBox="0 0 1440 96"
@@ -178,7 +120,6 @@ export function MenuCinematicHeader({
         </svg>
       </div>
 
-      {/* Search + quick actions docked on the wave */}
       <div className="relative z-10 -mt-7 space-y-2.5 px-4 pb-1">
         <div className="flex items-stretch gap-2">
           <label className="relative min-w-0 flex-1">
@@ -211,51 +152,6 @@ export function MenuCinematicHeader({
             </span>
             <span className="text-[10px] font-bold leading-tight text-slate-800 dark:text-slate-100">
               {t("menu.ordersFasterTitle")}
-            </span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={onSavedOpen}
-            className="relative flex flex-col items-center justify-center gap-1 rounded-2xl bg-slate-900 px-2 py-2.5 text-white shadow-md dark:bg-slate-800"
-          >
-            <Store className="size-4 text-amber-300" />
-            <span className="text-center text-[10px] font-bold leading-tight">
-              {t("menu.savedRestaurants")}
-            </span>
-            {savedCount > 0 ? (
-              <span className="absolute -top-1 -end-1 inline-flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
-                {savedCount > 9 ? "9+" : savedCount}
-              </span>
-            ) : null}
-          </button>
-
-          <Link
-            href="/menu/orders"
-            className="relative flex flex-col items-center justify-center gap-1 rounded-2xl bg-amber-400 px-2 py-2.5 text-slate-900 shadow-md shadow-amber-500/30"
-          >
-            <Clock3 className="size-4" />
-            <span className="text-center text-[10px] font-extrabold leading-tight">
-              {t("menu.myOrders")}
-            </span>
-            {ordersCount > 0 ? (
-              <span className="absolute -top-1 -end-1 inline-flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
-                {ordersCount > 9 ? "9+" : ordersCount}
-              </span>
-            ) : null}
-          </Link>
-
-          <button
-            type="button"
-            onClick={cycleTheme}
-            className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-slate-900 px-2 py-2.5 text-white shadow-md dark:bg-slate-800"
-            aria-label={t("aria.theme", { value: themePref })}
-          >
-            <Moon className="size-4 text-amber-300" />
-            <span className="text-center text-[10px] font-bold leading-tight">
-              {t("menu.appearance")}
             </span>
           </button>
         </div>
