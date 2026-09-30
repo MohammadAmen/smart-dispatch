@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import {
   Check,
   Languages,
@@ -135,10 +134,7 @@ export function MenuAccountPage(): ReactNode {
       </header>
 
       <main className="space-y-4 px-4 py-5">
-        <m.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        <section className="rounded-3xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950"
         >
           <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 dark:border-slate-800">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-700">
@@ -168,9 +164,9 @@ export function MenuAccountPage(): ReactNode {
               <span className="text-xs font-semibold text-slate-500">{t("menu.guestName")}</span>
               <input
                 value={name}
-                disabled={!editing}
+                readOnly={!editing}
                 onChange={(event) => setName(event.target.value)}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium outline-none focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25 disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium outline-none focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25 read-only:opacity-70 dark:border-slate-700 dark:bg-slate-900"
               />
             </label>
             <label className="block space-y-1.5">
@@ -179,11 +175,11 @@ export function MenuAccountPage(): ReactNode {
                 <Phone className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <input
                   value={phone}
-                  disabled={!editing}
+                  readOnly={!editing}
                   onChange={(event) => setPhone(event.target.value)}
                   inputMode="tel"
                   dir="ltr"
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 ps-10 pe-3 text-sm font-medium outline-none focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25 disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 ps-10 pe-3 text-sm font-medium outline-none focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25 read-only:opacity-70 dark:border-slate-700 dark:bg-slate-900"
                 />
               </span>
             </label>
@@ -205,13 +201,9 @@ export function MenuAccountPage(): ReactNode {
               <p className="text-center text-xs text-slate-500">{t("menu.accountEmpty")}</p>
             ) : null}
           </div>
-        </m.section>
+        </section>
 
-        <m.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        <section className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
         >
           <p className="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">
             {t("menu.appearance")}
@@ -238,13 +230,9 @@ export function MenuAccountPage(): ReactNode {
               );
             })}
           </div>
-        </m.section>
+        </section>
 
-        <m.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        <section className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
         >
           <p className="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">
             {t("common.language")}
@@ -273,7 +261,7 @@ export function MenuAccountPage(): ReactNode {
               );
             })}
           </div>
-        </m.section>
+        </section>
       </main>
     </div>
   );

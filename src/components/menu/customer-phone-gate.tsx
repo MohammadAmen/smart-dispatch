@@ -2,20 +2,35 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   CUSTOMER_AUTH_EVENT,
   CUSTOMER_READY_EVENT,
-  fetchCustomerProfile,
   type CustomerProfile,
 } from "@/lib/auth/customer-client";
 import type { Locale } from "@/lib/localized";
+import {
+  readCheckoutDraft,
+  writeCheckoutDraft,
+} from "@/lib/stores/menu-checkout";
 
 const copy: Record<
   Locale,
-  { title: string; body: string; name: string; phone: string; submit: string; working: string; close: string; invalid: string; staff: string; unavailable: string }
+  {
+    title: string;
+    body: string;
+    name: string;
+    phone: string;
+    submit: string;
+    working: string;
+    close: string;
+    invalid: string;
+    staff: string;
+    unavailable: string;
+  }
 > = {
   ar: {
     title: "أكمل بياناتك",
@@ -45,6 +60,7 @@ const copy: Record<
 
 export function CustomerPhoneGate(): ReactElement | null {
   const { locale } = useLocale();
+  const pathname = usePathname() ?? "";
   const text = copy[locale];
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -52,26 +68,33 @@ export function CustomerPhoneGate(): ReactElement | null {
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  // Account page owns profile editing — never stack this gate there.
+  const onAccount = pathname.includes("/menu/account");
 
-    const showIfNeeded = async (): Promise<void> => {
-      const profile = await fetchCustomerProfile();
-      if (cancelled) {
+  useEffect(() => {
+    if (onAccount && open) {
+      setOpen(false);
+    }
+  }, [onAccount, open]);
+
+  useEffect(() => {
+    const draft = readCheckoutDraft();
+    if (draft.guestName) {
+      setName(draft.guestName);
+    }
+    if (draft.phone) {
+      setPhone(draft.phone);
+    }
+
+    const onRequest = (): void => {
+      if (pathname.includes("/menu/account")) {
         return;
       }
-      setOpen(profile === null);
+      setOpen(true);
     };
-
-    void showIfNeeded();
-
-    const onRequest = (): void => setOpen(true);
     window.addEventListener(CUSTOMER_AUTH_EVENT, onRequest);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(CUSTOMER_AUTH_EVENT, onRequest);
-    };
-  }, []);
+    return () => window.removeEventListener(CUSTOMER_AUTH_EVENT, onRequest);
+  }, [pathname]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -83,7 +106,11 @@ export function CustomerPhoneGate(): ReactElement | null {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, phone }),
       });
-      const body = (await response.json()) as { ok?: boolean; error?: string; user?: CustomerProfile };
+      const body = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        user?: CustomerProfile;
+      };
       if (!body.ok || !body.user) {
         if (body.error === "staff-phone") {
           setError(text.staff);
@@ -94,7 +121,15 @@ export function CustomerPhoneGate(): ReactElement | null {
         }
         return;
       }
-      window.dispatchEvent(new CustomEvent<CustomerProfile>(CUSTOMER_READY_EVENT, { detail: body.user }));
+      const draft = readCheckoutDraft(body.user.phone);
+      writeCheckoutDraft({
+        ...draft,
+        phone: body.user.phone,
+        guestName: body.user.name,
+      });
+      window.dispatchEvent(
+        new CustomEvent<CustomerProfile>(CUSTOMER_READY_EVENT, { detail: body.user }),
+      );
       setOpen(false);
     } catch {
       setError(text.unavailable);
@@ -102,6 +137,10 @@ export function CustomerPhoneGate(): ReactElement | null {
       setWorking(false);
     }
   };
+
+  if (onAccount) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -124,7 +163,12 @@ export function CustomerPhoneGate(): ReactElement | null {
                 <h2 className="font-heading text-xl font-bold">{text.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{text.body}</p>
               </div>
-              <button type="button" aria-label={text.close} onClick={() => setOpen(false)} className="rounded-full p-1 text-muted-foreground">
+              <button
+                type="button"
+                aria-label={text.close}
+                onClick={() => setOpen(false)}
+                className="rounded-full p-1 text-muted-foreground"
+              >
                 <X className="size-4" />
               </button>
             </div>

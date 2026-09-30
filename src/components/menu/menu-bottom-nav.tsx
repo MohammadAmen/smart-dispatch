@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { requestMenuCartOpen } from "@/lib/menu/chrome-events";
+import { MENU_CHECKOUT_STATE_EVENT, requestMenuCartOpen } from "@/lib/menu/chrome-events";
 import { MENU_CART_KEY } from "@/lib/stores/menu-cart";
 import { readTrackingTokens } from "@/lib/stores/menu-track-store";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ export function MenuBottomNav(): ReactNode {
   const hydrateSaved = useSavedStoresStore((state) => state.hydrate);
   const savedCount = useSavedStoresStore((state) => state.stores.length);
   const [ordersCount, setOrdersCount] = useState(0);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const dineIn = Boolean(searchParams?.get("table") || searchParams?.get("tableId"));
 
@@ -44,11 +45,19 @@ export function MenuBottomNav(): ReactNode {
       }
       setOrdersCount(readTrackingTokens().length);
     };
+    const onCheckout = (event: Event): void => {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail;
+      setCheckoutOpen(Boolean(detail?.open));
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(MENU_CHECKOUT_STATE_EVENT, onCheckout);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(MENU_CHECKOUT_STATE_EVENT, onCheckout);
+    };
   }, [hydrateCart, hydrateSaved]);
 
-  if (dineIn) {
+  if (dineIn || checkoutOpen) {
     return null;
   }
 

@@ -54,12 +54,12 @@ export function MenuPersistentCart({
       }
       onDraftChange({
         phone: profile.phone,
-        guestName: draft.guestName.trim() || profile.name,
+        guestName: profile.name,
       });
     };
     window.addEventListener(CUSTOMER_READY_EVENT, onReady);
     return () => window.removeEventListener(CUSTOMER_READY_EVENT, onReady);
-  }, [draft.guestName, onDraftChange]);
+  }, [onDraftChange]);
   const lines = useMenuCartStore((state) => state.lines);
   const storeNotes = useMenuCartStore((state) => state.storeNotes);
   const hydrated = useMenuCartStore((state) => state.hydrated);
@@ -202,7 +202,7 @@ export function MenuPersistentCart({
   return (
     <>
       <AnimatePresence>
-        {hydrated && totals.itemCount > 0 ? (
+        {hydrated && totals.itemCount > 0 && !checkoutOpen ? (
           <m.div
             initial={{ y: 88, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

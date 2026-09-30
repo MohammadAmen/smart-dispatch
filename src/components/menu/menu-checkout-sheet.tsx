@@ -2,7 +2,7 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { LoaderCircle, MapPin, Navigation, Store, Trash2, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { MenuQtyControl } from "@/components/menu/menu-qty-control";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -73,6 +73,7 @@ export function MenuCheckoutSheet({
 }): ReactNode {
   const { t } = useLocale();
   const [mapFailed, setMapFailed] = useState(false);
+  const [sheetMaxPx, setSheetMaxPx] = useState<number | null>(null);
   const coordsReady = hasValidCoords(draft);
   const mapSrc =
     coordsReady && draft.latitude != null && draft.longitude != null
@@ -80,18 +81,44 @@ export function MenuCheckoutSheet({
       : null;
   const grandTotal = subtotal + deliveryFee;
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const sync = (): void => {
+      const viewport = window.visualViewport;
+      const height = viewport?.height ?? window.innerHeight;
+      setSheetMaxPx(Math.max(280, Math.floor(height * 0.92)));
+    };
+    sync();
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", sync);
+    viewport?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    const { body } = document;
+    const prevOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+    return () => {
+      viewport?.removeEventListener("resize", sync);
+      viewport?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      body.style.overflow = prevOverflow;
+      setSheetMaxPx(null);
+    };
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open ? (
         <m.div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="fixed inset-0 z-[60] flex items-end justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <button
             type="button"
-            className="absolute inset-0 bg-background/55 backdrop-blur-sm"
+            className="absolute inset-0 bg-background/55"
             aria-label={t("common.cancel")}
             onClick={onClose}
           />
@@ -101,11 +128,12 @@ export function MenuCheckoutSheet({
             initial={{ y: 48 }}
             animate={{ y: 0 }}
             exit={{ y: 56 }}
-            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-strong relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-x border-t"
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            style={sheetMaxPx != null ? { maxHeight: sheetMaxPx } : undefined}
+            className="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-x border-t border-border bg-card shadow-2xl"
           >
-            <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border" />
-            <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-4">
+            <div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-border" />
+            <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-4">
               <div>
                 <h2 className="font-heading text-lg font-semibold">
                   {dineInLabel ? t("menu.checkoutTitleDineIn") : t("menu.checkoutTitle")}
@@ -122,7 +150,7 @@ export function MenuCheckoutSheet({
               </Button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-6">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch]">
               {dineInLabel ? (
                 <p className="rounded-2xl bg-primary/12 px-3 py-2 text-sm font-semibold text-primary">
                   {t("menu.dineInBanner", { table: dineInLabel })}
@@ -184,7 +212,11 @@ export function MenuCheckoutSheet({
                     </article>
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                  {t("menu.empty")}
+                </p>
+              )}
 
               {itemCount > 0 ? (
                 <div className="space-y-1.5 rounded-2xl border border-border/70 bg-muted/30 px-3 py-3 text-sm">
