@@ -83,26 +83,31 @@ export function MenuCheckoutSheet({
 
   useEffect(() => {
     if (!open) {
+      setSheetMaxPx(null);
       return;
     }
+    let frame = 0;
     const sync = (): void => {
-      const viewport = window.visualViewport;
-      const height = viewport?.height ?? window.innerHeight;
-      setSheetMaxPx(Math.max(280, Math.floor(height * 0.92)));
+      if (frame) {
+        return;
+      }
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const viewport = window.visualViewport;
+        const height = viewport?.height ?? window.innerHeight;
+        setSheetMaxPx(Math.max(280, Math.floor(height * 0.88)));
+      });
     };
     sync();
     const viewport = window.visualViewport;
     viewport?.addEventListener("resize", sync);
-    viewport?.addEventListener("scroll", sync);
     window.addEventListener("resize", sync);
-    const { body } = document;
-    const prevOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
     return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
       viewport?.removeEventListener("resize", sync);
-      viewport?.removeEventListener("scroll", sync);
       window.removeEventListener("resize", sync);
-      body.style.overflow = prevOverflow;
       setSheetMaxPx(null);
     };
   }, [open]);
@@ -118,7 +123,7 @@ export function MenuCheckoutSheet({
         >
           <button
             type="button"
-            className="absolute inset-0 bg-background/55"
+            className="absolute inset-0 bg-slate-950/45"
             aria-label={t("common.cancel")}
             onClick={onClose}
           />
@@ -130,7 +135,7 @@ export function MenuCheckoutSheet({
             exit={{ y: 56 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             style={sheetMaxPx != null ? { maxHeight: sheetMaxPx } : undefined}
-            className="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-x border-t border-border bg-card shadow-2xl"
+            className="relative z-10 flex max-h-[min(88dvh,42rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-x border-t border-border bg-card shadow-2xl"
           >
             <div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-border" />
             <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-4">
