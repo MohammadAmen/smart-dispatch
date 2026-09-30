@@ -7,11 +7,9 @@ export const BRAND_CHEF_LOCKUP_SRC = "/brand/beev-chef-lockup.png";
 /** Staff / dispatch login page background. */
 export const BRAND_LOGIN_BG_SRC = "/brand/login-bg.jpg";
 
-/** Cinematic splash lockup — transparent PNGs in /public/images */
-export const BRAND_SPLASH_WORDMARK_SRC =
-  "/images/Gemini_Generated_Image_xtnzl4xtnzl4xtnz-removebg-preview.png";
-export const BRAND_SPLASH_BEE_SRC =
-  "/images/Gemini_Generated_Image_iutwo8iutwo8iutw-removebg-preview.png";
+/** Cinematic splash lockup — transparent bee + wordmark in /public/brand */
+export const BRAND_SPLASH_WORDMARK_SRC = "/brand/splash-wordmark.png";
+export const BRAND_SPLASH_BEE_SRC = "/brand/splash-bee.png";
 
 export const BRAND_SPLASH_TAGLINES = [
   "BEEV: لا ينام... حتى يوصلك. 🌙",
@@ -21,4 +19,4 @@ export const BRAND_SPLASH_TAGLINES = [
   "BEEV: كل الدنيا... بضغطة. 🛍️",
 ] as const;
 
-export const BRAND_SPLASH_STORAGE_KEY = "beev-splash-seen-v1";
+export const BRAND_SPLASH_STORAGE_KEY = "beev-splash-seen-v2";
