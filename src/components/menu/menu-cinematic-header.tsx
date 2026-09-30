@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Clock3,
   LoaderCircle,
   MapPin,
   Navigation,
@@ -47,7 +46,7 @@ export function MenuCinematicHeader({
         <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/55 to-black/80" />
         <div className="absolute inset-0 bg-linear-to-r from-black/50 via-transparent to-black/40" />
 
-        <div className="relative px-4 pb-16 pt-3">
+        <div className="relative px-4 pb-20 pt-3">
           <div className="flex items-start justify-between gap-3">
             <div className="shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -86,7 +85,6 @@ export function MenuCinematicHeader({
             </div>
           </div>
 
-          {/* Address stays on home only — edit/locate under the location chip */}
           <button
             type="button"
             onClick={onLocate}
@@ -108,7 +106,7 @@ export function MenuCinematicHeader({
         </div>
 
         <svg
-          className="pointer-events-none absolute inset-x-0 -bottom-px h-12 w-full text-background"
+          className="pointer-events-none absolute inset-x-0 -bottom-px h-14 w-full text-background"
           viewBox="0 0 1440 96"
           preserveAspectRatio="none"
           aria-hidden
@@ -120,41 +118,23 @@ export function MenuCinematicHeader({
         </svg>
       </div>
 
-      <div className="relative z-10 -mt-7 space-y-2.5 px-4 pb-1">
-        <div className="flex items-stretch gap-2">
-          <label className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder={t("menu.searchHeroPlaceholder")}
-              className={cn(
-                "h-12 w-full rounded-2xl border border-slate-200/80 bg-white ps-10 pe-3",
-                "text-sm font-medium text-slate-800 shadow-[0_12px_28px_-14px_rgba(0,0,0,0.45)]",
-                "outline-none placeholder:text-slate-400",
-                "focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25",
-                "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
-              )}
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={onLocate}
+      {/* Lower pull-up so the wave stays visible above the full-width search */}
+      <div className="relative z-10 -mt-2 px-4 pb-1 pt-1">
+        <label className="relative block w-full">
+          <Search className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={t("menu.searchHeroPlaceholder")}
             className={cn(
-              "flex w-[6.75rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl",
-              "border border-slate-200/80 bg-white px-2 py-1.5 text-center shadow-[0_12px_28px_-14px_rgba(0,0,0,0.45)]",
-              "dark:border-slate-700 dark:bg-slate-900",
+              "h-12 w-full rounded-2xl border border-slate-200/80 bg-white ps-10 pe-3",
+              "text-sm font-medium text-slate-800 shadow-[0_12px_28px_-14px_rgba(0,0,0,0.35)]",
+              "outline-none placeholder:text-slate-400",
+              "focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25",
+              "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
             )}
-          >
-            <span className="flex size-7 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300">
-              <Clock3 className="size-3.5" />
-            </span>
-            <span className="text-[10px] font-bold leading-tight text-slate-800 dark:text-slate-100">
-              {t("menu.ordersFasterTitle")}
-            </span>
-          </button>
-        </div>
+          />
+        </label>
       </div>
     </section>
   );
