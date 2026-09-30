@@ -218,9 +218,11 @@
   },
   "login": {
     "title": "Sign in",
-    "description": "Use your dispatch account to open the command floor or driver app.",
+    "description": "Use your account to access what you need with ease and speed.",
     "email": "Email",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "submit": "Sign in",
     "working": "Signing in…",
     "invalid": "Email or password is incorrect.",

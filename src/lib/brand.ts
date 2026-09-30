@@ -4,6 +4,8 @@ export const BRAND_TAGLINE_AR = "توصيل تقني سريع";
 export const BRAND_LOGO_SRC = "/brand/beev-logo.png";
 /** Menu header lockup — chef bee + BEEV wordmark (transparent PNG). */
 export const BRAND_CHEF_LOCKUP_SRC = "/brand/beev-chef-lockup.png";
+/** Staff / dispatch login page background. */
+export const BRAND_LOGIN_BG_SRC = "/brand/login-bg.jpg";
 
 /** Cinematic splash lockup — transparent PNGs in /public/images */
 export const BRAND_SPLASH_WORDMARK_SRC =
