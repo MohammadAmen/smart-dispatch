@@ -12,8 +12,56 @@ import {
 } from "@/lib/brand";
 
 const TAGLINE_MS = 2500;
-const AUTO_EXIT_MS = 10_200;
-const SKIP_AFTER_MS = 2400;
+const AUTO_EXIT_MS = 11_000;
+const SKIP_AFTER_MS = 2600;
+const BEE_FLIGHT_DELAY_MS = 550;
+const BEE_FLIGHT_MS = 2800;
+
+/** Spiral flight path into the perch above the wordmark (px from landing origin). */
+function buildBeeSpiralFlight(): {
+  x: number[];
+  y: number[];
+  rotate: number[];
+  scale: number[];
+  opacity: number[];
+} {
+  const landX = 18;
+  const landY = 0;
+  const steps = 16;
+  const x: number[] = [];
+  const y: number[] = [];
+  const rotate: number[] = [];
+  const scale: number[] = [];
+  const opacity: number[] = [];
+
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    // Ease in so the last loop tightens and the landing softens.
+    const eased = 1 - (1 - t) ** 1.45;
+    const radius = 310 * (1 - eased);
+    // ~1.85 turns from the top-left into the perch.
+    const angle = -2.55 + eased * Math.PI * 3.7;
+    x.push(landX + Math.cos(angle) * radius);
+    y.push(landY + Math.sin(angle) * radius);
+    // Bank into the curve so it reads as flying, not sliding.
+    const bank = Math.cos(angle) * 34 * (1 - eased * 0.9);
+    rotate.push(bank);
+    scale.push(0.38 + eased * 0.62);
+    opacity.push(t === 0 ? 0 : Math.min(1, 0.15 + t * 3.2));
+  }
+
+  // Final settle — level and exact perch.
+  x[x.length - 1] = landX;
+  y[y.length - 1] = landY;
+  rotate[rotate.length - 1] = 0;
+  scale[scale.length - 1] = 1;
+  opacity[opacity.length - 1] = 1;
+
+  return { x, y, rotate, scale, opacity };
+}
+
+const BEE_SPIRAL = buildBeeSpiralFlight();
+
 
 type SplashPhase = "play" | "exit";
 
@@ -29,7 +77,10 @@ function SplashScreenInner({ onDone }: { onDone: () => void }): ReactNode {
 
   useEffect(() => {
     const skipTimer = window.setTimeout(() => setCanSkip(true), SKIP_AFTER_MS);
-    const landTimer = window.setTimeout(() => setBeeLanded(true), 2100);
+    const landTimer = window.setTimeout(
+      () => setBeeLanded(true),
+      BEE_FLIGHT_DELAY_MS + BEE_FLIGHT_MS + 80,
+    );
     const exitTimer = window.setTimeout(() => setPhase("exit"), AUTO_EXIT_MS);
     return () => {
       window.clearTimeout(skipTimer);
@@ -103,29 +154,28 @@ function SplashScreenInner({ onDone }: { onDone: () => void }): ReactNode {
                 transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
               />
 
-              {/* Bee — corner flight → perch above the name */}
+              {/* Bee — spiral flight into perch above the name */}
               <m.div
                 className="absolute bottom-[4.6rem] left-1/2 z-20 sm:bottom-[5.2rem]"
                 initial={{
-                  x: "-52vw",
-                  y: "-46vh",
+                  x: BEE_SPIRAL.x[0],
+                  y: BEE_SPIRAL.y[0],
                   opacity: 0,
-                  scale: 0.42,
-                  rotate: -28,
+                  scale: BEE_SPIRAL.scale[0],
+                  rotate: BEE_SPIRAL.rotate[0],
                 }}
                 animate={{
-                  x: "1.1rem",
-                  y: 0,
-                  opacity: 1,
-                  scale: 1,
-                  rotate: 0,
+                  x: BEE_SPIRAL.x,
+                  y: BEE_SPIRAL.y,
+                  opacity: BEE_SPIRAL.opacity,
+                  scale: BEE_SPIRAL.scale,
+                  rotate: BEE_SPIRAL.rotate,
                 }}
                 transition={{
-                  delay: 0.7,
-                  type: "spring",
-                  stiffness: 105,
-                  damping: 15,
-                  mass: 1,
+                  delay: BEE_FLIGHT_DELAY_MS / 1000,
+                  duration: BEE_FLIGHT_MS / 1000,
+                  ease: "linear",
+                  times: BEE_SPIRAL.x.map((_, index) => index / (BEE_SPIRAL.x.length - 1)),
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -136,9 +186,11 @@ function SplashScreenInner({ onDone }: { onDone: () => void }): ReactNode {
                   height={200}
                   decoding="async"
                   draggable={false}
-                  className={`h-[7.25rem] w-[7.25rem] -translate-x-1/2 object-contain drop-shadow-[0_18px_32px_rgba(180,120,40,0.38)] sm:h-[8rem] sm:w-[8rem] ${
-                    beeLanded ? "beev-splash-bee" : ""
-                  }`}
+                  className={
+                    beeLanded
+                      ? "beev-splash-bee h-[7.25rem] w-[7.25rem] -translate-x-1/2 object-contain drop-shadow-[0_18px_32px_rgba(180,120,40,0.38)] sm:h-[8rem] sm:w-[8rem]"
+                      : "beev-splash-bee-fly h-[7.25rem] w-[7.25rem] -translate-x-1/2 object-contain drop-shadow-[0_18px_32px_rgba(180,120,40,0.38)] sm:h-[8rem] sm:w-[8rem]"
+                  }
                 />
               </m.div>
             </div>

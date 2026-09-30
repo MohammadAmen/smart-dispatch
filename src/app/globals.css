@@ -345,8 +345,33 @@
 }
 
 .beev-splash-bee {
-  animation: beev-loader-float 2.8s ease-in-out 0.7s infinite;
+  animation: beev-splash-hover 2.8s ease-in-out 0.15s infinite;
   will-change: transform;
+}
+
+.beev-splash-bee-fly {
+  animation: beev-splash-wing 0.28s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes beev-splash-hover {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-7px);
+  }
+}
+
+@keyframes beev-splash-wing {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px) rotate(4deg);
+  }
 }
 
 @keyframes beev-loader-enter {
@@ -385,7 +410,8 @@
   .beev-loader-float,
   .beev-loader-ring,
   .beev-loader-enter,
-  .beev-splash-bee {
+  .beev-splash-bee,
+  .beev-splash-bee-fly {
     animation: none;
   }
 }
