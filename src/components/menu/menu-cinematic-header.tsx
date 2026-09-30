@@ -30,8 +30,9 @@ export function MenuCinematicHeader({
   onLocate: () => void;
   onSearchChange: (value: string) => void;
 }): ReactNode {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const bg = backgroundUrl?.trim() || DEFAULT_MENU_HEADER_BACKGROUND;
+  const isArabic = locale === "ar";
 
   return (
     <section className="relative z-30">
@@ -47,8 +48,13 @@ export function MenuCinematicHeader({
         <div className="absolute inset-0 bg-linear-to-r from-black/50 via-transparent to-black/40" />
 
         <div className="relative px-4 pb-20 pt-3">
+          {/*
+            Arabic: slogan on the right, logo on the left.
+            English: slogan on the left, logo on the right.
+            order-1 sits at inline-start (right in RTL, left in LTR).
+          */}
           <div className="flex items-start justify-between gap-3">
-            <div className="shrink-0">
+            <div className="order-2 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BRAND_CHEF_LOCKUP_SRC}
@@ -60,7 +66,7 @@ export function MenuCinematicHeader({
               />
             </div>
 
-            <div className="min-w-0 flex-1 pt-3 text-end">
+            <div className="order-1 min-w-0 flex-1 pt-3 text-start">
               <p
                 className={cn(
                   "text-balance text-[1.05rem] font-extrabold leading-snug text-white",
@@ -70,7 +76,10 @@ export function MenuCinematicHeader({
                 {t("menu.heroSlogan")}
               </p>
               <svg
-                className="ms-auto mt-2 h-3 w-[min(100%,11rem)] text-amber-400"
+                className={cn(
+                  "me-auto mt-2 h-3 w-[min(100%,11rem)] text-amber-400",
+                  !isArabic && "scale-x-[-1]",
+                )}
                 viewBox="0 0 180 12"
                 fill="none"
                 aria-hidden
@@ -118,20 +127,25 @@ export function MenuCinematicHeader({
         </svg>
       </div>
 
-      {/* Lower pull-up so the wave stays visible above the full-width search */}
       <div className="relative z-10 -mt-2 px-4 pb-1 pt-1">
-        <label className="relative block w-full">
-          <Search className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+        <label
+          className={cn(
+            "flex h-12 w-full items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white px-3.5",
+            "shadow-[0_12px_28px_-14px_rgba(0,0,0,0.35)]",
+            "focus-within:border-amber-400 focus-within:ring-3 focus-within:ring-amber-400/25",
+            "dark:border-slate-700 dark:bg-slate-900",
+          )}
+        >
+          <Search className="size-4 shrink-0 text-slate-400" aria-hidden />
           <input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={t("menu.searchHeroPlaceholder")}
             className={cn(
-              "h-12 w-full rounded-2xl border border-slate-200/80 bg-white ps-10 pe-3",
-              "text-sm font-medium text-slate-800 shadow-[0_12px_28px_-14px_rgba(0,0,0,0.35)]",
+              "h-full min-w-0 flex-1 border-0 bg-transparent p-0",
+              "text-sm font-medium leading-none text-slate-800",
               "outline-none placeholder:text-slate-400",
-              "focus-visible:border-amber-400 focus-visible:ring-3 focus-visible:ring-amber-400/25",
-              "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+              "dark:text-slate-100",
             )}
           />
         </label>
