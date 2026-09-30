@@ -38,15 +38,15 @@ function buildBeeSpiralFlight(): {
     const t = i / steps;
     // Ease in so the last loop tightens and the landing softens.
     const eased = 1 - (1 - t) ** 1.45;
-    const radius = 310 * (1 - eased);
+    const radius = 240 * (1 - eased);
     // ~1.85 turns from the top-left into the perch.
     const angle = -2.55 + eased * Math.PI * 3.7;
     x.push(landX + Math.cos(angle) * radius);
     y.push(landY + Math.sin(angle) * radius);
     // Bank into the curve so it reads as flying, not sliding.
-    const bank = Math.cos(angle) * 34 * (1 - eased * 0.9);
+    const bank = Math.cos(angle) * 30 * (1 - eased * 0.9);
     rotate.push(bank);
-    scale.push(0.38 + eased * 0.62);
+    scale.push(0.42 + eased * 0.58);
     opacity.push(t === 0 ? 0 : Math.min(1, 0.15 + t * 3.2));
   }
 
@@ -133,30 +133,30 @@ function SplashScreenInner({ onDone }: { onDone: () => void }): ReactNode {
           />
 
           <div className="relative z-10 flex w-full max-w-lg flex-col items-center px-5 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
-            {/* Brand stage */}
-            <div className="relative mx-auto flex h-[14.5rem] w-full max-w-[21rem] items-end justify-center pb-2 sm:h-[15.5rem] sm:max-w-[23rem]">
+            {/* Brand stage — compact cute lockup */}
+            <div className="relative mx-auto flex h-[11.5rem] w-full max-w-[18rem] items-end justify-center pb-1 sm:h-[12.25rem] sm:max-w-[19.5rem]">
               <span
-                className="pointer-events-none absolute bottom-6 left-1/2 size-52 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,186,66,0.4)_0%,transparent_68%)] sm:size-60"
+                className="pointer-events-none absolute bottom-5 left-1/2 size-40 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,186,66,0.36)_0%,transparent_70%)] sm:size-44"
                 aria-hidden
               />
 
-              {/* Name — hero, dead center */}
+              {/* Name — centered, slightly smaller */}
               <m.img
                 src={BRAND_SPLASH_WORDMARK_SRC}
                 alt={BRAND_NAME}
-                width={420}
-                height={160}
+                width={320}
+                height={120}
                 decoding="async"
                 draggable={false}
-                className="relative z-10 h-[5.25rem] w-auto max-w-[92%] object-contain mix-blend-multiply drop-shadow-[0_8px_18px_rgba(62,39,22,0.12)] sm:h-[6rem]"
-                initial={{ opacity: 0, y: 22, scale: 0.88 }}
+                className="relative z-10 h-[3.65rem] w-auto max-w-[78%] bg-transparent object-contain drop-shadow-[0_6px_14px_rgba(62,39,22,0.14)] sm:h-[4.1rem]"
+                initial={{ opacity: 0, y: 18, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
               />
 
-              {/* Bee — spiral flight into perch above the name */}
+              {/* Bee — spiral flight into a small cute perch above the name */}
               <m.div
-                className="absolute bottom-[4.6rem] left-1/2 z-20 sm:bottom-[5.2rem]"
+                className="absolute bottom-[3.55rem] left-1/2 z-20 sm:bottom-[3.9rem]"
                 initial={{
                   x: BEE_SPIRAL.x[0],
                   y: BEE_SPIRAL.y[0],
@@ -182,14 +182,14 @@ function SplashScreenInner({ onDone }: { onDone: () => void }): ReactNode {
                 <img
                   src={BRAND_SPLASH_BEE_SRC}
                   alt=""
-                  width={200}
-                  height={200}
+                  width={140}
+                  height={140}
                   decoding="async"
                   draggable={false}
                   className={
                     beeLanded
-                      ? "beev-splash-bee h-[7.25rem] w-[7.25rem] -translate-x-1/2 object-contain drop-shadow-[0_18px_32px_rgba(180,120,40,0.38)] sm:h-[8rem] sm:w-[8rem]"
-                      : "beev-splash-bee-fly h-[7.25rem] w-[7.25rem] -translate-x-1/2 object-contain drop-shadow-[0_18px_32px_rgba(180,120,40,0.38)] sm:h-[8rem] sm:w-[8rem]"
+                      ? "beev-splash-bee h-[4.85rem] w-[4.85rem] -translate-x-1/2 bg-transparent object-contain drop-shadow-[0_12px_22px_rgba(180,120,40,0.32)] sm:h-[5.25rem] sm:w-[5.25rem]"
+                      : "beev-splash-bee-fly h-[4.85rem] w-[4.85rem] -translate-x-1/2 bg-transparent object-contain drop-shadow-[0_12px_22px_rgba(180,120,40,0.32)] sm:h-[5.25rem] sm:w-[5.25rem]"
                   }
                 />
               </m.div>
