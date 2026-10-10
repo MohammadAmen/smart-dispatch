@@ -3,8 +3,13 @@ export type DeliveryProofMode = "NONE" | "OTP" | "PHOTO" | "BOTH";
 export interface PlatformFinanceConfig {
   /** Refundable driver security deposit required at onboarding. */
   driverSecurityDeposit: number
-  /** Max unsettled COD a driver may hold before offers pause. */
+  /**
+   * Max unsettled COD a driver may hold before offers pause.
+   * `0` = disabled (safe default until ops set a local-currency ceiling).
+   */
   driverCashLimit: number
+  /** When true, unpaid securityDeposit > 0 blocks new offers. Default off. */
+  requireDepositBeforeOffers: boolean
   /** % of platform gross commission reserved for force-majeure cover. */
   riskBufferPercentage: number
   /** Fallback commission % when a store has no custom rate. */
@@ -15,7 +20,9 @@ export interface PlatformFinanceConfig {
 
 export const DEFAULT_FINANCE_CONFIG: PlatformFinanceConfig = {
   driverSecurityDeposit: 100,
-  driverCashLimit: 100,
+  // Disabled until admin sets a real ceiling in local currency (e.g. SYP).
+  driverCashLimit: 0,
+  requireDepositBeforeOffers: false,
   riskBufferPercentage: 0.5,
   defaultStoreCommissionPercentage: 15,
   deliveryProofMode: "OTP",
@@ -28,6 +35,7 @@ export function normalizeFinanceConfig(
   return {
     driverSecurityDeposit: clampMoney(next.driverSecurityDeposit, 0, 1_000_000),
     driverCashLimit: clampMoney(next.driverCashLimit, 0, 1_000_000),
+    requireDepositBeforeOffers: Boolean(next.requireDepositBeforeOffers),
     riskBufferPercentage: clampMoney(next.riskBufferPercentage, 0, 25),
     defaultStoreCommissionPercentage: clampMoney(
       next.defaultStoreCommissionPercentage,

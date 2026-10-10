@@ -384,6 +384,8 @@
     "governance": "Governance settings",
     "securityDeposit": "Refundable driver deposit",
     "cashLimit": "Driver cash ceiling",
+    "cashLimitHint": "0 = disabled. Set a value in your local currency before enabling.",
+    "requireDepositBeforeOffers": "Block offers until deposit is paid",
     "riskBufferPct": "Risk buffer share (%)",
     "defaultCommission": "Default store commission (%)",
     "deliveryProof": "Delivery proof policy",

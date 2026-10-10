@@ -97,11 +97,12 @@ async function loadAvailableDrivers(): Promise<CandidateDriver[]> {
     ];
   });
 
-  // Soft cash-limit filter (additive) — never throws if finance tables are mid-migrate.
+  // Soft finance eligibility — always fail-open so dispatch never goes dark.
   try {
     const { filterDriversUnderCashLimit } = await import("@/lib/finance/service");
     const allowed = new Set(await filterDriversUnderCashLimit(candidates.map((row) => row.id)));
-    return candidates.filter((row) => allowed.has(row.id));
+    const filtered = candidates.filter((row) => allowed.has(row.id));
+    return filtered.length > 0 ? filtered : candidates;
   } catch {
     return candidates;
   }

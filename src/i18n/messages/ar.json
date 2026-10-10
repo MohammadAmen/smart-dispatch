@@ -384,6 +384,8 @@
     "governance": "إعدادات الحوكمة",
     "securityDeposit": "تأمين السائق المسترد",
     "cashLimit": "سقف الكاش الميداني",
+    "cashLimitHint": "0 = معطّل. ضع قيمة بعملة المنصة المحلية قبل التفعيل.",
+    "requireDepositBeforeOffers": "منع استلام الطلبات قبل دفع التأمين",
     "riskBufferPct": "نسبة صندوق المخاطر (%)",
     "defaultCommission": "عمولة المتجر الافتراضية (%)",
     "deliveryProof": "إثبات التسليم",

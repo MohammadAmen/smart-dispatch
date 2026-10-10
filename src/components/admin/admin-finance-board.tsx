@@ -68,6 +68,10 @@ export function AdminFinanceBoard({
       const data = new FormData();
       data.set("driverSecurityDeposit", String(form.driverSecurityDeposit));
       data.set("driverCashLimit", String(form.driverCashLimit));
+      data.set(
+        "requireDepositBeforeOffers",
+        form.requireDepositBeforeOffers ? "1" : "0",
+      );
       data.set("riskBufferPercentage", String(form.riskBufferPercentage));
       data.set("defaultStoreCommissionPercentage", String(form.defaultStoreCommissionPercentage));
       data.set("deliveryProofMode", form.deliveryProofMode);
@@ -214,6 +218,23 @@ export function AdminFinanceBoard({
               }
               className={fieldClass}
             />
+            <span className="block text-[11px] font-normal text-muted-foreground">
+              {t("finance.cashLimitHint")}
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.requireDepositBeforeOffers}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  requireDepositBeforeOffers: event.target.checked,
+                }))
+              }
+              className="size-4 rounded border-border"
+            />
+            {t("finance.requireDepositBeforeOffers")}
           </label>
           <label className="space-y-1.5 text-xs font-medium text-muted-foreground">
             {t("finance.riskBufferPct")}

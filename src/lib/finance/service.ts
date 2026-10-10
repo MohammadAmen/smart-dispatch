@@ -25,9 +25,43 @@ export async function getFinanceConfig(): Promise<PlatformFinanceConfig> {
       return normalizeFinanceConfig(null);
     }
     const parsed = JSON.parse(raw) as Partial<PlatformFinanceConfig>;
-    return normalizeFinanceConfig(parsed);
+    const normalized = normalizeFinanceConfig(parsed);
+    // One-time safety: a leftover cashLimit of 100 (USD-scale example) blackouts
+    // fleets priced in local currency. Treat legacy untouched 100 as disabled.
+    if (
+      parsed.driverCashLimit === 100 &&
+      parsed.requireDepositBeforeOffers === undefined &&
+      !("cashLimitMigrated" in (parsed as Record<string, unknown>))
+    ) {
+      const repaired = normalizeFinanceConfig({
+        ...normalized,
+        driverCashLimit: 0,
+        requireDepositBeforeOffers: false,
+      });
+      await updateFinanceConfigSilent(repaired);
+      return repaired;
+    }
+    return normalized;
   } catch {
     return normalizeFinanceConfig(null);
+  }
+}
+
+async function updateFinanceConfigSilent(next: PlatformFinanceConfig): Promise<void> {
+  try {
+    const payload = JSON.stringify({ ...next, cashLimitMigrated: true });
+    await prisma.$executeRaw`
+      UPDATE app_config
+      SET "financeJson" = ${payload}, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = 'default'
+    `;
+    // Clear sticky blocks left by the too-low legacy ceiling.
+    await prisma.driver.updateMany({
+      where: { cashBlockedAt: { not: null } },
+      data: { cashBlockedAt: null },
+    });
+  } catch {
+    // Non-blocking repair.
   }
 }
 
@@ -230,9 +264,8 @@ export async function getDriverCashLimit(driverId: string): Promise<number> {
 }
 
 /**
- * Returns driver IDs eligible for new offers:
- * - under cash ceiling
- * - security deposit paid when a deposit amount is required (> 0)
+ * Returns driver IDs eligible for new offers.
+ * Fail-soft: never empties a non-empty pool due to finance misconfig.
  */
 export async function filterDriversUnderCashLimit(driverIds: string[]): Promise<string[]> {
   if (driverIds.length === 0) {
@@ -245,7 +278,6 @@ export async function filterDriversUnderCashLimit(driverIds: string[]): Promise<
     select: {
       id: true,
       cashLimitOverride: true,
-      cashBlockedAt: true,
       securityDeposit: true,
       securityDepositPaidAt: true,
     },
@@ -265,10 +297,10 @@ export async function filterDriversUnderCashLimit(driverIds: string[]): Promise<
     heldByDriver.map((row) => [row.driverId ?? "", money(row._sum.codAmount)]),
   );
 
-  return drivers
+  const eligible = drivers
     .filter((driver) => {
-      // Deposit required only when an amount is configured on the driver row.
       if (
+        finance.requireDepositBeforeOffers &&
         driver.securityDeposit > 0 &&
         !driver.securityDepositPaidAt
       ) {
@@ -278,6 +310,7 @@ export async function filterDriversUnderCashLimit(driverIds: string[]): Promise<
         driver.cashLimitOverride != null && Number.isFinite(driver.cashLimitOverride)
           ? money(driver.cashLimitOverride)
           : finance.driverCashLimit;
+      // 0 = cash ceiling disabled.
       if (limit <= 0) {
         return true;
       }
@@ -285,6 +318,12 @@ export async function filterDriversUnderCashLimit(driverIds: string[]): Promise<
       return held < limit;
     })
     .map((driver) => driver.id);
+
+  // Never blackout the whole fleet because of finance settings.
+  if (eligible.length === 0 && drivers.length > 0) {
+    return drivers.map((driver) => driver.id);
+  }
+  return eligible;
 }
 
 export async function markDriverDepositPaid(

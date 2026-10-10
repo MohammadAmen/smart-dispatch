@@ -32,36 +32,52 @@ export function useDriverGeolocation(): void {
       return;
     }
 
+    const pushPoint = (point: LatLngTuple, force = false): void => {
+      useDriverStore.getState().setLocation(point);
+      useDriverStore.getState().setLocationError(null);
+
+      const previous = lastSent.current;
+      const movedKm = previous
+        ? calculateDistance(
+            previous.point[0],
+            previous.point[1],
+            point[0],
+            point[1],
+          )
+        : Number.POSITIVE_INFINITY;
+      const elapsed = previous ? Date.now() - previous.at : MIN_SYNC_MS;
+
+      if (
+        navigator.onLine &&
+        (force || movedKm >= MIN_MOVE_KM || elapsed >= MIN_SYNC_MS)
+      ) {
+        lastSent.current = { point, at: Date.now() };
+        void patchDriver({
+          driverId,
+          latitude: point[0],
+          longitude: point[1],
+          ...(dutyStatus === "AVAILABLE" ? { status: "AVAILABLE" as const } : {}),
+        });
+      }
+    };
+
+    // Immediate fix so AVAILABLE drivers are assignable (lat/lng required server-side).
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        pushPoint(
+          [position.coords.latitude, position.coords.longitude],
+          true,
+        );
+      },
+      () => {
+        useDriverStore.getState().setLocationError("denied");
+      },
+      WATCH_OPTIONS,
+    );
+
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const point: LatLngTuple = [
-          position.coords.latitude,
-          position.coords.longitude,
-        ];
-        useDriverStore.getState().setLocation(point);
-
-        const previous = lastSent.current;
-        const movedKm = previous
-          ? calculateDistance(
-              previous.point[0],
-              previous.point[1],
-              point[0],
-              point[1],
-            )
-          : Number.POSITIVE_INFINITY;
-        const elapsed = previous ? Date.now() - previous.at : MIN_SYNC_MS;
-
-        if (
-          navigator.onLine &&
-          (movedKm >= MIN_MOVE_KM || elapsed >= MIN_SYNC_MS)
-        ) {
-          lastSent.current = { point, at: Date.now() };
-          void patchDriver({
-            driverId,
-            latitude: point[0],
-            longitude: point[1],
-          });
-        }
+        pushPoint([position.coords.latitude, position.coords.longitude]);
       },
       () => {
         useDriverStore.getState().setLocationError("denied");

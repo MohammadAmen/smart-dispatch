@@ -42,6 +42,7 @@ export async function saveFinanceConfigAction(
     const config = await updateFinanceConfig({
       driverSecurityDeposit: Number(formData.get("driverSecurityDeposit")),
       driverCashLimit: Number(formData.get("driverCashLimit")),
+      requireDepositBeforeOffers: formData.get("requireDepositBeforeOffers") === "1",
       riskBufferPercentage: Number(formData.get("riskBufferPercentage")),
       defaultStoreCommissionPercentage: Number(
         formData.get("defaultStoreCommissionPercentage"),
