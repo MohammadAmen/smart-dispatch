@@ -95,7 +95,12 @@ async function persistAction(action: QueuedAction): Promise<void> {
       data: {
         status: nextStatus,
         ...(nextStatus === "ASSIGNED" && driverIdFromPayload
-          ? { driverId: driverIdFromPayload, offeredAt: new Date(), driverAcceptedAt: null }
+          ? {
+              driverId: driverIdFromPayload,
+              offeredAt: new Date(),
+              offerPresentedAt: null,
+              driverAcceptedAt: null,
+            }
           : {}),
       },
     });
@@ -234,6 +239,8 @@ async function persistAction(action: QueuedAction): Promise<void> {
           },
         ],
       });
+      const { pushDriverOffer } = await import("@/lib/notifications/driver-offer-push");
+      await pushDriverOffer(order.driverId);
     } else {
       publishDispatchEvent({ type: "orders.changed" });
     }

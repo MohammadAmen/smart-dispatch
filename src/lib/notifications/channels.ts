@@ -1,5 +1,6 @@
 export const CUSTOMER_CHANNEL_ID = "beev_customer";
-export const DRIVER_CHANNEL_ID = "beev_driver";
+/** Fresh id so Android applies ringtone importance. Existing channels cannot be upgraded. */
+export const DRIVER_CHANNEL_ID = "beev_driver_call";
 export const DRIVER_SOUND = "beev_driver";
 
 export type PushAudience = "customer" | "driver";

@@ -12,6 +12,8 @@ export interface PushMessage {
   body: string;
   audience: PushAudience;
   data?: Record<string, string>;
+  /** Driver offers are data-only so the app can raise a call-style alert while backgrounded. */
+  dataOnly?: boolean;
 }
 
 export interface PushSendResult {
@@ -57,24 +59,42 @@ export async function sendPushToUser(userId: string, message: PushMessage): Prom
   }
 
   const channelId = channelIdForAudience(message.audience);
+  const data: Record<string, string> = {
+    ...(message.data ?? {}),
+    title: message.title,
+    body: message.body,
+    channelId,
+  };
+  const driverOffer = message.audience === "driver" && message.dataOnly === true;
   try {
     await getMessaging().send({
       token,
-      notification: {
-        title: message.title,
-        body: message.body,
-      },
-      data: message.data,
+      ...(driverOffer
+        ? {}
+        : {
+            notification: {
+              title: message.title,
+              body: message.body,
+            },
+          }),
+      data,
       android: {
         priority: message.audience === "driver" ? "high" : "normal",
-        notification: {
-          channelId,
-          sound: message.audience === "driver" ? DRIVER_SOUND : "default",
-        },
+        ...(driverOffer
+          ? { ttl: 90_000, collapseKey: "beev-driver-offer" }
+          : {
+              notification: {
+                channelId,
+                sound: message.audience === "driver" ? DRIVER_SOUND : "default",
+                priority: message.audience === "driver" ? ("max" as const) : ("default" as const),
+                visibility: "public" as const,
+              },
+            }),
       },
     });
     return { sent: true };
-  } catch {
+  } catch (error) {
+    console.error("push send failed", error);
     return { sent: false, reason: "send-failed" };
   }
 }

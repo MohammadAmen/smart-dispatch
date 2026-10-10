@@ -42,6 +42,8 @@ export interface DriverAssignment {
   distanceKm: number | null;
   expectedEarnings: number;
   offeredAt: string | null;
+  /** When the phone rang. The accept countdown starts from this instant. */
+  offerPresentedAt: string | null;
   acceptedAt: string | null;
   /** Platform delivery-proof policy (OTP / photo). Never exposes the OTP itself. */
   deliveryProofMode: DriverDeliveryProofMode;

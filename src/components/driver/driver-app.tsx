@@ -16,7 +16,9 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useDriverAlerts } from "@/hooks/use-driver-alerts";
 import { useDriverGeolocation } from "@/hooks/use-driver-geolocation";
 import { playDeliverySuccessSound, stopIncomingRingtone } from "@/lib/audio";
-import { patchDriver, respondToDriverOffer } from "@/lib/driver/client";
+import { patchDriver, presentDriverOffer, respondToDriverOffer } from "@/lib/driver/client";
+import { dismissNativeOffer, syncNativeDuty } from "@/lib/driver/native-duty";
+import { resaveNativePushToken } from "@/lib/notifications/native-push";
 import type { DriverAccess, DriverAssignment, DriverDutyStatus } from "@/lib/driver/types";
 import { stopIncomingVibrate } from "@/lib/notify";
 import { latestOpenDutyAction, latestQueuedStatus, useSyncStore } from "@/stores/sync-store";
@@ -98,6 +100,30 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
     };
   }, [driverId, hydrate]);
 
+  useEffect(() => {
+    void resaveNativePushToken();
+  }, [driverId]);
+
+  useEffect(() => {
+    if (!driverId || !assignment || accepted || assignment.status !== "ASSIGNED") {
+      return;
+    }
+    if (assignment.offerPresentedAt) {
+      return;
+    }
+
+    let cancelled = false;
+    void presentDriverOffer(assignment.orderId).then((presentedAt) => {
+      if (!cancelled && presentedAt) {
+        void hydrate();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accepted, assignment, driverId, hydrate]);
+
   const visibleAssignment = useMemo((): DriverAssignment | null => {
     if (!assignment) {
       return null;
@@ -136,6 +162,35 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
 
     return dutyStatus;
   }, [driverId, dutyIntentAt, dutyStatus, queue]);
+
+  useEffect(() => {
+    if (!driverId) {
+      return;
+    }
+
+    const sync = (): void => {
+      if (visibleDuty === "OFFLINE") {
+        void syncNativeDuty(null);
+        return;
+      }
+      void syncNativeDuty({
+        driverId,
+        title: t("driver.onDuty"),
+        body: t("driver.onDutyNotice"),
+      });
+    };
+
+    sync();
+    const onVisible = (): void => {
+      if (document.visibilityState === "visible") {
+        sync();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [driverId, t, visibleDuty]);
 
   const locationPayload = useCallback((): Record<string, number> => {
     const point = useDriverStore.getState().location;
@@ -190,6 +245,7 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
 
       stopIncomingRingtone();
       stopIncomingVibrate();
+      void dismissNativeOffer();
       setBusy(true);
 
       try {

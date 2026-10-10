@@ -271,6 +271,8 @@ model Order {
 
   declinedDriverIds String?   @db.Text
   offeredAt         DateTime?
+  /// Set when the driver's phone actually rings. The 50s accept window starts here.
+  offerPresentedAt  DateTime?
   driverAcceptedAt  DateTime?
 
   /// Customer-facing delivery confirmation code (OTP), set at financial lock.

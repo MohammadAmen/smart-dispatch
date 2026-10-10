@@ -16,6 +16,7 @@ async function migrateOrderBundleSchema(): Promise<void> {
   await pgAddColumn("orders", "storeNotes", "VARCHAR(500) NULL");
   await pgAddColumn("orders", "declinedDriverIds", "TEXT NULL");
   await pgAddColumn("orders", "offeredAt", "TIMESTAMP(3) NULL");
+  await pgAddColumn("orders", "offerPresentedAt", "TIMESTAMP(3) NULL");
   await pgAddColumn("orders", "driverAcceptedAt", "TIMESTAMP(3) NULL");
 }
 

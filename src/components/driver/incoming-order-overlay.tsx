@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IncomingOfferSlider } from "@/components/driver/incoming-offer-slider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { startIncomingRingtone, stopIncomingRingtone } from "@/lib/audio";
+import { dismissNativeOffer } from "@/lib/driver/native-duty";
 import { DRIVER_OFFER_SECONDS } from "@/lib/driver/offer-window";
 import type { DriverAssignment } from "@/lib/driver/types";
 import { calculateDistance, roundDistanceKm } from "@/lib/geo";
@@ -19,11 +20,11 @@ const TOTAL_TIME = DRIVER_OFFER_SECONDS;
 const URGENT_SECONDS = 10;
 const WARN_SECONDS = 20;
 
-function remainingFromOffer(offeredAt: string | null): number {
-  if (!offeredAt) {
+function remainingFromOffer(presentedAt: string | null): number {
+  if (!presentedAt) {
     return TOTAL_TIME;
   }
-  const elapsed = (Date.now() - new Date(offeredAt).getTime()) / 1000;
+  const elapsed = (Date.now() - new Date(presentedAt).getTime()) / 1000;
   if (!Number.isFinite(elapsed)) {
     return TOTAL_TIME;
   }
@@ -78,7 +79,7 @@ export function IncomingOrderOverlay({
   const urgentBuzzedRef = useRef(false);
   const onTimeoutRef = useRef(onTimeout);
   onTimeoutRef.current = onTimeout;
-  const [remaining, setRemaining] = useState(() => remainingFromOffer(assignment.offeredAt));
+  const [remaining, setRemaining] = useState(() => remainingFromOffer(assignment.offerPresentedAt));
   const distance = liveDistanceKm(assignment, driverPoint);
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
@@ -90,12 +91,28 @@ export function IncomingOrderOverlay({
     timedOutRef.current = false;
     decidedRef.current = false;
     urgentBuzzedRef.current = false;
-    setRemaining(remainingFromOffer(assignment.offeredAt));
-    startIncomingRingtone();
-    startIncomingVibrate();
+    setRemaining(remainingFromOffer(assignment.offerPresentedAt));
+    const ringIfVisible = (): void => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      void dismissNativeOffer();
+      startIncomingRingtone();
+      startIncomingVibrate();
+    };
+    ringIfVisible();
+
+    const onVisibility = (): void => {
+      if (document.visibilityState === "visible") {
+        ringIfVisible();
+        return;
+      }
+      stopOfferAlerts();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     const timer = window.setInterval(() => {
-      const next = remainingFromOffer(assignment.offeredAt);
+      const next = remainingFromOffer(assignment.offerPresentedAt);
       setRemaining(next);
 
       if (next <= URGENT_SECONDS && next > 0 && !urgentBuzzedRef.current) {
@@ -112,9 +129,10 @@ export function IncomingOrderOverlay({
 
     return () => {
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
       stopOfferAlerts();
     };
-  }, [assignment.offeredAt, assignment.orderId]);
+  }, [assignment.offerPresentedAt, assignment.orderId]);
 
   function decide(kind: "accept" | "reject"): void {
     if (decidedRef.current || timedOutRef.current) {

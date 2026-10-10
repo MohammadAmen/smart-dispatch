@@ -21,6 +21,7 @@ interface AssignmentRow {
   deliveryLng: number;
   deliveryFee?: number | null;
   offeredAt?: Date | null;
+  offerPresentedAt?: Date | null;
   driverAcceptedAt?: Date | null;
 }
 
@@ -93,6 +94,7 @@ export function toDriverAssignment(order: AssignmentRow, extras: AssignmentExtra
     distanceKm: extras.distanceKm ?? null,
     expectedEarnings: Number.isFinite(order.deliveryFee) ? Math.max(0, Number(order.deliveryFee)) : 0,
     offeredAt: order.offeredAt ? order.offeredAt.toISOString() : null,
+    offerPresentedAt: order.offerPresentedAt ? order.offerPresentedAt.toISOString() : null,
     acceptedAt: order.driverAcceptedAt ? order.driverAcceptedAt.toISOString() : null,
     deliveryProofMode: extras.deliveryProofMode ?? "NONE",
   };

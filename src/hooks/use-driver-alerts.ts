@@ -67,6 +67,11 @@ export function useDriverAlerts(): {
       return;
     }
 
+    const onOfferPush = (): void => {
+      void hydrate();
+    };
+    window.addEventListener("beev-driver-offer", onOfferPush);
+
     const unsubscribe = subscribeDispatchStream((event) => {
       if (event.type === "connected") {
         return;
@@ -85,7 +90,10 @@ export function useDriverAlerts(): {
       }
     });
 
-    return unsubscribe;
+    return () => {
+      window.removeEventListener("beev-driver-offer", onOfferPush);
+      unsubscribe();
+    };
   }, [driverId, hydrate]);
 
   const requestPermission = useCallback(async (): Promise<void> => {

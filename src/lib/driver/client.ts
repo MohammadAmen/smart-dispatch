@@ -36,6 +36,23 @@ export async function fetchDriverSession(
   }
 }
 
+export async function presentDriverOffer(orderId: string): Promise<string | null> {
+  try {
+    const response = await fetch("/api/driver/offer/presented", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const body = (await readJson(response)) as { offerPresentedAt?: unknown } | null;
+    return typeof body?.offerPresentedAt === "string" ? body.offerPresentedAt : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function respondToDriverOffer(input: {
   driverId: string;
   orderId: string;

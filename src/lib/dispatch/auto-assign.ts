@@ -171,6 +171,7 @@ async function assignPair(
           status: "ASSIGNED",
           driverId,
           offeredAt: now,
+          offerPresentedAt: null,
           driverAcceptedAt: null,
         },
       });
@@ -178,7 +179,13 @@ async function assignPair(
       if (order.bundleRole === "PARENT") {
         await tx.order.updateMany({
           where: { parentOrderId: orderId, status: { not: "CANCELED" } },
-          data: { status: "ASSIGNED", driverId, offeredAt: now, driverAcceptedAt: null },
+          data: {
+            status: "ASSIGNED",
+            driverId,
+            offeredAt: now,
+            offerPresentedAt: null,
+            driverAcceptedAt: null,
+          },
         });
       }
 
@@ -213,6 +220,8 @@ export async function runAutoAssign(
   await ensureOrderBundleSchema();
   const { ensureVendorIntelSchema } = await import("@/lib/stores/vendor-intel-schema");
   await ensureVendorIntelSchema();
+  const { releaseExpiredDriverOffers } = await import("@/lib/driver/offer");
+  await releaseExpiredDriverOffers();
 
   const pending = await prisma.order.findMany({
     where: options.orderId
@@ -322,6 +331,9 @@ export async function runAutoAssign(
         orderNumber: match.orderNumber,
       })),
     });
+    const { pushDriverOffer } = await import("@/lib/notifications/driver-offer-push");
+    const driverIds = [...new Set(matches.map((match) => match.driverId))];
+    await Promise.all(driverIds.map((driverId) => pushDriverOffer(driverId)));
   }
 
   return {

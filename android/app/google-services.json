@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "562586847470",
+    "project_id": "beev-app-46e53",
+    "storage_bucket": "beev-app-46e53.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562586847470:android:cc3ffa69295f6437cd8bff",
+        "android_client_info": {
+          "package_name": "com.beev.courier"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6L1yBDt4-o76ydyXCXeXMzKEEb166ZPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

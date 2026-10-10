@@ -50,7 +50,6 @@ function asNumber(value: unknown): number | null {
 export function normalizePhone(from: string): string {
   // Prefer Syria-aware digit normalization (09xxxxxxxx → +9639xxxxxxxx).
   // Plain "+0..." is invalid for WhatsApp and silently drops outbound messages.
-  const { whatsappDigits } = require("@/lib/stores/whatsapp-link") as typeof import("@/lib/stores/whatsapp-link");
   const digits = whatsappDigits(from);
   if (digits) {
     return `+${digits}`;

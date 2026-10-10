@@ -4,12 +4,13 @@ import { prisma } from "@/lib/db";
 import { runAutoAssign } from "@/lib/dispatch/auto-assign";
 import { publishDispatchEvent } from "@/lib/dispatch/events";
 import { parseDeclinedDriverIds, stringifyDeclinedDriverIds } from "@/lib/driver/declined";
-import { DRIVER_OFFER_STALE_MS } from "@/lib/driver/offer-window";
+import { DRIVER_OFFER_STALE_MS, DRIVER_OFFER_UNSEEN_MS } from "@/lib/driver/offer-window";
 import { ensureOrderBundleSchema } from "@/lib/stores/order-bundle";
 
-export { DRIVER_OFFER_SECONDS, DRIVER_OFFER_STALE_MS } from "@/lib/driver/offer-window";
+export { DRIVER_OFFER_SECONDS, DRIVER_OFFER_STALE_MS, DRIVER_OFFER_UNSEEN_MS } from "@/lib/driver/offer-window";
 
 export type DriverOfferAction = "accept" | "reject" | "timeout";
+type ReleaseReason = "reject" | "timeout" | "unseen";
 
 export { parseDeclinedDriverIds, stringifyDeclinedDriverIds } from "@/lib/driver/declined";
 
@@ -20,7 +21,7 @@ function restoreAssignableStatus(storeId: string | null): "PENDING" | "READY_FOR
 async function releaseOrderFromDriver(
   orderId: string,
   driverId: string,
-  reason: "reject" | "timeout",
+  reason: ReleaseReason,
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findFirst({
@@ -52,6 +53,7 @@ async function releaseOrderFromDriver(
         status: nextStatus,
         driverId: null,
         offeredAt: null,
+        offerPresentedAt: null,
         driverAcceptedAt: null,
         declinedDriverIds: stringifyDeclinedDriverIds(declined),
       },
@@ -64,6 +66,7 @@ async function releaseOrderFromDriver(
           status: nextStatus,
           driverId: null,
           offeredAt: null,
+          offerPresentedAt: null,
           driverAcceptedAt: null,
         },
       });
@@ -77,7 +80,7 @@ async function releaseOrderFromDriver(
     await tx.auditLog.create({
       data: {
         orderId: order.id,
-        action: reason === "timeout" ? "DRIVER_OFFER_TIMEOUT" : "DRIVER_OFFER_REJECTED",
+        action: reason === "reject" ? "DRIVER_OFFER_REJECTED" : "DRIVER_OFFER_TIMEOUT",
         details: { driverId, reason },
       },
     });
@@ -149,21 +152,104 @@ export async function declineDriverOffer(
   return true;
 }
 
+export async function presentDriverOffer(orderId: string, driverId: string): Promise<string | null> {
+  await ensureOrderBundleSchema();
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      driverId,
+      status: "ASSIGNED",
+      driverAcceptedAt: null,
+      bundleRole: { not: "CHILD" },
+    },
+    select: { id: true, offeredAt: true, offerPresentedAt: true },
+  });
+
+  if (!order) {
+    return null;
+  }
+
+  if (order.offerPresentedAt) {
+    return order.offerPresentedAt.toISOString();
+  }
+
+  if (order.offeredAt && Date.now() - order.offeredAt.getTime() > DRIVER_OFFER_UNSEEN_MS) {
+    return null;
+  }
+
+  const now = new Date();
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { offerPresentedAt: now },
+  });
+  return now.toISOString();
+}
+
+const expiredOfferWhere = {
+  status: "ASSIGNED" as const,
+  driverAcceptedAt: null,
+  driverId: { not: null },
+  bundleRole: { not: "CHILD" as const },
+};
+
+export async function releaseExpiredDriverOffers(): Promise<void> {
+  await ensureOrderBundleSchema();
+  const now = Date.now();
+  const rows = await prisma.order.findMany({
+    where: {
+      ...expiredOfferWhere,
+      OR: [
+        { offerPresentedAt: { lte: new Date(now - DRIVER_OFFER_STALE_MS) } },
+        {
+          offerPresentedAt: null,
+          offeredAt: { lte: new Date(now - DRIVER_OFFER_UNSEEN_MS) },
+        },
+      ],
+    },
+    select: { id: true, driverId: true, offerPresentedAt: true },
+  });
+
+  for (const row of rows) {
+    if (!row.driverId) {
+      continue;
+    }
+    await releaseOrderFromDriver(
+      row.id,
+      row.driverId,
+      row.offerPresentedAt ? "timeout" : "unseen",
+    );
+  }
+}
+
 export async function expireStaleDriverOffer(driverId: string): Promise<void> {
   await ensureOrderBundleSchema();
+  const now = Date.now();
   const stale = await prisma.order.findFirst({
     where: {
       driverId,
       status: "ASSIGNED",
       driverAcceptedAt: null,
-      offeredAt: { lte: new Date(Date.now() - DRIVER_OFFER_STALE_MS) },
+      bundleRole: { not: "CHILD" },
+      OR: [
+        { offerPresentedAt: { lte: new Date(now - DRIVER_OFFER_STALE_MS) } },
+        {
+          offerPresentedAt: null,
+          offeredAt: { lte: new Date(now - DRIVER_OFFER_UNSEEN_MS) },
+        },
+      ],
     },
-    select: { id: true },
+    select: { id: true, offerPresentedAt: true },
   });
 
   if (!stale) {
     return;
   }
 
-  await declineDriverOffer(stale.id, driverId, "timeout");
+  if (stale.offerPresentedAt) {
+    await declineDriverOffer(stale.id, driverId, "timeout");
+    return;
+  }
+
+  await releaseOrderFromDriver(stale.id, driverId, "unseen");
+  await runAutoAssign({ orderId: stale.id });
 }
