@@ -424,6 +424,17 @@ export async function settleDriverCash(
     });
   });
 
+  try {
+    const { recordSettlementLedger } = await import("@/lib/finance/service");
+    await recordSettlementLedger(
+      driverId,
+      settledAmount,
+      pending.map((order) => order.id),
+    );
+  } catch {
+    // Finance ledger is additive — settlement still succeeds without it.
+  }
+
   publishDispatchEvent({ type: "orders.changed" });
 
   return {

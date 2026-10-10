@@ -353,6 +353,15 @@ export async function createStoreDriver(input: DriverWriteInput): Promise<StoreD
     throw new Error("Name, email, and phone are required.");
   }
 
+  let securityDeposit = 0;
+  try {
+    const { getFinanceConfig } = await import("@/lib/finance/service");
+    const finance = await getFinanceConfig();
+    securityDeposit = finance.driverSecurityDeposit;
+  } catch {
+    securityDeposit = 0;
+  }
+
   const created = await prisma.user.create({
     data: {
       name,
@@ -365,6 +374,8 @@ export async function createStoreDriver(input: DriverWriteInput): Promise<StoreD
         create: {
           status: "OFFLINE",
           vehicleType: input.vehicleType?.trim() || "Van",
+          // Expected deposit; offers stay blocked until admin marks it paid.
+          securityDeposit,
         },
       },
     },

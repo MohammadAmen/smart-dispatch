@@ -404,16 +404,24 @@ export async function placeMenuOrder(input: {
       },
     };
 
+    let createdId: string | null = null;
     try {
-      await prisma.order.create({
+      const created = await prisma.order.create({
         data: bundleRole === "SINGLE" ? { ...data, trackingToken } : data,
         select: { id: true },
       });
+      createdId = created.id;
     } catch {
-      await prisma.order.create({
+      const created = await prisma.order.create({
         data,
         select: { id: true },
       });
+      createdId = created.id;
+    }
+
+    if (createdId) {
+      const { lockOrderFinancial } = await import("@/lib/finance/service");
+      await lockOrderFinancial(createdId).catch(() => undefined);
     }
 
     return { orderNumber, itemsTotal: subtotal };
@@ -490,6 +498,10 @@ export async function placeMenuOrder(input: {
       },
     },
   });
+  {
+    const { lockOrderFinancial } = await import("@/lib/finance/service");
+    await lockOrderFinancial(parentId).catch(() => undefined);
+  }
 
   let itemsTotal = 0;
   for (const [index, storeId] of storeOrder.entries()) {

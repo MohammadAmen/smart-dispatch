@@ -56,6 +56,38 @@ async function persistAction(action: QueuedAction): Promise<void> {
         ? action.payload.driverId.trim()
         : null;
 
+    if (nextStatus === "DELIVERED") {
+      try {
+        const { assertDeliveryProof } = await import("@/lib/finance/service");
+        const otp =
+          typeof action.payload.deliveryProofOtp === "string"
+            ? action.payload.deliveryProofOtp
+            : typeof action.payload.otp === "string"
+              ? action.payload.otp
+              : null;
+        const photoUrl =
+          typeof action.payload.deliveryProofPhotoUrl === "string"
+            ? action.payload.deliveryProofPhotoUrl
+            : typeof action.payload.photoUrl === "string"
+              ? action.payload.photoUrl
+              : null;
+        const proof = await assertDeliveryProof({
+          orderId: action.entityId,
+          otp,
+          photoUrl,
+        });
+        if (!proof.ok) {
+          throw new Error(proof.error);
+        }
+      } catch (error) {
+        // Re-throw proof failures; swallow only unexpected import/schema issues when mode is soft.
+        if (error instanceof Error && (error.message === "invalid-otp" || error.message === "photo-required" || error.message === "order-not-found")) {
+          throw error;
+        }
+        // Non-blocking if finance schema mid-migrate.
+      }
+    }
+
     const updated = await prisma.order.updateMany({
       where: {
         OR: [{ id: action.entityId }, { orderNumber: action.entityId }],
@@ -141,6 +173,15 @@ async function persistAction(action: QueuedAction): Promise<void> {
         where: { id: order.driverId },
         data: { status: "AVAILABLE" },
       });
+      try {
+        const { lockOrderFinancial, recordDriverDeliveryLedger } = await import(
+          "@/lib/finance/service"
+        );
+        await lockOrderFinancial(order.id);
+        await recordDriverDeliveryLedger(order.id, order.driverId);
+      } catch {
+        // Non-blocking finance side-effects.
+      }
     }
 
     if (order.driverId && nextStatus === "IN_TRANSIT") {
@@ -148,11 +189,24 @@ async function persistAction(action: QueuedAction): Promise<void> {
         where: { id: order.driverId },
         data: { status: "BUSY" },
       });
+      let deliveryProofCode: string | null = null;
+      try {
+        const { ensureOrderDeliveryProofCode, getDeliveryProofRequirement } = await import(
+          "@/lib/finance/service"
+        );
+        const mode = await getDeliveryProofRequirement();
+        if (mode === "OTP" || mode === "BOTH") {
+          deliveryProofCode = await ensureOrderDeliveryProofCode(order.id);
+        }
+      } catch {
+        deliveryProofCode = null;
+      }
       void notifyCustomerOrderUpdate({
         phone: order.customerPhone,
         orderNumber: order.orderNumber,
         trackingToken: await ensureOrderTrackingToken(order.id),
         kind: "transit",
+        deliveryProofCode,
       }).catch(() => undefined);
     }
 

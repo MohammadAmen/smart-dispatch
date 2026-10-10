@@ -25,6 +25,8 @@ export interface DriverStop {
   point: LatLngTuple | null;
 }
 
+export type DriverDeliveryProofMode = "NONE" | "OTP" | "PHOTO" | "BOTH";
+
 export interface DriverAssignment {
   orderId: string;
   orderNumber: string;
@@ -41,6 +43,8 @@ export interface DriverAssignment {
   expectedEarnings: number;
   offeredAt: string | null;
   acceptedAt: string | null;
+  /** Platform delivery-proof policy (OTP / photo). Never exposes the OTP itself. */
+  deliveryProofMode: DriverDeliveryProofMode;
 }
 
 export interface DriverSessionResponse {

@@ -62,6 +62,39 @@ enum RouteStatus {
   COMPLETED
 }
 
+enum WalletEntryType {
+  DELIVERY_EARNING
+  CASH_COLLECTED
+  BONUS
+  FAULT_DEDUCTION
+  SETTLEMENT
+  DEPOSIT
+  DEPOSIT_REFUND
+  RISK_BUFFER
+  ADJUSTMENT
+}
+
+enum DisputeFaultParty {
+  DRIVER
+  STORE
+  PLATFORM
+  CUSTOMER
+  FORCE_MAJEURE
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+enum DeliveryProofMode {
+  NONE
+  OTP
+  PHOTO
+  BOTH
+}
+
 model User {
   id           String   @id @default(uuid())
   name         String
@@ -95,12 +128,23 @@ model Driver {
   longitude   Float?
   lastActive  DateTime     @updatedAt
 
+  /// Refundable security deposit paid at onboarding.
+  securityDeposit           Float     @default(0)
+  securityDepositPaidAt     DateTime?
+  securityDepositRefundedAt DateTime?
+  /// Optional per-driver cash ceiling; null = platform default.
+  cashLimitOverride         Float?
+  /// Set when held COD exceeds the cash limit (blocks new offers).
+  cashBlockedAt             DateTime?
+
   orders  Order[]
   vehicle Vehicle?
   routes  Route[]
+  walletLedger DriverWalletLedger[]
 
   @@index([latitude, longitude])
   @@index([status])
+  @@index([cashBlockedAt])
   @@map("drivers")
 }
 
@@ -229,10 +273,17 @@ model Order {
   offeredAt         DateTime?
   driverAcceptedAt  DateTime?
 
+  /// Customer-facing delivery confirmation code (OTP), set at financial lock.
+  deliveryProofCode       String?   @db.VarChar(8)
+  deliveryProofPhotoUrl   String?   @db.VarChar(2048)
+  deliveryProofVerifiedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   auditLogs AuditLog[]
+  financial OrderFinancial?
+  disputes  OrderDispute[]
 
   @@index([deliveryLat, deliveryLng])
   @@index([status])
@@ -349,6 +400,8 @@ model Store {
   longitude   Float?
   rating      Float     @default(0)
   active      Boolean   @default(true)
+  /// Per-store commission % locked into OrderFinancial at order create time.
+  commissionPercentage Float @default(15)
   ownerId     String?
   owner       User?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
@@ -581,7 +634,72 @@ model AppConfig {
   id                      String   @id @default("default")
   menuHeaderBackgroundUrl String?  @map("menuHeaderBackgroundUrl") @db.VarChar(2048)
   deliveryTiersJson       String?  @map("deliveryTiersJson") @db.Text
+  /// JSON blob for finance governance defaults (deposit, cash limit, risk buffer, proof mode).
+  financeJson             String?  @map("financeJson") @db.Text
   updatedAt               DateTime @updatedAt
 
   @@map("app_config")
+}
+
+/** Immutable financial snapshot locked when the order is created. */
+model OrderFinancial {
+  id                   String   @id @default(uuid())
+  orderId              String   @unique
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storeId              String?
+  itemsSubtotal        Float    @default(0)
+  deliveryFee          Float    @default(0)
+  codAmount            Float    @default(0)
+  commissionPercentage Float    @default(0)
+  commissionAmount     Float    @default(0)
+  storeNetAmount       Float    @default(0)
+  platformGrossAmount  Float    @default(0)
+  riskBufferAmount     Float    @default(0)
+  platformNetAmount    Float    @default(0)
+  driverEarning        Float    @default(0)
+  lockedAt             DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([lockedAt])
+  @@map("order_financials")
+}
+
+/** Append-only driver wallet ledger. */
+model DriverWalletLedger {
+  id        String          @id @default(uuid())
+  driverId  String
+  driver    Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  orderId   String?
+  type      WalletEntryType
+  amount    Float
+  note      String?         @db.VarChar(500)
+  createdAt DateTime        @default(now())
+
+  @@index([driverId, createdAt])
+  @@index([orderId])
+  @@index([type])
+  @@map("driver_wallet_ledger")
+}
+
+/** Fault / dispute cases with financial resolution trail. */
+model OrderDispute {
+  id             String            @id @default(uuid())
+  orderId        String
+  order          Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  faultParty     DisputeFaultParty
+  status         DisputeStatus     @default(OPEN)
+  reason         String            @db.VarChar(500)
+  mealCost       Float             @default(0)
+  resolutionNote String?           @db.VarChar(500)
+  createdById    String?
+  resolvedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([faultParty])
+  @@map("order_disputes")
 }

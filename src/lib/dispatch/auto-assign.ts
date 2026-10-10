@@ -81,7 +81,7 @@ async function loadAvailableDrivers(): Promise<CandidateDriver[]> {
     },
   });
 
-  return rows.flatMap((row) => {
+  const candidates = rows.flatMap((row) => {
     if (row.latitude == null || row.longitude == null) {
       return [];
     }
@@ -96,6 +96,15 @@ async function loadAvailableDrivers(): Promise<CandidateDriver[]> {
       },
     ];
   });
+
+  // Soft cash-limit filter (additive) — never throws if finance tables are mid-migrate.
+  try {
+    const { filterDriversUnderCashLimit } = await import("@/lib/finance/service");
+    const allowed = new Set(await filterDriversUnderCashLimit(candidates.map((row) => row.id)));
+    return candidates.filter((row) => allowed.has(row.id));
+  } catch {
+    return candidates;
+  }
 }
 
 const QUOTE_STATUSES: OrderStatus[] = ["PENDING_QUOTE", "QUOTE_ACCEPTED"];

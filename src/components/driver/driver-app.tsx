@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { AssignmentCard } from "@/components/driver/assignment-card";
+import { DeliveryProofSheet } from "@/components/driver/delivery-proof-sheet";
 import { DriverActionBar, type DriverActionKind } from "@/components/driver/driver-action-bar";
 import { DriverIdle } from "@/components/driver/driver-idle";
 import { DriverMiniMap } from "@/components/driver/driver-mini-map";
@@ -49,6 +50,8 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
   const [busy, setBusy] = useState(false);
+  const [proofOpen, setProofOpen] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
 
   useDriverGeolocation();
 
@@ -243,6 +246,29 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
     [acceptAssignment, clearAssignment, enqueue, hydrate, locationPayload, setDutyStatus],
   );
 
+  const completeDelivery = useCallback(
+    async (proof: { otp: string; photoUrl: string | null }): Promise<void> => {
+      const current = useDriverStore.getState().assignment;
+      if (!current) {
+        return;
+      }
+      await enqueue({
+        type: "ORDER_DELIVERED",
+        entityId: current.orderNumber,
+        payload: {
+          ...locationPayload(),
+          ...(proof.otp ? { deliveryProofOtp: proof.otp } : {}),
+          ...(proof.photoUrl ? { deliveryProofPhotoUrl: proof.photoUrl } : {}),
+        },
+      });
+      playDeliverySuccessSound();
+      clearAssignment();
+      setProofOpen(false);
+      setProofError(null);
+    },
+    [clearAssignment, enqueue, locationPayload],
+  );
+
   const onAction = useCallback(
     async (kind: DriverActionKind): Promise<void> => {
       const current = useDriverStore.getState().assignment;
@@ -255,29 +281,97 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         return;
       }
 
-      setBusy(true);
-      try {
-        if (kind === "inTransit") {
+      if (kind === "inTransit") {
+        setBusy(true);
+        try {
           await enqueue({
             type: "ORDER_IN_TRANSIT",
             entityId: current.orderNumber,
             payload: locationPayload(),
           });
-          return;
+        } finally {
+          setBusy(false);
         }
+        return;
+      }
 
-        await enqueue({
-          type: "ORDER_DELIVERED",
-          entityId: current.orderNumber,
-          payload: locationPayload(),
-        });
-        playDeliverySuccessSound();
-        clearAssignment();
+      const mode = current.deliveryProofMode ?? "NONE";
+      if (mode !== "NONE") {
+        setProofError(null);
+        setProofOpen(true);
+        return;
+      }
+
+      setBusy(true);
+      try {
+        await completeDelivery({ otp: "", photoUrl: null });
       } finally {
         setBusy(false);
       }
     },
-    [clearAssignment, enqueue, locationPayload, respondToOffer],
+    [completeDelivery, enqueue, locationPayload, respondToOffer],
+  );
+
+  const onProofConfirm = useCallback(
+    async (input: { otp: string; photo: File | null }): Promise<void> => {
+      const current = useDriverStore.getState().assignment;
+      if (!current || !driverId) {
+        return;
+      }
+      setBusy(true);
+      setProofError(null);
+      try {
+        const form = new FormData();
+        form.set("orderId", current.orderId);
+        form.set("driverId", driverId);
+        if (input.otp) {
+          form.set("otp", input.otp);
+        }
+        if (input.photo) {
+          form.set("photo", input.photo);
+        }
+        if (!navigator.onLine) {
+          // Offline: queue with OTP; server re-validates on sync.
+          if ((current.deliveryProofMode === "PHOTO" || current.deliveryProofMode === "BOTH") && !input.photo) {
+            setProofError(t("driver.proofPhotoRequired"));
+            return;
+          }
+          await completeDelivery({ otp: input.otp, photoUrl: null });
+          return;
+        }
+
+        const response = await fetch("/api/driver/delivery-proof", {
+          method: "POST",
+          body: form,
+        });
+        const body = (await response.json()) as { ok?: boolean; error?: string; photoUrl?: string };
+        if (!response.ok || !body.ok) {
+          const code = body.error ?? "proof-failed";
+          setProofError(
+            code === "invalid-otp"
+              ? t("driver.proofInvalidOtp")
+              : code === "photo-required"
+                ? t("driver.proofPhotoRequired")
+                : t("driver.proofFailed"),
+          );
+          return;
+        }
+        await completeDelivery({
+          otp: input.otp,
+          photoUrl: body.photoUrl ?? null,
+        });
+      } catch {
+        // Network blip: still queue OTP for later server validation.
+        if (input.otp || current.deliveryProofMode === "NONE") {
+          await completeDelivery({ otp: input.otp, photoUrl: null });
+          return;
+        }
+        setProofError(t("driver.proofFailed"));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [completeDelivery, driverId, t],
   );
 
   if (access.kind === "unassigned") {
@@ -381,6 +475,27 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
           />
         ) : null}
       </AnimatePresence>
+
+      {proofOpen && visibleAssignment ? (
+        <>
+          <DeliveryProofSheet
+            mode={visibleAssignment.deliveryProofMode ?? "NONE"}
+            busy={busy}
+            onCancel={() => {
+              setProofOpen(false);
+              setProofError(null);
+            }}
+            onConfirm={(input) => {
+              void onProofConfirm(input);
+            }}
+          />
+          {proofError ? (
+            <p className="fixed inset-x-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[60] rounded-2xl border border-destructive/40 bg-destructive px-4 py-3 text-center text-sm font-medium text-destructive-foreground shadow-lg">
+              {proofError}
+            </p>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }

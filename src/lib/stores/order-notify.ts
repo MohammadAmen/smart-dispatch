@@ -11,6 +11,8 @@ export async function notifyCustomerOrderUpdate(input: {
   kind: "placed" | "ready" | "transit" | "canceled" | "custom_placed" | "quoted" | "scheduled";
   reason?: string;
   quotedPrice?: number;
+  /** OTP the customer must give the driver on delivery (when policy requires it). */
+  deliveryProofCode?: string | null;
 }): Promise<void> {
   const trackingUrl = input.trackingToken
     ? customerOrderTrackingUrl(input.trackingToken)
@@ -72,6 +74,13 @@ export async function notifyCustomerOrderUpdate(input: {
           : [
               `طلبك ${input.orderNumber} في الطريق إليك الآن مع ${BRAND_NAME}.`,
               `Your order ${input.orderNumber} is on the way with ${BRAND_NAME}.`,
+              ...(input.deliveryProofCode
+                ? [
+                    `رمز تأكيد التسليم / Delivery code: ${input.deliveryProofCode}`,
+                    "أعطِ الرمز للمندوب عند الاستلام.",
+                    "Give this code to the driver on delivery.",
+                  ]
+                : []),
               ...trackingLines,
               ...brandFooter,
             ];

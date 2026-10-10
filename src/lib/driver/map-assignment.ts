@@ -1,5 +1,11 @@
 import type { OrderStatus } from "@/generated/prisma/enums";
-import type { DriverAssignment, DriverJobStatus, DriverOrderItem, DriverStop } from "@/lib/driver/types";
+import type {
+  DriverAssignment,
+  DriverDeliveryProofMode,
+  DriverJobStatus,
+  DriverOrderItem,
+  DriverStop,
+} from "@/lib/driver/types";
 import type { LocalizedText } from "@/lib/localized";
 import type { LatLngTuple } from "@/lib/live-map";
 
@@ -23,6 +29,7 @@ export interface AssignmentExtras {
   stops?: DriverStop[];
   storeName?: string | null;
   distanceKm?: number | null;
+  deliveryProofMode?: DriverDeliveryProofMode;
 }
 
 function customerNameFromPhone(phone: string): LocalizedText {
@@ -87,5 +94,6 @@ export function toDriverAssignment(order: AssignmentRow, extras: AssignmentExtra
     expectedEarnings: Number.isFinite(order.deliveryFee) ? Math.max(0, Number(order.deliveryFee)) : 0,
     offeredAt: order.offeredAt ? order.offeredAt.toISOString() : null,
     acceptedAt: order.driverAcceptedAt ? order.driverAcceptedAt.toISOString() : null,
+    deliveryProofMode: extras.deliveryProofMode ?? "NONE",
   };
 }

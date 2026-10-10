@@ -112,6 +112,14 @@ async function loadSession(driverId: string | null): Promise<DriverSessionRespon
         ? roundDistanceKm(calculateDistance(driverLat, driverLng, anchorLat, anchorLng), 1)
         : null;
 
+    let deliveryProofMode: AssignmentExtras["deliveryProofMode"] = "NONE";
+    try {
+      const { getDeliveryProofRequirement } = await import("@/lib/finance/service");
+      deliveryProofMode = await getDeliveryProofRequirement();
+    } catch {
+      deliveryProofMode = "NONE";
+    }
+
     let extras: AssignmentExtras = {
       items: active.items.map((item) => ({
         name: { ar: item.name, en: item.name },
@@ -119,6 +127,7 @@ async function loadSession(driverId: string | null): Promise<DriverSessionRespon
       })),
       storeName: active.store?.name ?? null,
       distanceKm: Number.isFinite(distanceKm) ? distanceKm : null,
+      deliveryProofMode,
     };
 
     if (active.bundleRole === "PARENT") {
@@ -142,6 +151,7 @@ async function loadSession(driverId: string | null): Promise<DriverSessionRespon
         ),
         storeName: children.find((child) => child.store?.name)?.store?.name ?? extras.storeName,
         distanceKm: extras.distanceKm,
+        deliveryProofMode,
         stops: [
           ...children.map((child) => ({
             kind: "pickup" as const,
