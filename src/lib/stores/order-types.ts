@@ -28,6 +28,8 @@ export interface VendorOrderRecord {
   storeCity?: string | null;
   receiptFooterNote?: string | null;
   trackingToken: string | null;
+  /** Customer delivery OTP — only populated for the order owner via tracking token. */
+  deliveryProofCode?: string | null;
   storeNotes: string | null;
   orderType: "STANDARD" | "SPECIAL_CUSTOM";
   customImage: string | null;

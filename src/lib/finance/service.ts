@@ -155,21 +155,65 @@ export async function lockOrderFinancial(orderId: string): Promise<void> {
   await ensureOrderDeliveryProofCode(order.id);
 }
 
-/** Idempotent OTP seed for delivery confirmation. */
+/** Idempotent OTP seed for delivery confirmation (raw SQL — survives mid-migrate clients). */
 export async function ensureOrderDeliveryProofCode(orderId: string): Promise<string | null> {
   await ensureFinanceSchema();
   try {
-    const existing = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: { deliveryProofCode: true },
-    });
-    if (existing?.deliveryProofCode) {
-      return existing.deliveryProofCode;
+    const existing = await prisma.$queryRaw<{ deliveryProofCode: string | null }[]>`
+      SELECT "deliveryProofCode"
+      FROM orders
+      WHERE id = ${orderId}
+      LIMIT 1
+    `;
+    const current = existing[0]?.deliveryProofCode?.trim() ?? "";
+    if (current) {
+      return current;
     }
     const code = generateDeliveryOtp();
-    await prisma.order.update({
+    await prisma.$executeRaw`
+      UPDATE orders
+      SET "deliveryProofCode" = ${code}
+      WHERE id = ${orderId}
+        AND ("deliveryProofCode" IS NULL OR "deliveryProofCode" = '')
+    `;
+    const again = await prisma.$queryRaw<{ deliveryProofCode: string | null }[]>`
+      SELECT "deliveryProofCode"
+      FROM orders
+      WHERE id = ${orderId}
+      LIMIT 1
+    `;
+    return again[0]?.deliveryProofCode?.trim() || code;
+  } catch {
+    return null;
+  }
+}
+
+/** Generate OTP (if policy requires) and WhatsApp it to the customer. */
+export async function sendDeliveryProofCodeToCustomer(orderId: string): Promise<string | null> {
+  try {
+    const mode = await getDeliveryProofRequirement();
+    if (mode !== "OTP" && mode !== "BOTH") {
+      return null;
+    }
+    const code = await ensureOrderDeliveryProofCode(orderId);
+    if (!code) {
+      return null;
+    }
+    const order = await prisma.order.findUnique({
       where: { id: orderId },
-      data: { deliveryProofCode: code },
+      select: { customerPhone: true, orderNumber: true, trackingToken: true },
+    });
+    if (!order?.customerPhone) {
+      return code;
+    }
+    const { notifyCustomerOrderUpdate } = await import("@/lib/stores/order-notify");
+    const { ensureOrderTrackingToken } = await import("@/lib/stores/order-token");
+    await notifyCustomerOrderUpdate({
+      phone: order.customerPhone,
+      orderNumber: order.orderNumber,
+      trackingToken: order.trackingToken ?? (await ensureOrderTrackingToken(orderId)),
+      kind: "transit",
+      deliveryProofCode: code,
     });
     return code;
   } catch {

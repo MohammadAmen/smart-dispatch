@@ -1083,6 +1083,8 @@
     "viewReceipt": "View receipt",
     "receiptTitle": "Order receipt",
     "trackSubtitle": "Only the orders saved on this device appear here. Use your private tracking link — no phone number required.",
+    "deliveryCodeTitle": "Delivery confirmation code",
+    "deliveryCodeHint": "Give this code to the courier on delivery to complete the order.",
     "trackEmpty": "No saved orders on this device. Place an order from the menu or open the tracking link sent on WhatsApp.",
     "trackLookup": "Show orders",
     "trackOrder": "Order number (optional)",

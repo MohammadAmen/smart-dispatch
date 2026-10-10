@@ -56,6 +56,7 @@ interface OrderRow {
   storeCity?: string | null;
   receiptFooterNote?: string | null;
   trackingToken: string | null;
+  deliveryProofCode?: string | null;
   storeNotes: string | null;
   bundleRole: string | null;
   orderType: string | null;
@@ -101,6 +102,7 @@ function serializeVendorOrder(
     storeCity: row.storeCity ?? null,
     receiptFooterNote: row.receiptFooterNote ?? null,
     trackingToken: row.trackingToken,
+    deliveryProofCode: row.deliveryProofCode ?? null,
     storeNotes: row.storeNotes,
     orderType: row.orderType === "SPECIAL_CUSTOM" ? "SPECIAL_CUSTOM" : "STANDARD",
     customImage: row.customImage,
@@ -614,45 +616,115 @@ export async function getPublicOrdersByTokens(tokens: string[]): Promise<VendorO
     ", ",
   );
 
-  const rows = await prisma.$queryRaw<OrderRow[]>`
-    SELECT
-      o.id,
-      o."orderNumber",
-      CAST(o.status AS TEXT) AS status,
-      o."customerPhone",
-      o."addressText",
-      o."createdAt",
-      o."cancelReason",
-      o."trackingToken",
-      o."storeNotes",
-      COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
-      COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
-      o."customImage",
-      o."customNotes",
-      o."scheduledDate",
-      o."quotedPrice",
-      o."deliveryFee",
-      COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
-      o."tableLabel",
-      u.name AS "customerName",
-      du.name AS "driverName",
-      du.phone AS "driverPhone",
-      s.phone AS "storePhone",
-      s.name AS "storeName",
-      s."logoUrl" AS "storeLogoUrl",
-      s.address AS "storeAddress",
-      s.city AS "storeCity",
-      s."receiptFooterNote" AS "receiptFooterNote"
-    FROM orders o
-    LEFT JOIN users u ON u.id = o."customerId"
-    LEFT JOIN drivers d ON d.id = o."driverId"
-    LEFT JOIN users du ON du.id = d."userId"
-    LEFT JOIN stores s ON s.id = o."storeId"
-    WHERE o."trackingToken" IN (${tokenList})
-      AND COALESCE(o."bundleRole", 'SINGLE') <> 'CHILD'
-    ORDER BY o."createdAt" DESC
-    LIMIT 40
-  `;
+  let rows: OrderRow[];
+  try {
+    rows = await prisma.$queryRaw<OrderRow[]>`
+      SELECT
+        o.id,
+        o."orderNumber",
+        CAST(o.status AS TEXT) AS status,
+        o."customerPhone",
+        o."addressText",
+        o."createdAt",
+        o."cancelReason",
+        o."trackingToken",
+        o."deliveryProofCode",
+        o."storeNotes",
+        COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
+        COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
+        o."customImage",
+        o."customNotes",
+        o."scheduledDate",
+        o."quotedPrice",
+        o."deliveryFee",
+        COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+        o."tableLabel",
+        u.name AS "customerName",
+        du.name AS "driverName",
+        du.phone AS "driverPhone",
+        s.phone AS "storePhone",
+        s.name AS "storeName",
+        s."logoUrl" AS "storeLogoUrl",
+        s.address AS "storeAddress",
+        s.city AS "storeCity",
+        s."receiptFooterNote" AS "receiptFooterNote"
+      FROM orders o
+      LEFT JOIN users u ON u.id = o."customerId"
+      LEFT JOIN drivers d ON d.id = o."driverId"
+      LEFT JOIN users du ON du.id = d."userId"
+      LEFT JOIN stores s ON s.id = o."storeId"
+      WHERE o."trackingToken" IN (${tokenList})
+        AND COALESCE(o."bundleRole", 'SINGLE') <> 'CHILD'
+      ORDER BY o."createdAt" DESC
+      LIMIT 40
+    `;
+  } catch {
+    rows = await prisma.$queryRaw<OrderRow[]>`
+      SELECT
+        o.id,
+        o."orderNumber",
+        CAST(o.status AS TEXT) AS status,
+        o."customerPhone",
+        o."addressText",
+        o."createdAt",
+        o."cancelReason",
+        o."trackingToken",
+        o."storeNotes",
+        COALESCE(o."bundleRole", 'SINGLE') AS "bundleRole",
+        COALESCE(CAST(o."orderType" AS TEXT), 'STANDARD') AS "orderType",
+        o."customImage",
+        o."customNotes",
+        o."scheduledDate",
+        o."quotedPrice",
+        o."deliveryFee",
+        COALESCE(o."fulfillment", 'DELIVERY') AS fulfillment,
+        o."tableLabel",
+        u.name AS "customerName",
+        du.name AS "driverName",
+        du.phone AS "driverPhone",
+        s.phone AS "storePhone",
+        s.name AS "storeName",
+        s."logoUrl" AS "storeLogoUrl",
+        s.address AS "storeAddress",
+        s.city AS "storeCity",
+        s."receiptFooterNote" AS "receiptFooterNote"
+      FROM orders o
+      LEFT JOIN users u ON u.id = o."customerId"
+      LEFT JOIN drivers d ON d.id = o."driverId"
+      LEFT JOIN users du ON du.id = d."userId"
+      LEFT JOIN stores s ON s.id = o."storeId"
+      WHERE o."trackingToken" IN (${tokenList})
+        AND COALESCE(o."bundleRole", 'SINGLE') <> 'CHILD'
+      ORDER BY o."createdAt" DESC
+      LIMIT 40
+    `;
+  }
+
+  // Seed OTP for active deliveries so the tracking page always has a code even if WhatsApp failed.
+  try {
+    const { ensureOrderDeliveryProofCode, getDeliveryProofRequirement } = await import(
+      "@/lib/finance/service"
+    );
+    const mode = await getDeliveryProofRequirement();
+    if (mode === "OTP" || mode === "BOTH") {
+      await Promise.all(
+        rows
+          .filter((row) => row.status === "ASSIGNED" || row.status === "IN_TRANSIT")
+          .map(async (row) => {
+            if (row.deliveryProofCode) {
+              return;
+            }
+            const code = await ensureOrderDeliveryProofCode(row.id);
+            if (code) {
+              row.deliveryProofCode = code;
+            }
+          }),
+      );
+    }
+  } catch {
+    // Non-blocking.
+  }
+
   return attachPublicBundleItems(rows);
 }
 

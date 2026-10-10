@@ -189,25 +189,30 @@ async function persistAction(action: QueuedAction): Promise<void> {
         where: { id: order.driverId },
         data: { status: "BUSY" },
       });
-      let deliveryProofCode: string | null = null;
+      // Must await — fire-and-forget dies when the sync request ends (serverless).
       try {
-        const { ensureOrderDeliveryProofCode, getDeliveryProofRequirement } = await import(
-          "@/lib/finance/service"
-        );
-        const mode = await getDeliveryProofRequirement();
-        if (mode === "OTP" || mode === "BOTH") {
-          deliveryProofCode = await ensureOrderDeliveryProofCode(order.id);
+        const { sendDeliveryProofCodeToCustomer } = await import("@/lib/finance/service");
+        const sent = await sendDeliveryProofCodeToCustomer(order.id);
+        if (!sent) {
+          await notifyCustomerOrderUpdate({
+            phone: order.customerPhone,
+            orderNumber: order.orderNumber,
+            trackingToken: await ensureOrderTrackingToken(order.id),
+            kind: "transit",
+          });
         }
       } catch {
-        deliveryProofCode = null;
+        try {
+          await notifyCustomerOrderUpdate({
+            phone: order.customerPhone,
+            orderNumber: order.orderNumber,
+            trackingToken: await ensureOrderTrackingToken(order.id),
+            kind: "transit",
+          });
+        } catch {
+          // WhatsApp may be offline — tracking page still shows OTP when available.
+        }
       }
-      void notifyCustomerOrderUpdate({
-        phone: order.customerPhone,
-        orderNumber: order.orderNumber,
-        trackingToken: await ensureOrderTrackingToken(order.id),
-        kind: "transit",
-        deliveryProofCode,
-      }).catch(() => undefined);
     }
 
     if (nextStatus === "DELIVERED") {
