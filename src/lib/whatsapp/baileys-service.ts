@@ -96,8 +96,10 @@ export async function sendWhatsAppText(phone: string, text: string): Promise<boo
     return false;
   }
 
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 8) {
+  const { whatsappDigits } = await import("@/lib/stores/whatsapp-link");
+  const digits = whatsappDigits(phone);
+  if (!digits || digits.length < 8) {
+    logger.warn({ phone }, "WhatsApp send skipped: invalid phone digits");
     return false;
   }
 
@@ -105,7 +107,7 @@ export async function sendWhatsAppText(phone: string, text: string): Promise<boo
     await sock.sendMessage(`${digits}@s.whatsapp.net`, { text });
     return true;
   } catch (error) {
-    logger.error({ err: error, phone }, "Failed to send outbound WhatsApp text");
+    logger.error({ err: error, phone, digits }, "Failed to send outbound WhatsApp text");
     return false;
   }
 }

@@ -2,6 +2,7 @@ import {
   isValidLatitude,
   isValidLongitude,
 } from "@/lib/geo";
+import { whatsappDigits } from "@/lib/stores/whatsapp-link";
 
 export type WhatsAppInboundType = "text" | "location" | "voice" | "unknown";
 
@@ -47,8 +48,20 @@ function asNumber(value: unknown): number | null {
 }
 
 export function normalizePhone(from: string): string {
+  // Prefer Syria-aware digit normalization (09xxxxxxxx → +9639xxxxxxxx).
+  // Plain "+0..." is invalid for WhatsApp and silently drops outbound messages.
+  const { whatsappDigits } = require("@/lib/stores/whatsapp-link") as typeof import("@/lib/stores/whatsapp-link");
+  const digits = whatsappDigits(from);
+  if (digits) {
+    return `+${digits}`;
+  }
+
   const compact = from.replace(/[^\d+]/g, "");
   if (compact.startsWith("+")) {
+    // Strip the illegal trunk zero: +0961… → +961…
+    if (compact.startsWith("+0") && compact.length > 3) {
+      return `+${compact.slice(2)}`;
+    }
     return compact;
   }
 
