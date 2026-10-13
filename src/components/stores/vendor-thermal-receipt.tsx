@@ -258,9 +258,12 @@ export function VendorThermalReceipt({
 export function CustomerReceiptPreview({
   order,
   onClose,
+  fullscreen = false,
 }: {
   order: VendorOrderRecord;
   onClose: () => void;
+  /** Edge-to-edge invoice after successful delivery confirmation. */
+  fullscreen?: boolean;
 }): ReactNode {
   const { t, locale } = useLocale();
   const [qr, setQr] = useState<string | null>(null);
@@ -313,15 +316,35 @@ export function CustomerReceiptPreview({
   }, [order.trackingToken]);
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
-        aria-label={t("common.close")}
-        onClick={onClose}
-      />
-      <div className="relative z-10 flex max-h-[min(92dvh,820px)] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-slate-200/80 bg-[#faf8f4] shadow-[0_28px_80px_-28px_rgba(15,23,42,0.55)] sm:rounded-[1.75rem]">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3.5 backdrop-blur-md">
+    <div
+      className={
+        fullscreen
+          ? "fixed inset-0 z-[230] flex flex-col bg-[#f4f1ea]"
+          : "fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-4"
+      }
+    >
+      {!fullscreen ? (
+        <button
+          type="button"
+          className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+          aria-label={t("common.close")}
+          onClick={onClose}
+        />
+      ) : null}
+      <div
+        className={
+          fullscreen
+            ? "relative z-10 flex h-full min-h-0 w-full flex-col bg-[#faf8f4]"
+            : "relative z-10 flex max-h-[min(92dvh,820px)] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-slate-200/80 bg-[#faf8f4] shadow-[0_28px_80px_-28px_rgba(15,23,42,0.55)] sm:rounded-[1.75rem]"
+        }
+      >
+        <header
+          className={
+            fullscreen
+              ? "flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/70 bg-white/95 px-4 pt-[max(0.85rem,env(safe-area-inset-top))] pb-3.5 backdrop-blur-md"
+              : "flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3.5 backdrop-blur-md"
+          }
+        >
           <div className="min-w-0">
             <p className="font-heading text-lg font-bold tracking-tight text-slate-900">
               {t("menu.receiptTitle")}
@@ -340,8 +363,20 @@ export function CustomerReceiptPreview({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5">
-          <article className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm">
+        <div
+          className={
+            fullscreen
+              ? "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8"
+              : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5"
+          }
+        >
+          <article
+            className={
+              fullscreen
+                ? "mx-auto w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)]"
+                : "overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm"
+            }
+          >
             {/* Store brand */}
             <div className="border-b border-slate-100 bg-linear-to-b from-slate-50 to-white px-5 pb-4 pt-5 text-center">
               {order.storeLogoUrl ? (

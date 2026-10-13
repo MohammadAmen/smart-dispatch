@@ -303,10 +303,13 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
   );
 
   const completeDelivery = useCallback(
-    async (proof: { otp: string; photoUrl: string | null }): Promise<void> => {
+    async (
+      proof: { otp: string; photoUrl: string | null },
+      options?: { keepAssignment?: boolean },
+    ): Promise<boolean> => {
       const current = useDriverStore.getState().assignment;
       if (!current) {
-        return;
+        return false;
       }
       await enqueue({
         type: "ORDER_DELIVERED",
@@ -318,9 +321,12 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         },
       });
       playDeliverySuccessSound();
-      clearAssignment();
-      setProofOpen(false);
+      if (!options?.keepAssignment) {
+        clearAssignment();
+        setProofOpen(false);
+      }
       setProofError(null);
+      return true;
     },
     [clearAssignment, enqueue, locationPayload],
   );
@@ -369,10 +375,10 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
   );
 
   const onProofConfirm = useCallback(
-    async (input: { otp: string; photo: File | null }): Promise<void> => {
+    async (input: { otp: string; photo: File | null }): Promise<boolean> => {
       const current = useDriverStore.getState().assignment;
       if (!current || !driverId) {
-        return;
+        return false;
       }
       setBusy(true);
       setProofError(null);
@@ -387,13 +393,11 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
           form.set("photo", input.photo);
         }
         if (!navigator.onLine) {
-          // Offline: queue with OTP; server re-validates on sync.
           if ((current.deliveryProofMode === "PHOTO" || current.deliveryProofMode === "BOTH") && !input.photo) {
             setProofError(t("driver.proofPhotoRequired"));
-            return;
+            return false;
           }
-          await completeDelivery({ otp: input.otp, photoUrl: null });
-          return;
+          return completeDelivery({ otp: input.otp, photoUrl: null }, { keepAssignment: true });
         }
 
         const response = await fetch("/api/driver/delivery-proof", {
@@ -410,19 +414,18 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
                 ? t("driver.proofPhotoRequired")
                 : t("driver.proofFailed"),
           );
-          return;
+          return false;
         }
-        await completeDelivery({
-          otp: input.otp,
-          photoUrl: body.photoUrl ?? null,
-        });
+        return completeDelivery(
+          { otp: input.otp, photoUrl: body.photoUrl ?? null },
+          { keepAssignment: true },
+        );
       } catch {
-        // Network blip: still queue OTP for later server validation.
         if (input.otp || current.deliveryProofMode === "NONE") {
-          await completeDelivery({ otp: input.otp, photoUrl: null });
-          return;
+          return completeDelivery({ otp: input.otp, photoUrl: null }, { keepAssignment: true });
         }
         setProofError(t("driver.proofFailed"));
+        return false;
       } finally {
         setBusy(false);
       }
@@ -546,8 +549,11 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
             setProofOpen(false);
             setProofError(null);
           }}
-          onConfirm={(input) => {
-            void onProofConfirm(input);
+          onConfirm={onProofConfirm}
+          onDone={() => {
+            clearAssignment();
+            setProofOpen(false);
+            setProofError(null);
           }}
         />
       ) : null}

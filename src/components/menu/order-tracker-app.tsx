@@ -24,6 +24,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { BrandMark } from "@/components/brand/brand-mark";
 import { DeliveryProofQrCard } from "@/components/menu/delivery-proof-qr-card";
+import { DeliverySuccessOverlay } from "@/components/menu/delivery-success-overlay";
 import { useLocale } from "@/components/providers/locale-provider";
 import { CustomerReceiptPreview } from "@/components/stores/vendor-thermal-receipt";
 import { Button } from "@/components/ui/button";
@@ -356,9 +357,12 @@ function TrackingCard({
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptFullscreen, setReceiptFullscreen] = useState(false);
+  const [celebrateOpen, setCelebrateOpen] = useState(false);
   const [askCancel, setAskCancel] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const prevStatusRef = useRef(order.status);
   const canceled = order.status === "CANCELED";
   const activeIndex = trackingStepIndex(order.status);
   const token = order.trackingToken;
@@ -379,6 +383,14 @@ function TrackingCard({
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = order.status;
+    if (prev !== "DELIVERED" && order.status === "DELIVERED") {
+      setCelebrateOpen(true);
+    }
+  }, [order.status]);
 
   const cancelOrder = async (): Promise<void> => {
     if (!token) {
@@ -470,7 +482,10 @@ function TrackingCard({
         {canViewReceipt ? (
           <button
             type="button"
-            onClick={() => setReceiptOpen(true)}
+            onClick={() => {
+              setReceiptFullscreen(order.status === "DELIVERED");
+              setReceiptOpen(true);
+            }}
             className="col-span-2 inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/10 text-sm font-semibold text-primary"
           >
             <ReceiptText className="size-4" />
@@ -698,7 +713,27 @@ function TrackingCard({
           </a>
         ) : null}
       </div>
-      {receiptOpen ? <CustomerReceiptPreview order={order} onClose={() => setReceiptOpen(false)} /> : null}
+      {celebrateOpen ? (
+        <DeliverySuccessOverlay
+          orderNumber={order.orderNumber}
+          onClose={() => setCelebrateOpen(false)}
+          onViewInvoice={() => {
+            setCelebrateOpen(false);
+            setReceiptFullscreen(true);
+            setReceiptOpen(true);
+          }}
+        />
+      ) : null}
+      {receiptOpen ? (
+        <CustomerReceiptPreview
+          order={order}
+          fullscreen={receiptFullscreen}
+          onClose={() => {
+            setReceiptOpen(false);
+            setReceiptFullscreen(false);
+          }}
+        />
+      ) : null}
     </article>
   );
 }

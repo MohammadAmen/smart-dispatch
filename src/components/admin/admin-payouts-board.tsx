@@ -29,9 +29,30 @@ export function AdminPayoutsBoard({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [selected, setSelected] = useState<StorePayoutSettlementView | null>(
     settlements[0] ?? null,
   );
+
+  const settleErrorMessage = (code: string): string => {
+    switch (code) {
+      case "unauthorized":
+        return t("payouts.settleUnauthorized");
+      case "no-pending-payouts":
+        return t("payouts.settleNoPending");
+      case "store-not-found":
+        return t("payouts.settleStoreMissing");
+      case "settle-race":
+      case "settle-conflict":
+        return t("payouts.settleConflict");
+      case "schema-not-ready":
+        return t("payouts.settleSchema");
+      case "settle-fk":
+        return t("payouts.settleFk");
+      default:
+        return t("payouts.settleFailed");
+    }
+  };
 
   const totals = useMemo(() => {
     return {
@@ -65,18 +86,28 @@ export function AdminPayoutsBoard({
     signaturePlatform: t("payouts.signaturePlatform"),
     signatureMerchant: t("payouts.signatureMerchant"),
     generated: t("payouts.generated"),
+    qrVerify: t("payouts.qrVerify"),
   };
 
   const settle = (storeId: string): void => {
     startTransition(async () => {
+      setError(null);
+      setSuccess(null);
       const data = new FormData();
       data.set("storeId", storeId);
       const result = await settleStorePayoutAction(data);
       if (!result.ok) {
-        setError(result.error ?? t("payouts.settleFailed"));
+        setError(settleErrorMessage(result.error ?? "settle-failed"));
         return;
       }
-      setError(null);
+      if (result.settlement) {
+        setSelected(result.settlement);
+        setSuccess(
+          t("payouts.settleOk", { invoice: result.settlement.invoiceNumber }),
+        );
+      } else {
+        setSuccess(t("payouts.settleOkGeneric"));
+      }
       router.refresh();
     });
   };
@@ -94,7 +125,16 @@ export function AdminPayoutsBoard({
         }
       />
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+          {success}
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[

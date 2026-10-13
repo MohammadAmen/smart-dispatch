@@ -1,11 +1,10 @@
 "use client";
 
-import { FileText, Printer, Wallet } from "lucide-react";
+import { Eye, FileText, Wallet } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { PayoutInvoiceDocument } from "@/components/finance/payout-invoice-document";
 import { useLocale } from "@/components/providers/locale-provider";
-import { Button } from "@/components/ui/button";
 import { FadeIn } from "@/components/ui/fade-in";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -56,6 +55,7 @@ export function VendorPayoutsBoard({
       signaturePlatform: t("payouts.signaturePlatform"),
       signatureMerchant: t("payouts.signatureMerchant"),
       generated: t("payouts.generated"),
+      qrVerify: t("payouts.qrVerify"),
     }),
     [t],
   );
@@ -166,11 +166,9 @@ export function VendorPayoutsBoard({
         <div className="space-y-3">
           {selected ? (
             <>
-              <div className="no-print flex justify-end">
-                <Button onPress={() => window.print()}>
-                  <Printer data-icon="inline-start" />
-                  {t("payouts.printInvoice")}
-                </Button>
+              <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                <Eye className="size-3.5 shrink-0" />
+                {t("payouts.vendorPreviewOnly")}
               </div>
               <PayoutInvoiceDocument
                 company={company}

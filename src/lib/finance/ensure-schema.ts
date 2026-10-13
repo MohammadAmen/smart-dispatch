@@ -17,9 +17,6 @@ async function migrateFinanceSchema(): Promise<void> {
   await pgAddColumn("orders", "deliveryProofCode", "VARCHAR(8) NULL");
   await pgAddColumn("orders", "deliveryProofPhotoUrl", "VARCHAR(2048) NULL");
   await pgAddColumn("orders", "deliveryProofVerifiedAt", "TIMESTAMP(3) NULL");
-  await pgAddColumn("order_financials", "storePayoutSettlementId", "VARCHAR(36) NULL");
-  await pgAddColumn("order_financials", "storePayoutSettledAt", "TIMESTAMP(3) NULL");
-
   await prisma.$executeRawUnsafe(`
     DO $$ BEGIN
       CREATE TYPE "WalletEntryType" AS ENUM (
@@ -68,6 +65,10 @@ async function migrateFinanceSchema(): Promise<void> {
       CONSTRAINT order_financials_orderId_key UNIQUE ("orderId")
     )
   `);
+
+  // Additive columns after the base table exists (fresh DBs + legacy DBs).
+  await pgAddColumn("order_financials", "storePayoutSettlementId", "VARCHAR(36) NULL");
+  await pgAddColumn("order_financials", "storePayoutSettledAt", "TIMESTAMP(3) NULL");
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS driver_wallet_ledger (

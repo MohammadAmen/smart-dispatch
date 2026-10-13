@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { prisma } from "@/lib/db";
 import { ensureFinanceSchema } from "@/lib/finance/ensure-schema";
@@ -227,6 +227,18 @@ export async function settleStorePayout(input: {
     throw new Error("store-not-found");
   }
 
+  // AuditLog.userId has a real FK — invalid session.sub must not abort settlement.
+  let settledById: string | null = input.settledById?.trim() || null;
+  if (settledById) {
+    const actor = await prisma.user.findUnique({
+      where: { id: settledById },
+      select: { id: true },
+    });
+    if (!actor) {
+      settledById = null;
+    }
+  }
+
   const periodFrom = pending.reduce(
     (min, row) => (row.order.createdAt < min ? row.order.createdAt : min),
     pending[0].order.createdAt,
@@ -240,63 +252,99 @@ export async function settleStorePayout(input: {
   const netPayable = money(pending.reduce((sum, row) => sum + row.storeNetAmount, 0));
   const settledAt = new Date();
   const number = invoiceNumber();
+  const settlementId = randomUUID();
+  const pendingIds = pending.map((row) => row.id);
 
-  const settlement = await prisma.$transaction(async (tx) => {
-    const created = await tx.storePayoutSettlement.create({
-      data: {
-        invoiceNumber: number,
-        storeId: store.id,
-        periodFrom,
-        periodTo,
-        orderCount: pending.length,
-        grossSales,
-        commissionTotal,
-        netPayable,
-        note: input.note?.trim().slice(0, 500) || null,
-        settledAt,
-        settledById: input.settledById ?? null,
-        lines: {
-          create: pending.map((row) => ({
-            orderFinancialId: row.id,
-            orderId: row.orderId,
-            orderNumber: row.order.orderNumber,
-            itemsSubtotal: money(row.itemsSubtotal),
-            commissionPercentage: money(row.commissionPercentage),
-            commissionAmount: money(row.commissionAmount),
-            storeNetAmount: money(row.storeNetAmount),
-            orderCreatedAt: row.order.createdAt,
-          })),
-        },
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.storePayoutSettlement.create({
+          data: {
+            id: settlementId,
+            invoiceNumber: number,
+            storeId: store.id,
+            periodFrom,
+            periodTo,
+            orderCount: pending.length,
+            grossSales,
+            commissionTotal,
+            netPayable,
+            note: input.note?.trim().slice(0, 500) || null,
+            settledAt,
+            settledById,
+            updatedAt: settledAt,
+            lines: {
+              create: pending.map((row) => ({
+                id: randomUUID(),
+                orderFinancialId: row.id,
+                orderId: row.orderId,
+                orderNumber: row.order.orderNumber,
+                itemsSubtotal: money(row.itemsSubtotal),
+                commissionPercentage: money(row.commissionPercentage),
+                commissionAmount: money(row.commissionAmount),
+                storeNetAmount: money(row.storeNetAmount),
+                orderCreatedAt: row.order.createdAt,
+              })),
+            },
+          },
+        });
+
+        const marked = await tx.orderFinancial.updateMany({
+          where: {
+            id: { in: pendingIds },
+            storePayoutSettledAt: null,
+          },
+          data: {
+            storePayoutSettlementId: settlementId,
+            storePayoutSettledAt: settledAt,
+          },
+        });
+
+        if (marked.count !== pendingIds.length) {
+          throw new Error("settle-race");
+        }
       },
-    });
+      { maxWait: 10_000, timeout: 30_000 },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("store_payout") || message.includes("does not exist") || message.includes("P2021")) {
+      await ensureFinanceSchema();
+      throw new Error("schema-not-ready");
+    }
+    if (message.includes("Unique constraint") || message.includes("P2002")) {
+      throw new Error("settle-conflict");
+    }
+    if (message.includes("Foreign key") || message.includes("P2003")) {
+      throw new Error("settle-fk");
+    }
+    if (message === "settle-race" || message === "no-pending-payouts") {
+      throw error instanceof Error ? error : new Error(message);
+    }
+    throw new Error("settle-failed");
+  }
 
-    await tx.orderFinancial.updateMany({
-      where: { id: { in: pending.map((row) => row.id) } },
-      data: {
-        storePayoutSettlementId: created.id,
-        storePayoutSettledAt: settledAt,
-      },
-    });
-
-    await tx.auditLog.create({
+  try {
+    await prisma.auditLog.create({
       data: {
         orderId: pending[0].orderId,
-        userId: input.settledById ?? null,
+        userId: settledById,
         action: "STORE_PAYOUT_SETTLED",
         details: {
-          settlementId: created.id,
+          settlementId,
           invoiceNumber: number,
           storeId: store.id,
           orderCount: pending.length,
+          commissionTotal,
           netPayable,
         },
       },
     });
+  } catch {
+    // Settlement already committed — audit is best-effort.
+  }
 
-    return created;
-  });
-
-  return getStorePayoutSettlement(settlement.id);
+  return getStorePayoutSettlement(settlementId);
 }
 
 export async function getStorePayoutSettlement(

@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { CompanyProfile } from "@/lib/finance/company-profile";
+import { buildPayoutInvoiceQrPayload } from "@/lib/finance/payout-invoice-qr";
 import type { StorePayoutSettlementView } from "@/lib/finance/payouts";
 import { formatMoney } from "@/lib/stores/pricing";
 import { cn } from "@/lib/utils";
@@ -47,9 +48,48 @@ export function PayoutInvoiceDocument({
     signaturePlatform: string
     signatureMerchant: string
     generated: string
+    qrVerify: string
   }
   className?: string
 }): ReactNode {
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const payload = buildPayoutInvoiceQrPayload({
+      invoiceNumber: settlement.invoiceNumber,
+      settlementId: settlement.id,
+      commissionTotal: settlement.commissionTotal,
+      storeName: settlement.storeName,
+    });
+    void (async () => {
+      try {
+        const QRCode = (await import("qrcode")).default;
+        const dataUrl = await QRCode.toDataURL(payload, {
+          errorCorrectionLevel: "M",
+          margin: 1,
+          width: 220,
+          color: { dark: "#0f172a", light: "#ffffff" },
+        });
+        if (!cancelled) {
+          setQrUrl(dataUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setQrUrl(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    settlement.commissionTotal,
+    settlement.id,
+    settlement.invoiceNumber,
+    settlement.storeName,
+  ]);
+
   return (
     <article
       className={cn(
@@ -232,6 +272,28 @@ export function PayoutInvoiceDocument({
           <p className="mt-3 text-[11px] text-slate-400">
             {settlement.orderCount} {labels.order}
           </p>
+        </div>
+      </div>
+
+      <div className="mx-8 mb-6 flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 px-5 py-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-800 uppercase">
+            {labels.qrVerify}
+          </p>
+          <p className="mt-1 font-mono text-sm font-semibold text-slate-800">
+            {settlement.invoiceNumber}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {company.tradeName} · {formatMoney(settlement.commissionTotal)}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-2 ring-1 ring-slate-200">
+          {qrUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qrUrl} alt={labels.qrVerify} className="size-[7.5rem]" />
+          ) : (
+            <div className="size-[7.5rem] animate-pulse rounded-xl bg-slate-100" />
+          )}
         </div>
       </div>
 

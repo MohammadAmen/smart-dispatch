@@ -50,7 +50,12 @@ export async function loadAdminPayoutsData(): Promise<{
 
 export async function settleStorePayoutAction(
   formData: FormData,
-): Promise<{ ok: boolean; error?: string; settlementId?: string }> {
+): Promise<{
+  ok: boolean
+  error?: string
+  settlementId?: string
+  settlement?: StorePayoutSettlementView
+}> {
   const session = await readSession();
   if (!session || !isSuperAdminRole(session.role)) {
     return { ok: false, error: "unauthorized" };
@@ -63,17 +68,31 @@ export async function settleStorePayoutAction(
   }
 
   try {
+    await ensureFinanceSchema();
     const settlement = await settleStorePayout({
       storeId,
       note: note || null,
       settledById: session.sub,
     });
     revalidatePayoutPaths(storeId);
-    return { ok: true, settlementId: settlement.id };
+    return { ok: true, settlementId: settlement.id, settlement };
   } catch (error) {
+    const code = error instanceof Error ? error.message : "settle-failed";
+    const known = new Set([
+      "unauthorized",
+      "invalid",
+      "no-pending-payouts",
+      "store-not-found",
+      "settle-race",
+      "settle-conflict",
+      "settle-fk",
+      "schema-not-ready",
+      "settle-failed",
+      "settlement-not-found",
+    ]);
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "settle-failed",
+      error: known.has(code) ? code : "settle-failed",
     };
   }
 }
