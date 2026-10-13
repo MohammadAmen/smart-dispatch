@@ -77,8 +77,8 @@ export async function notifyCustomerOrderUpdate(input: {
               ...(input.deliveryProofCode
                 ? [
                     `رمز تأكيد التسليم / Delivery code: ${input.deliveryProofCode}`,
-                    "أعطِ الرمز للمندوب عند الاستلام.",
-                    "Give this code to the driver on delivery.",
+                    "أظهر رمز QR من صفحة التتبع للمندوب، أو أعطِه الرقم.",
+                    "Show the tracking QR to the courier, or give them this code.",
                   ]
                 : []),
               ...trackingLines,

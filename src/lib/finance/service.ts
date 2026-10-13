@@ -11,7 +11,8 @@ import {
 } from "@/lib/finance/types";
 
 function generateDeliveryOtp(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  // 6-digit confirmation code (shown under customer QR).
+  return String(Math.floor(100_000 + Math.random() * 900_000));
 }
 
 export async function getFinanceConfig(): Promise<PlatformFinanceConfig> {
@@ -245,6 +246,7 @@ export async function assertDeliveryProof(input: {
     where: { OR: [{ id: input.orderId }, { orderNumber: input.orderId }] },
     select: {
       id: true,
+      orderNumber: true,
       deliveryProofCode: true,
       deliveryProofVerifiedAt: true,
     },
@@ -258,10 +260,20 @@ export async function assertDeliveryProof(input: {
 
   const needsOtp = mode === "OTP" || mode === "BOTH";
   const needsPhoto = mode === "PHOTO" || mode === "BOTH";
-  const otp = (input.otp ?? "").trim();
+  const rawOtp = (input.otp ?? "").trim();
   const photoUrl = (input.photoUrl ?? "").trim();
 
   if (needsOtp) {
+    const { parseDeliveryProofQrPayload } = await import("@/lib/finance/delivery-proof");
+    const parsed = parseDeliveryProofQrPayload(rawOtp);
+    const otp = parsed?.code ?? rawOtp;
+    if (
+      parsed?.orderNumber &&
+      parsed.orderNumber !== order.orderNumber &&
+      parsed.orderNumber !== order.id
+    ) {
+      return { ok: false, error: "invalid-otp" };
+    }
     const expected = order.deliveryProofCode ?? (await ensureOrderDeliveryProofCode(order.id));
     if (!expected || otp !== expected) {
       return { ok: false, error: "invalid-otp" };

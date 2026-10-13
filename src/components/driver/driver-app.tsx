@@ -486,10 +486,12 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         {visibleAssignment ? (
           <>
             <AssignmentCard assignment={visibleAssignment} />
-            <DriverMiniMap
-              assignment={visibleAssignment}
-              driverPoint={location}
-            />
+            {!proofOpen ? (
+              <DriverMiniMap
+                assignment={visibleAssignment}
+                driverPoint={location}
+              />
+            ) : null}
             {!online ? (
               <p className="text-center text-xs text-muted-foreground">
                 {t("driver.queuedHint")}
@@ -501,7 +503,9 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
         )}
       </main>
 
-      {visibleAssignment && (accepted || visibleAssignment.status === "IN_TRANSIT") ? (
+      {visibleAssignment &&
+      !proofOpen &&
+      (accepted || visibleAssignment.status === "IN_TRANSIT") ? (
         <DriverActionBar
           assignment={visibleAssignment}
           accepted
@@ -533,24 +537,19 @@ export function DriverApp({ access }: { access: DriverAccess }): ReactNode {
       </AnimatePresence>
 
       {proofOpen && visibleAssignment ? (
-        <>
-          <DeliveryProofSheet
-            mode={visibleAssignment.deliveryProofMode ?? "NONE"}
-            busy={busy}
-            onCancel={() => {
-              setProofOpen(false);
-              setProofError(null);
-            }}
-            onConfirm={(input) => {
-              void onProofConfirm(input);
-            }}
-          />
-          {proofError ? (
-            <p className="fixed inset-x-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[60] rounded-2xl border border-destructive/40 bg-destructive px-4 py-3 text-center text-sm font-medium text-destructive-foreground shadow-lg">
-              {proofError}
-            </p>
-          ) : null}
-        </>
+        <DeliveryProofSheet
+          mode={visibleAssignment.deliveryProofMode ?? "NONE"}
+          orderNumber={visibleAssignment.orderNumber}
+          busy={busy}
+          error={proofError}
+          onCancel={() => {
+            setProofOpen(false);
+            setProofError(null);
+          }}
+          onConfirm={(input) => {
+            void onProofConfirm(input);
+          }}
+        />
       ) : null}
     </div>
   );

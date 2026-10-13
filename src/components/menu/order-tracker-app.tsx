@@ -6,7 +6,6 @@ import {
   Check,
   ChefHat,
   ClipboardList,
-  KeyRound,
   Link2,
   LoaderCircle,
   MapPin,
@@ -24,6 +23,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { DeliveryProofQrCard } from "@/components/menu/delivery-proof-qr-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { CustomerReceiptPreview } from "@/components/stores/vendor-thermal-receipt";
 import { Button } from "@/components/ui/button";
@@ -638,16 +638,10 @@ function TrackingCard({
 
         {order.deliveryProofCode &&
         (order.status === "ASSIGNED" || order.status === "IN_TRANSIT") ? (
-          <div className="rounded-2xl border border-amber-300/60 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-50">
-            <p className="mb-2 flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
-              <KeyRound className="size-3.5" />
-              {t("menu.deliveryCodeTitle")}
-            </p>
-            <p className="font-heading text-center text-3xl font-bold tracking-[0.35em]">
-              {order.deliveryProofCode}
-            </p>
-            <p className="mt-2 text-center text-xs opacity-80">{t("menu.deliveryCodeHint")}</p>
-          </div>
+          <DeliveryProofQrCard
+            orderNumber={order.orderNumber}
+            code={order.deliveryProofCode}
+          />
         ) : null}
 
         <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
