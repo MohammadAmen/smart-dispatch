@@ -483,7 +483,7 @@ function TrackingCard({
           <button
             type="button"
             onClick={() => {
-              setReceiptFullscreen(order.status === "DELIVERED");
+              setReceiptFullscreen(true);
               setReceiptOpen(true);
             }}
             className="col-span-2 inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/10 text-sm font-semibold text-primary"

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
@@ -258,14 +259,14 @@ export function VendorThermalReceipt({
 export function CustomerReceiptPreview({
   order,
   onClose,
-  fullscreen = false,
 }: {
   order: VendorOrderRecord;
   onClose: () => void;
-  /** Edge-to-edge invoice after successful delivery confirmation. */
+  /** @deprecated Always renders edge-to-edge above chrome. */
   fullscreen?: boolean;
 }): ReactNode {
   const { t, locale } = useLocale();
+  const [mounted, setMounted] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const printedAt = formatPrintWhen(new Date().toISOString(), locale);
   const storeName = order.storeName?.trim() || t("brand.name");
@@ -288,6 +289,16 @@ export function CustomerReceiptPreview({
         })
       : t("vendor.receipt.courierPending");
   const footerNote = resolveReceiptFooterNote(order.receiptFooterNote);
+
+  useEffect(() => {
+    setMounted(true);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+      setMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -315,37 +326,18 @@ export function CustomerReceiptPreview({
     };
   }, [order.trackingToken]);
 
-  return (
-    <div
-      className={
-        fullscreen
-          ? "fixed inset-0 z-[230] flex flex-col bg-[#f4f1ea]"
-          : "fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-4"
-      }
-    >
-      {!fullscreen ? (
-        <button
-          type="button"
-          className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
-          aria-label={t("common.close")}
-          onClick={onClose}
-        />
-      ) : null}
-      <div
-        className={
-          fullscreen
-            ? "relative z-10 flex h-full min-h-0 w-full flex-col bg-[#faf8f4]"
-            : "relative z-10 flex max-h-[min(92dvh,820px)] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-slate-200/80 bg-[#faf8f4] shadow-[0_28px_80px_-28px_rgba(15,23,42,0.55)] sm:rounded-[1.75rem]"
-        }
-      >
-        <header
-          className={
-            fullscreen
-              ? "flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/70 bg-white/95 px-4 pt-[max(0.85rem,env(safe-area-inset-top))] pb-3.5 backdrop-blur-md"
-              : "flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3.5 backdrop-blur-md"
-          }
-        >
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[400] flex flex-col bg-[#0f172a]">
+      <div className="flex h-full min-h-0 w-full flex-col bg-[linear-gradient(180deg,#fffdf8_0%,#f3efe6_100%)]">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/95 px-4 pt-[max(0.9rem,env(safe-area-inset-top))] pb-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.45)] backdrop-blur-md">
           <div className="min-w-0">
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-700 uppercase">
+              BEEV
+            </p>
             <p className="font-heading text-lg font-bold tracking-tight text-slate-900">
               {t("menu.receiptTitle")}
             </p>
@@ -356,44 +348,31 @@ export function CustomerReceiptPreview({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
             aria-label={t("common.close")}
           >
-            <X className="size-4" />
+            <X className="size-5" />
           </button>
         </header>
 
-        <div
-          className={
-            fullscreen
-              ? "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8"
-              : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5"
-          }
-        >
-          <article
-            className={
-              fullscreen
-                ? "mx-auto w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)]"
-                : "overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm"
-            }
-          >
-            {/* Store brand */}
-            <div className="border-b border-slate-100 bg-linear-to-b from-slate-50 to-white px-5 pb-4 pt-5 text-center">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
+          <article className="mx-auto w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-slate-200/90 bg-white shadow-[0_28px_70px_-30px_rgba(15,23,42,0.45)]">
+            <div className="border-b border-slate-100 bg-linear-to-b from-amber-50/80 to-white px-5 pb-5 pt-6 text-center">
               {order.storeLogoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={order.storeLogoUrl}
                   alt=""
-                  className="mx-auto mb-3 size-14 rounded-2xl object-cover ring-1 ring-slate-200/80 shadow-sm"
+                  className="mx-auto mb-3 size-16 rounded-[1.15rem] object-cover ring-1 ring-slate-200/80 shadow-sm"
                 />
               ) : (
-                <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-amber-400/15 text-lg font-bold text-amber-700 ring-1 ring-amber-400/30">
+                <span className="mx-auto mb-3 flex size-16 items-center justify-center rounded-[1.15rem] bg-amber-400/15 text-xl font-bold text-amber-700 ring-1 ring-amber-400/30">
                   {storeName.slice(0, 1)}
                 </span>
               )}
-              <h1 className="font-heading text-xl font-bold text-slate-900">{storeName}</h1>
+              <h1 className="font-heading text-2xl font-bold text-slate-900">{storeName}</h1>
               {storePhone ? (
-                <p className="mt-1 text-sm tabular-nums text-slate-600" dir="ltr">
+                <p className="mt-1.5 text-sm tabular-nums text-slate-600" dir="ltr">
                   {storePhone}
                 </p>
               ) : null}
@@ -402,7 +381,6 @@ export function CustomerReceiptPreview({
               ) : null}
             </div>
 
-            {/* Meta */}
             <div className="space-y-2 border-b border-slate-100 px-5 py-4">
               <p className="text-sm font-semibold text-slate-800">{serviceLine}</p>
               {courierLine ? <p className="text-xs leading-relaxed text-slate-500">{courierLine}</p> : null}
@@ -416,7 +394,6 @@ export function CustomerReceiptPreview({
               </div>
             </div>
 
-            {/* Line items */}
             <div className="px-5 py-4">
               <div className="mb-3 grid grid-cols-[2.5rem_minmax(0,1fr)_auto] gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 <span>{t("vendor.receipt.qty")}</span>
@@ -444,7 +421,6 @@ export function CustomerReceiptPreview({
               </ul>
             </div>
 
-            {/* Totals */}
             <div className="space-y-2.5 border-t border-slate-100 bg-slate-50/80 px-5 py-4">
               <div className="flex items-center justify-between gap-3 text-sm text-slate-600">
                 <span>{t("vendor.receipt.subtotal")}</span>
@@ -460,30 +436,30 @@ export function CustomerReceiptPreview({
                   </span>
                 </div>
               ) : null}
-              <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-900 px-3.5 py-3 text-white shadow-sm">
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-900 px-3.5 py-3.5 text-white shadow-sm">
                 <span className="text-sm font-semibold">{t("vendor.receipt.total")}</span>
-                <span className="text-base font-bold tabular-nums whitespace-nowrap">
+                <span className="text-lg font-bold tabular-nums whitespace-nowrap">
                   {formatMoney(total)} {PRICE_CURRENCY}
                 </span>
               </div>
             </div>
 
-            {/* QR + footer */}
             <footer className="space-y-3 border-t border-slate-100 px-5 py-5 text-center">
               {qr ? (
                 <div className="mx-auto inline-flex rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qr} alt="" className="size-[5.5rem]" />
+                  <img src={qr} alt="" className="size-[6rem]" />
                 </div>
               ) : (
-                <div className="mx-auto size-[5.5rem] animate-pulse rounded-2xl bg-slate-100" />
+                <div className="mx-auto size-[6rem] animate-pulse rounded-2xl bg-slate-100" />
               )}
               <p className="text-xs font-medium leading-relaxed text-slate-500">{footerNote}</p>
             </footer>
           </article>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
