@@ -64,12 +64,12 @@ function invoiceNumber(): string {
 /** Pending store nets (delivered financials not yet settled to the merchant). */
 export async function listStorePayoutDues(): Promise<StorePayoutDueRow[]> {
   await ensureFinanceSchema();
-  // Only pay out delivered orders — safer for merchant settlements.
+  // Platform receivables: commission owed by stores on delivered orders.
   const delivered = await prisma.orderFinancial.findMany({
     where: {
       storeId: { not: null },
       storePayoutSettledAt: null,
-      storeNetAmount: { gt: 0 },
+      commissionAmount: { gt: 0 },
       order: { status: "DELIVERED" },
     },
     select: {
@@ -148,7 +148,7 @@ export async function listStorePayoutDues(): Promise<StorePayoutDueRow[]> {
         newestAt: bucket.newestAt?.toISOString() ?? null,
       };
     })
-    .sort((a, b) => b.pendingNet - a.pendingNet);
+    .sort((a, b) => b.pendingCommission - a.pendingCommission);
 }
 
 export async function listPendingFinancialsForStore(
@@ -159,7 +159,7 @@ export async function listPendingFinancialsForStore(
     where: {
       storeId,
       storePayoutSettledAt: null,
-      storeNetAmount: { gt: 0 },
+      commissionAmount: { gt: 0 },
       order: { status: "DELIVERED" },
     },
     select: {
@@ -199,7 +199,7 @@ export async function settleStorePayout(input: {
     where: {
       storeId: input.storeId,
       storePayoutSettledAt: null,
-      storeNetAmount: { gt: 0 },
+      commissionAmount: { gt: 0 },
       order: { status: "DELIVERED" },
       ...(input.financialIds?.length ? { id: { in: input.financialIds } } : {}),
     },

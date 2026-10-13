@@ -35,7 +35,7 @@ export function AdminPayoutsBoard({
 
   const totals = useMemo(() => {
     return {
-      net: dues.reduce((sum, row) => sum + row.pendingNet, 0),
+      commission: dues.reduce((sum, row) => sum + row.pendingCommission, 0),
       stores: dues.length,
       orders: dues.reduce((sum, row) => sum + row.pendingCount, 0),
     };
@@ -98,7 +98,7 @@ export function AdminPayoutsBoard({
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: t("payouts.pendingNet"), value: formatMoney(totals.net) },
+          { label: t("payouts.pendingCommission"), value: formatMoney(totals.commission) },
           { label: t("payouts.pendingStores"), value: String(totals.stores) },
           { label: t("payouts.pendingOrders"), value: String(totals.orders) },
         ].map((kpi) => (
@@ -124,12 +124,12 @@ export function AdminPayoutsBoard({
                 <p className="truncate font-medium">{row.storeName}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {row.pendingCount} {t("payouts.order")} · {t("payouts.gross")}{" "}
-                  {formatMoney(row.pendingGross)} · {t("payouts.commission")}{" "}
-                  {formatMoney(row.pendingCommission)}
+                  {formatMoney(row.pendingGross)} · {t("payouts.storeKeeps")}{" "}
+                  {formatMoney(row.pendingNet)}
                 </p>
               </div>
-              <p className="font-heading text-lg font-bold tabular-nums">
-                {formatMoney(row.pendingNet)}
+              <p className="font-heading text-lg font-bold tabular-nums text-amber-700 dark:text-amber-300">
+                {formatMoney(row.pendingCommission)}
               </p>
               <Button size="sm" isDisabled={pending} onPress={() => settle(row.storeId)}>
                 {t("payouts.settle")}
@@ -164,8 +164,8 @@ export function AdminPayoutsBoard({
                     {row.invoiceNumber}
                   </p>
                 </div>
-                <span className="text-sm font-semibold tabular-nums">
-                  {formatMoney(row.netPayable)}
+                <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-300">
+                  {formatMoney(row.commissionTotal)}
                 </span>
               </button>
             ))}

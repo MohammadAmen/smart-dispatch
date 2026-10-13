@@ -69,9 +69,9 @@ export function VendorPayoutsBoard({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <GlassCard hover={false} className="space-y-1 p-4">
-          <p className="text-xs text-muted-foreground">{t("payouts.pendingNet")}</p>
+          <p className="text-xs text-muted-foreground">{t("payouts.pendingCommission")}</p>
           <p className="font-heading text-2xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
-            {formatMoney(pending?.pendingNet ?? 0)}
+            {formatMoney(pending?.pendingCommission ?? 0)}
           </p>
         </GlassCard>
         <GlassCard hover={false} className="space-y-1 p-4">
@@ -81,9 +81,9 @@ export function VendorPayoutsBoard({
           </p>
         </GlassCard>
         <GlassCard hover={false} className="space-y-1 p-4">
-          <p className="text-xs text-muted-foreground">{t("payouts.commission")}</p>
+          <p className="text-xs text-muted-foreground">{t("payouts.storeKeeps")}</p>
           <p className="font-heading text-2xl font-bold tabular-nums">
-            {formatMoney(pending?.pendingCommission ?? 0)}
+            {formatMoney(pending?.pendingNet ?? 0)}
           </p>
         </GlassCard>
       </div>
@@ -101,7 +101,7 @@ export function VendorPayoutsBoard({
                 <th className="px-3 py-2 text-start font-medium">{t("payouts.date")}</th>
                 <th className="px-3 py-2 text-end font-medium">{t("payouts.gross")}</th>
                 <th className="px-3 py-2 text-end font-medium">{t("payouts.commission")}</th>
-                <th className="px-3 py-2 text-end font-medium">{t("payouts.net")}</th>
+                <th className="px-3 py-2 text-end font-medium">{t("payouts.storeKeeps")}</th>
               </tr>
             </thead>
             <tbody>
@@ -114,10 +114,10 @@ export function VendorPayoutsBoard({
                     }).format(new Date(line.orderCreatedAt))}
                   </td>
                   <td className="px-3 py-2 text-end tabular-nums">{formatMoney(line.itemsSubtotal)}</td>
-                  <td className="px-3 py-2 text-end tabular-nums text-muted-foreground">
+                  <td className="px-3 py-2 text-end font-semibold tabular-nums text-amber-700 dark:text-amber-300">
                     {formatMoney(line.commissionAmount)}
                   </td>
-                  <td className="px-3 py-2 text-end font-semibold tabular-nums">
+                  <td className="px-3 py-2 text-end tabular-nums text-muted-foreground">
                     {formatMoney(line.storeNetAmount)}
                   </td>
                 </tr>
@@ -152,8 +152,8 @@ export function VendorPayoutsBoard({
                     {row.orderCount} {t("payouts.order")}
                   </p>
                 </div>
-                <span className="text-sm font-semibold tabular-nums">
-                  {formatMoney(row.netPayable)}
+                <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-300">
+                  {formatMoney(row.commissionTotal)}
                 </span>
               </button>
             ))}

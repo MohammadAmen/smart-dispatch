@@ -168,13 +168,13 @@ export function PayoutInvoiceDocument({
                   <td className="px-3 py-2 text-end tabular-nums">
                     {formatMoney(line.itemsSubtotal)}
                   </td>
-                  <td className="px-3 py-2 text-end tabular-nums text-slate-600">
+                  <td className="px-3 py-2 text-end font-semibold tabular-nums text-amber-800">
                     {formatMoney(line.commissionAmount)}
-                    <span className="ms-1 text-[10px] text-slate-400">
+                    <span className="ms-1 text-[10px] font-normal text-slate-400">
                       ({line.commissionPercentage}%)
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-end font-semibold tabular-nums">
+                  <td className="px-3 py-2 text-end tabular-nums text-slate-600">
                     {formatMoney(line.storeNetAmount)}
                   </td>
                 </tr>
@@ -221,12 +221,12 @@ export function PayoutInvoiceDocument({
               <span className="tabular-nums">{formatMoney(settlement.grossSales)}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-slate-300">{labels.commission}</span>
-              <span className="tabular-nums">{formatMoney(settlement.commissionTotal)}</span>
+              <span className="text-slate-300">{labels.net}</span>
+              <span className="tabular-nums">{formatMoney(settlement.netPayable)}</span>
             </div>
             <div className="flex justify-between gap-3 border-t border-white/15 pt-2 text-base font-bold text-amber-300">
-              <span>{labels.net}</span>
-              <span className="tabular-nums">{formatMoney(settlement.netPayable)}</span>
+              <span>{labels.commission}</span>
+              <span className="tabular-nums">{formatMoney(settlement.commissionTotal)}</span>
             </div>
           </div>
           <p className="mt-3 text-[11px] text-slate-400">

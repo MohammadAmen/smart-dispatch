@@ -692,10 +692,10 @@ export async function getFinanceDashboardSnapshot(): Promise<{
     prisma.orderFinancial.aggregate({
       where: {
         storePayoutSettledAt: null,
-        storeNetAmount: { gt: 0 },
+        commissionAmount: { gt: 0 },
         order: { status: "DELIVERED" },
       },
-      _sum: { storeNetAmount: true },
+      _sum: { commissionAmount: true },
     }),
   ]);
 
@@ -705,7 +705,7 @@ export async function getFinanceDashboardSnapshot(): Promise<{
 
   return {
     fieldCashHeld,
-    pendingStorePayouts: money(pendingStore._sum.storeNetAmount),
+    pendingStorePayouts: money(pendingStore._sum.commissionAmount),
     platformNetProfit: money(financials._sum.platformNetAmount),
     riskBufferAccrued: money(financials._sum.riskBufferAmount),
     cashBlockedDrivers,
