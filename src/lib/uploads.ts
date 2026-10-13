@@ -13,7 +13,8 @@ export type UploadFolder =
   | "custom"
   | "stories"
   | "platform"
-  | "delivery";
+  | "delivery"
+  | "company";
 
 export function uploadPublicPath(id: string): string {
   return `${UPLOAD_PREFIX}${id}`;

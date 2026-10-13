@@ -17,6 +17,8 @@ import {
   Truck,
   Users,
   Wallet,
+  Building2,
+  HandCoins,
 } from "lucide-react";
 
 import type { SessionRole } from "@/lib/auth/constants";
@@ -45,6 +47,8 @@ export const secondaryNav: NavItem[] = [
   { href: "/admin/menu-header", labelKey: "nav.menuHeader", icon: ImageIcon, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/admin/delivery-pricing", labelKey: "nav.deliveryPricing", icon: Bike, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/admin/finance", labelKey: "nav.finance", icon: Wallet, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/payouts", labelKey: "nav.payouts", icon: HandCoins, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/company", labelKey: "nav.company", icon: Building2, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/settings/users", labelKey: "nav.users", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "DISPATCHER"] },
   { href: "/settings/zones", labelKey: "nav.zones", icon: MapPinned, roles: ["SUPER_ADMIN", "ADMIN", "DISPATCHER"] },
   { href: "/settings/vehicle-types", labelKey: "nav.vehicleTypes", icon: Car, roles: ["SUPER_ADMIN", "ADMIN", "DISPATCHER"] },

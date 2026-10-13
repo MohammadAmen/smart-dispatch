@@ -682,13 +682,22 @@ export async function getFinanceDashboardSnapshot(): Promise<{
     unsettled.reduce((sum, row) => sum + money(row.codAmount), 0),
   );
 
-  const financials = await prisma.orderFinancial.aggregate({
-    _sum: {
-      storeNetAmount: true,
-      platformNetAmount: true,
-      riskBufferAmount: true,
-    },
-  });
+  const [financials, pendingStore] = await Promise.all([
+    prisma.orderFinancial.aggregate({
+      _sum: {
+        platformNetAmount: true,
+        riskBufferAmount: true,
+      },
+    }),
+    prisma.orderFinancial.aggregate({
+      where: {
+        storePayoutSettledAt: null,
+        storeNetAmount: { gt: 0 },
+        order: { status: "DELIVERED" },
+      },
+      _sum: { storeNetAmount: true },
+    }),
+  ]);
 
   const cashBlockedDrivers = await prisma.driver.count({
     where: { cashBlockedAt: { not: null } },
@@ -696,7 +705,7 @@ export async function getFinanceDashboardSnapshot(): Promise<{
 
   return {
     fieldCashHeld,
-    pendingStorePayouts: money(financials._sum.storeNetAmount),
+    pendingStorePayouts: money(pendingStore._sum.storeNetAmount),
     platformNetProfit: money(financials._sum.platformNetAmount),
     riskBufferAccrued: money(financials._sum.riskBufferAmount),
     cashBlockedDrivers,

@@ -15,6 +15,7 @@ import {
   Settings,
   Tags,
   TrendingUp,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,6 +52,7 @@ function vendorNavGroups(usesTables: boolean): NavGroup[] {
       items: [
         { href: "/vendor/dashboard", labelKey: "vendor.overview", icon: LayoutDashboard },
         { href: "/vendor/reports", labelKey: "vendor.reports", icon: TrendingUp },
+        { href: "/vendor/payouts", labelKey: "vendor.payouts", icon: Wallet },
         { href: "/vendor/insights", labelKey: "vendor.insights", icon: Search },
       ],
     },

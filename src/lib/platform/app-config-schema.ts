@@ -17,6 +17,8 @@ async function migrateAppConfigSchema(): Promise<void> {
   `);
   await pgAddColumn("app_config", "menuHeaderBackgroundUrl", "VARCHAR(2048) NULL");
   await pgAddColumn("app_config", "deliveryTiersJson", "TEXT NULL");
+  await pgAddColumn("app_config", "financeJson", "TEXT NULL");
+  await pgAddColumn("app_config", "companyJson", "TEXT NULL");
   await prisma.$executeRawUnsafe(`
     INSERT INTO app_config (id, "menuHeaderBackgroundUrl", "deliveryTiersJson", "updatedAt")
     VALUES ('default', NULL, NULL, CURRENT_TIMESTAMP)

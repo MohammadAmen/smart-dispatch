@@ -415,6 +415,7 @@ model Store {
   offers     Offer[]
   stories    StoreStory[]
   tables     StoreTable[]
+  payoutSettlements StorePayoutSettlement[]
 
   @@index([active])
   @@index([ownerId])
@@ -638,6 +639,8 @@ model AppConfig {
   deliveryTiersJson       String?  @map("deliveryTiersJson") @db.Text
   /// JSON blob for finance governance defaults (deposit, cash limit, risk buffer, proof mode).
   financeJson             String?  @map("financeJson") @db.Text
+  /// Legal / invoice company profile (name, logo, tax, bank, address).
+  companyJson             String?  @map("companyJson") @db.Text
   updatedAt               DateTime @updatedAt
 
   @@map("app_config")
@@ -659,13 +662,64 @@ model OrderFinancial {
   riskBufferAmount     Float    @default(0)
   platformNetAmount    Float    @default(0)
   driverEarning        Float    @default(0)
+  /// Set when included in a store payout settlement.
+  storePayoutSettlementId String?
+  storePayoutSettlement   StorePayoutSettlement? @relation(fields: [storePayoutSettlementId], references: [id], onDelete: SetNull)
+  storePayoutSettledAt    DateTime?
   lockedAt             DateTime @default(now())
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   @@index([storeId])
   @@index([lockedAt])
+  @@index([storePayoutSettlementId])
+  @@index([storeId, storePayoutSettledAt])
   @@map("order_financials")
+}
+
+/** Merchant payout settlement batch (platform → store). */
+model StorePayoutSettlement {
+  id              String   @id @default(uuid())
+  invoiceNumber   String   @unique
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  periodFrom      DateTime
+  periodTo        DateTime
+  orderCount      Int      @default(0)
+  grossSales      Float    @default(0)
+  commissionTotal Float    @default(0)
+  netPayable      Float    @default(0)
+  note            String?  @db.VarChar(500)
+  settledAt       DateTime @default(now())
+  settledById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  lines      StorePayoutLine[]
+  financials OrderFinancial[]
+
+  @@index([storeId, settledAt])
+  @@index([periodFrom, periodTo])
+  @@map("store_payout_settlements")
+}
+
+model StorePayoutLine {
+  id                   String               @id @default(uuid())
+  settlementId         String
+  settlement           StorePayoutSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  orderFinancialId     String               @unique
+  orderId              String
+  orderNumber          String
+  itemsSubtotal        Float                @default(0)
+  commissionPercentage Float                @default(0)
+  commissionAmount     Float                @default(0)
+  storeNetAmount       Float                @default(0)
+  orderCreatedAt       DateTime
+  createdAt            DateTime             @default(now())
+
+  @@index([settlementId])
+  @@index([orderId])
+  @@map("store_payout_lines")
 }
 
 /** Append-only driver wallet ledger. */

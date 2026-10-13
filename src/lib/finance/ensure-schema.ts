@@ -13,9 +13,12 @@ async function migrateFinanceSchema(): Promise<void> {
   await pgAddColumn("drivers", "cashLimitOverride", "DOUBLE PRECISION NULL");
   await pgAddColumn("drivers", "cashBlockedAt", "TIMESTAMP(3) NULL");
   await pgAddColumn("app_config", "financeJson", "TEXT NULL");
+  await pgAddColumn("app_config", "companyJson", "TEXT NULL");
   await pgAddColumn("orders", "deliveryProofCode", "VARCHAR(8) NULL");
   await pgAddColumn("orders", "deliveryProofPhotoUrl", "VARCHAR(2048) NULL");
   await pgAddColumn("orders", "deliveryProofVerifiedAt", "TIMESTAMP(3) NULL");
+  await pgAddColumn("order_financials", "storePayoutSettlementId", "VARCHAR(36) NULL");
+  await pgAddColumn("order_financials", "storePayoutSettledAt", "TIMESTAMP(3) NULL");
 
   await prisma.$executeRawUnsafe(`
     DO $$ BEGIN
@@ -107,6 +110,55 @@ async function migrateFinanceSchema(): Promise<void> {
   );
   await prisma.$executeRawUnsafe(
     `CREATE INDEX IF NOT EXISTS drivers_cashBlockedAt_idx ON drivers ("cashBlockedAt")`,
+  );
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS store_payout_settlements (
+      id VARCHAR(36) NOT NULL,
+      "invoiceNumber" VARCHAR(64) NOT NULL,
+      "storeId" VARCHAR(36) NOT NULL,
+      "periodFrom" TIMESTAMP(3) NOT NULL,
+      "periodTo" TIMESTAMP(3) NOT NULL,
+      "orderCount" INTEGER NOT NULL DEFAULT 0,
+      "grossSales" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "commissionTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "netPayable" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      note VARCHAR(500) NULL,
+      "settledAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "settledById" VARCHAR(36) NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      CONSTRAINT store_payout_settlements_invoiceNumber_key UNIQUE ("invoiceNumber")
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS store_payout_lines (
+      id VARCHAR(36) NOT NULL,
+      "settlementId" VARCHAR(36) NOT NULL,
+      "orderFinancialId" VARCHAR(36) NOT NULL,
+      "orderId" VARCHAR(36) NOT NULL,
+      "orderNumber" VARCHAR(64) NOT NULL,
+      "itemsSubtotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "commissionPercentage" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "commissionAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "storeNetAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "orderCreatedAt" TIMESTAMP(3) NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      CONSTRAINT store_payout_lines_orderFinancialId_key UNIQUE ("orderFinancialId")
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS store_payout_settlements_storeId_settledAt_idx ON store_payout_settlements ("storeId", "settledAt")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS store_payout_lines_settlementId_idx ON store_payout_lines ("settlementId")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS order_financials_storeId_storePayoutSettledAt_idx ON order_financials ("storeId", "storePayoutSettledAt")`,
   );
 }
 
