@@ -783,7 +783,6 @@ export function MenuApp({
             key="menu-splash"
             store={store}
             welcome={splashWelcome}
-            exploreLabel={t("menu.exploreMenu")}
             tableLabel={dineIn?.tableLabel}
             tableText={tableText}
             sessionCode={sessionCode}

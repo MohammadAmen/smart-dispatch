@@ -1,17 +1,20 @@
 "use client";
 
 import { m } from "framer-motion";
-import type { ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { MenuSafeImage } from "@/components/menu/menu-safe-image";
 import { MenuTableBadge } from "@/components/menu/menu-table-badge";
 import { storeTypeIcon } from "@/lib/stores/category-icon";
 import type { MenuStore } from "@/lib/stores/types";
 
+/** Brief branded beat — long enough to feel intentional, short enough not to annoy. */
+const SPLASH_AUTO_MS = 1200;
+
 export function SplashOverlay({
   store,
   welcome,
-  exploreLabel,
   tableLabel,
   tableText,
   sessionCode,
@@ -20,7 +23,6 @@ export function SplashOverlay({
 }: {
   store: MenuStore;
   welcome: string;
-  exploreLabel: string;
   tableLabel?: string | null;
   tableText?: string;
   sessionCode?: string;
@@ -28,6 +30,15 @@ export function SplashOverlay({
   onExplore: () => void;
 }): ReactNode {
   const StoreTypeIcon = storeTypeIcon(store.storeType.icon);
+  const onExploreRef = useRef(onExplore);
+  onExploreRef.current = onExplore;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      onExploreRef.current();
+    }, SPLASH_AUTO_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <m.div
@@ -35,7 +46,7 @@ export function SplashOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.03 }}
-      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
     >
       <MenuSafeImage
         src={store.coverImage}
@@ -78,16 +89,10 @@ export function SplashOverlay({
           </div>
         ) : null}
 
-        <m.button
-          type="button"
-          onClick={onExplore}
-          whileTap={{ scale: 0.98 }}
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-8 h-14 w-full rounded-full bg-primary font-heading text-base font-bold text-primary-foreground shadow-[0_18px_40px_-12px_color-mix(in_oklch,var(--primary)_75%,transparent)]"
-        >
-          {exploreLabel}
-        </m.button>
+        <div className="mt-8 flex items-center justify-center gap-2 text-white/75">
+          <LoaderCircle className="size-5 animate-spin" aria-hidden />
+          <span className="text-sm font-medium tracking-wide">{store.name}</span>
+        </div>
       </div>
     </m.div>
   );

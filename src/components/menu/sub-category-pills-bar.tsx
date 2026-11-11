@@ -36,12 +36,16 @@ export function SubCategoryPillsBar({
   onSelect: (item: PublicSubCategory | null) => void;
 }): ReactNode {
   const { t } = useLocale();
-  const enabled = Boolean(mainCategoryId && mainCategoryId !== "all" && mainCategoryId !== "ALL");
-  const key = enabled ? subCategoriesKey(mainCategoryId, lat, lng) : null;
+  // Home ("all") + typed sectors both show unified public categories.
+  const enabled = Boolean(mainCategoryId?.trim());
+  const resolvedMain = !mainCategoryId || mainCategoryId === "all" || mainCategoryId === "ALL"
+    ? "ALL"
+    : mainCategoryId;
+  const key = enabled ? subCategoriesKey(resolvedMain, lat, lng) : null;
 
   const { data, isLoading } = useSWR(
     key,
-    () => fetchSubCategories(mainCategoryId, lat, lng),
+    () => fetchSubCategories(resolvedMain, lat, lng),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,

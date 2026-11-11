@@ -28,10 +28,9 @@ export async function listNearbySubCategories(input: {
 }): Promise<SubCategoriesFeed> {
   await ensureGlobalCategoriesReady();
 
-  const mainCategoryId = input.mainCategoryId.trim();
-  if (!mainCategoryId || mainCategoryId === "all" || mainCategoryId === "ALL") {
-    return { mainCategoryId: "ALL", items: [] };
-  }
+  const rawMain = input.mainCategoryId.trim();
+  const isAll = !rawMain || rawMain === "all" || rawMain === "ALL";
+  const mainCategoryId = isAll ? "ALL" : rawMain;
 
   const userLat = parseCoord(input.lat);
   const userLng = parseCoord(input.lng);
@@ -40,7 +39,7 @@ export async function listNearbySubCategories(input: {
   const stores = await prisma.store.findMany({
     where: {
       active: true,
-      storeTypeId: mainCategoryId,
+      ...(isAll ? {} : { storeTypeId: mainCategoryId }),
     },
     select: {
       id: true,

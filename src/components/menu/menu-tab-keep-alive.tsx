@@ -43,25 +43,18 @@ export function MenuTabKeepAlive({ children }: { children: ReactNode }): ReactNo
   const storeOrderRef = useRef<string[]>([]);
 
   if (key) {
-    if (!cacheRef.current.has(key)) {
-      cacheRef.current.set(key, children);
-      if (key.startsWith("store:")) {
-        storeOrderRef.current = [
-          key,
-          ...storeOrderRef.current.filter((entry) => entry !== key),
-        ].slice(0, STORE_CACHE_LIMIT);
-        // Drop least-recent store panels beyond the limit.
-        for (const cachedKey of [...cacheRef.current.keys()]) {
-          if (cachedKey.startsWith("store:") && !storeOrderRef.current.includes(cachedKey)) {
-            cacheRef.current.delete(cachedKey);
-          }
-        }
-      }
-    } else if (key.startsWith("store:")) {
+    // Always refresh the active panel so RSC/client updates aren't frozen on first visit.
+    cacheRef.current.set(key, children);
+    if (key.startsWith("store:")) {
       storeOrderRef.current = [
         key,
         ...storeOrderRef.current.filter((entry) => entry !== key),
       ].slice(0, STORE_CACHE_LIMIT);
+      for (const cachedKey of [...cacheRef.current.keys()]) {
+        if (cachedKey.startsWith("store:") && !storeOrderRef.current.includes(cachedKey)) {
+          cacheRef.current.delete(cachedKey);
+        }
+      }
     }
   }
 

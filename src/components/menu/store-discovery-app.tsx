@@ -301,15 +301,13 @@ export function StoreDiscoveryApp({
         })}
       </div>
 
-      {typeId !== "all" ? (
-        <SubCategoryPillsBar
-          mainCategoryId={typeId}
-          lat={draft.latitude}
-          lng={draft.longitude}
-          selectedId={selectedSubCategoryId}
-          onSelect={setSubCategory}
-        />
-      ) : null}
+      <SubCategoryPillsBar
+        mainCategoryId={typeId}
+        lat={draft.latitude}
+        lng={draft.longitude}
+        selectedId={selectedSubCategoryId}
+        onSelect={setSubCategory}
+      />
 
       <WorthTryingRail typeId={typeId} storeIdsFilter={storeIdsFilter} />
 
