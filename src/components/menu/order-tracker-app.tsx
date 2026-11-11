@@ -29,6 +29,11 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { CustomerReceiptPreview } from "@/components/stores/vendor-thermal-receipt";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, type BadgeTone } from "@/components/ui/status-badge";
+import {
+  MENU_ORDERS_CACHE_KEY,
+  readMenuCache,
+  writeMenuCache,
+} from "@/lib/menu/session-cache";
 import { TRACKING_STEPS, trackingStepIndex } from "@/lib/stores/order-status";
 import { formatCountdown } from "@/lib/stores/custom-order";
 import type { VendorOrderRecord } from "@/lib/stores/order-types";
@@ -126,9 +131,13 @@ export function OrderTrackerApp({
   const { t, locale } = useLocale();
   const [tokens, setTokens] = useState<string[]>(() => uniqueTrackingTokens([initialToken]));
   const [hydrated, setHydrated] = useState(false);
-  const [orders, setOrders] = useState<VendorOrderRecord[]>([]);
+  const [orders, setOrders] = useState<VendorOrderRecord[]>(
+    () => readMenuCache<VendorOrderRecord[]>(MENU_ORDERS_CACHE_KEY) ?? [],
+  );
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    () => (readMenuCache<VendorOrderRecord[]>(MENU_ORDERS_CACHE_KEY) ?? []).length === 0,
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [statusFilter, setStatusFilter] = useState<TrackerFilter>("ALL");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -174,14 +183,17 @@ export function OrderTrackerApp({
           return;
         }
         if (!body.ok) {
-          setError(body.error ?? t("menu.trackEmpty"));
+          if (!silent) {
+            setError(body.error ?? t("menu.trackEmpty"));
+          }
           return;
         }
         setError(null);
         setOrders(body.orders);
+        writeMenuCache(MENU_ORDERS_CACHE_KEY, body.orders);
         rememberTrackingTokens(body.orders.flatMap((order) => (order.trackingToken ? [order.trackingToken] : [])));
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !silent) {
           setError(t("menu.trackEmpty"));
         }
       } finally {
@@ -191,7 +203,8 @@ export function OrderTrackerApp({
       }
     };
 
-    void load(false);
+    const cached = readMenuCache<VendorOrderRecord[]>(MENU_ORDERS_CACHE_KEY);
+    void load(Boolean(cached && cached.length > 0));
     const timer = window.setInterval(() => {
       void load(true);
     }, POLL_MS);

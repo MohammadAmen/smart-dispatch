@@ -35,6 +35,7 @@ import { SpecialOrderSheet } from "@/components/menu/special-order-sheet";
 import { SplashOverlay } from "@/components/menu/splash-overlay";
 import { useLocale } from "@/components/providers/locale-provider";
 import { requestMenuCartOpen } from "@/lib/menu/chrome-events";
+import { prefetchMenuImages } from "@/lib/menu/image-cache";
 import {
   emptyCheckoutDraft,
   locationLabel,
@@ -42,6 +43,7 @@ import {
   writeCheckoutDraft,
   type MenuCheckoutDraft,
 } from "@/lib/stores/menu-checkout";
+import { productImages } from "@/lib/stores/product-images";
 import {
   lastLineKeyForProduct,
   quantityForProduct,
@@ -172,6 +174,18 @@ export function MenuApp({
     setViewMode(readMenuViewMode());
     setHydrated(true);
   }, [phone]);
+
+  useEffect(() => {
+    // Warm product + brand photos so scrolling the menu feels local.
+    const urls = [
+      store.logoUrl,
+      store.coverImage,
+      ...store.categories.flatMap((category) =>
+        category.products.flatMap((product) => productImages(product)),
+      ),
+    ];
+    prefetchMenuImages(urls, 36);
+  }, [store]);
 
   useEffect(() => {
     if (!hydrated) {

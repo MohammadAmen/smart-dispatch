@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { MenuSafeImage } from "@/components/menu/menu-safe-image";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useSavedStoresStore } from "@/stores/saved-stores-store";
 
@@ -54,13 +55,13 @@ export function MenuFavoritesPage(): ReactNode {
                 href={`/menu/stores/${store.id}`}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
-                  {store.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={store.logoUrl} alt="" className="size-full object-cover" />
-                  ) : (
-                    <Store className="size-5 text-amber-600" />
-                  )}
+                <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+                  <MenuSafeImage
+                    src={store.logoUrl}
+                    alt=""
+                    className="size-full object-cover"
+                    fallback={<Store className="size-5 text-amber-600" />}
+                  />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold text-slate-900 dark:text-slate-100">

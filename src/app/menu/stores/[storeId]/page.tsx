@@ -6,8 +6,6 @@ import { MotionProvider } from "@/components/providers/motion-provider";
 import { getPublicMenu } from "@/lib/stores/menu";
 import { resolveDineInFromParams } from "@/lib/stores/store-tables";
 
-export const dynamic = "force-dynamic";
-
 export default async function MenuStorePage({
   params,
   searchParams,

@@ -4,7 +4,9 @@ import { Bike, Clock, Heart, Star, Store } from "lucide-react";
 import Link from "next/link";
 import { memo, useEffect, type MouseEvent, type ReactNode } from "react";
 
+import { MenuSafeImage } from "@/components/menu/menu-safe-image";
 import { useLocale } from "@/components/providers/locale-provider";
+import { prefetchMenuImage } from "@/lib/menu/image-cache";
 import {
   estimateDeliveryMinutes,
   feeFromDistanceKm,
@@ -33,7 +35,9 @@ function NearbyStoreCardComponent({
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    void prefetchMenuImage(store.coverImage);
+    void prefetchMenuImage(store.logoUrl);
+  }, [hydrate, store.coverImage, store.logoUrl]);
 
   const hasDistance = Number.isFinite(distanceKm);
   const fee = hasDistance ? feeFromDistanceKm(distanceKm, deliveryTiers) : null;
@@ -66,20 +70,16 @@ function NearbyStoreCardComponent({
     >
       {/* Cover */}
       <div className="relative h-40 overflow-hidden bg-slate-100 sm:h-44 dark:bg-slate-900">
-        {store.coverImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={store.coverImage}
-            alt=""
-            className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center bg-linear-to-br from-amber-100 via-orange-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950">
-            <Store className="size-10 text-amber-500/70" />
-          </div>
-        )}
+        <MenuSafeImage
+          src={store.coverImage}
+          alt=""
+          className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
+          fallback={
+            <div className="flex size-full items-center justify-center bg-linear-to-br from-amber-100 via-orange-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950">
+              <Store className="size-10 text-amber-500/70" />
+            </div>
+          }
+        />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/35 to-transparent" />
 
         {/* Favorite — top-left */}
@@ -112,21 +112,17 @@ function NearbyStoreCardComponent({
 
       {/* Body with floating avatar straddling the seam */}
       <div className="relative px-4 pb-3.5 pt-0">
-        <div className="absolute -top-9 start-4 z-10">
-          {store.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={store.logoUrl}
-              alt=""
-              className="size-[4.5rem] rounded-full border-4 border-white object-cover shadow-md dark:border-slate-950"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <span className="flex size-[4.5rem] items-center justify-center rounded-full border-4 border-white bg-amber-50 text-amber-600 shadow-md dark:border-slate-950 dark:bg-slate-900">
-              <Icon className="size-7" />
-            </span>
-          )}
+        <div className="absolute -top-9 start-4 z-10 size-[4.5rem] overflow-hidden rounded-full border-4 border-white shadow-md dark:border-slate-950">
+          <MenuSafeImage
+            src={store.logoUrl}
+            alt=""
+            className="size-full object-cover"
+            fallback={
+              <span className="flex size-full items-center justify-center bg-amber-50 text-amber-600 dark:bg-slate-900">
+                <Icon className="size-7" />
+              </span>
+            }
+          />
         </div>
 
         <div className="min-h-[3.25rem] ps-[5.5rem] pt-2.5">

@@ -28,6 +28,7 @@ import {
   writeCheckoutDraft,
   type MenuCheckoutDraft,
 } from "@/lib/stores/menu-checkout";
+import { writeMenuCache } from "@/lib/menu/session-cache";
 import { fetchMenuStores, menuStoresKey } from "@/lib/stores/menu-stores-query";
 import { reportMenuSearch } from "@/lib/stores/menu-signals";
 import { storeTypeIcon } from "@/lib/stores/store-type-icon";
@@ -112,8 +113,10 @@ export function StoreDiscoveryApp({
       phone: phone.trim() || saved.phone || current.phone,
     }));
     hydrateSaved();
+    // Seed session cache from SSR so later tab returns feel instant.
+    writeMenuCache(menuStoresKey("all", null), stores);
     setHydrated(true);
-  }, [hydrateSaved, phone]);
+  }, [hydrateSaved, phone, stores]);
 
   useEffect(() => {
     if (!hydrated) {

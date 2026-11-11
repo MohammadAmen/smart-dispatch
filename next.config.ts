@@ -43,6 +43,11 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "25mb",
     },
     proxyClientMaxBodySize: "25mb",
+    // Keep recently visited menu routes warm in the client router cache.
+    staleTimes: {
+      dynamic: 60,
+      static: 300,
+    },
   },
   // Next.js 16 builds with Turbopack by default. next-pwa adds a webpack
   // plugin, and an empty turbopack key keeps that default build from exiting.

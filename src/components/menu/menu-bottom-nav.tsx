@@ -2,7 +2,7 @@
 
 import { ClipboardList, Heart, Home, ShoppingBag, UserRound } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
@@ -33,6 +33,7 @@ function readDineInFromLocation(): boolean {
 export function MenuBottomNav(): ReactNode {
   const { t } = useLocale();
   const pathname = usePathname() ?? "/menu";
+  const router = useRouter();
   const hydrateCart = useMenuCartStore((state) => state.hydrate);
   const cartCount = useMenuCartStore((state) =>
     state.lines.reduce((sum, line) => sum + line.quantity, 0),
@@ -62,6 +63,13 @@ export function MenuBottomNav(): ReactNode {
       window.removeEventListener("storage", onStorage);
     };
   }, [hydrateCart, hydrateSaved]);
+
+  useEffect(() => {
+    // Warm the primary tabs so the first tap feels local.
+    for (const href of ["/menu", "/menu/favorites", "/menu/orders", "/menu/account"]) {
+      router.prefetch(href);
+    }
+  }, [router]);
 
   if (dineIn) {
     return null;
@@ -189,6 +197,7 @@ export function MenuBottomNav(): ReactNode {
               <li key={item.key} className="flex justify-center">
                 <Link
                   href={item.href}
+                  prefetch
                   onClick={() => {
                     if (!active) {
                       window.dispatchEvent(new Event(MENU_NAV_START_EVENT));

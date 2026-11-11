@@ -5,6 +5,7 @@ import { m } from "framer-motion";
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 
 import { MenuSafeImage } from "@/components/menu/menu-safe-image";
+import { prefetchMenuImage } from "@/lib/menu/image-cache";
 import { cn } from "@/lib/utils";
 
 export function ProductImageSlider({
@@ -32,6 +33,13 @@ export function ProductImageSlider({
       setIndex(next);
     }
   }, [activeUrl, images]);
+
+  useEffect(() => {
+    // Warm current + neighbors so swipes feel instant.
+    void prefetchMenuImage(images[index]);
+    void prefetchMenuImage(images[index + 1]);
+    void prefetchMenuImage(images[index - 1]);
+  }, [images, index]);
 
   if (images.length === 0) {
     return (

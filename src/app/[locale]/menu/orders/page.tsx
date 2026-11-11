@@ -5,7 +5,6 @@ import { MenuOrderTracker } from "@/components/stores/menu-order-tracker";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { isLocale, LOCALES } from "@/i18n/config";
 
-export const dynamic = "force-dynamic";
 export const dynamicParams = false;
 
 export function generateStaticParams(): { locale: string }[] {

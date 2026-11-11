@@ -2,7 +2,7 @@
 
 import { CheckCircle2, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { MenuCheckoutSheet } from "@/components/menu/menu-checkout-sheet";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -70,6 +70,15 @@ export function MenuPersistentCart({
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [placedNumber, setPlacedNumber] = useState<string | null>(null);
+  const placingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  const nextIdempotencyKey = (): string => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `ik_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  };
 
   useEffect(() => {
     hydrate();
@@ -114,40 +123,53 @@ export function MenuPersistentCart({
   );
 
   const placeOrder = async (): Promise<void> => {
-    const authed = await fetchCustomerProfile();
-    if (!authed) {
-      requestCustomerAuth();
+    if (placingRef.current || pending) {
       return;
     }
-    if (!draft.phone.trim()) {
-      onDraftChange({
-        phone: authed.phone,
-        guestName: draft.guestName.trim() || authed.name,
-      });
-    }
-    const addressText = dineIn ? dineIn.tableLabel : composeDeliveryAddress(draft);
-    if (!dineIn && (!draft.phone.trim() || !addressText)) {
-      setError(t("menu.addressMissing"));
-      onCheckoutOpenChange(true);
-      return;
-    }
-    if (!addressText) {
-      setError(t("menu.addressMissing"));
-      onCheckoutOpenChange(true);
-      return;
-    }
-    if (visibleLines.length === 0) {
-      onCheckoutOpenChange(false);
-      setError(null);
-      return;
-    }
+    placingRef.current = true;
 
-    setPending(true);
-    setError(null);
     try {
+      const authed = await fetchCustomerProfile();
+      if (!authed) {
+        onCheckoutOpenChange(false);
+        requestCustomerAuth();
+        return;
+      }
+      if (!draft.phone.trim()) {
+        onDraftChange({
+          phone: authed.phone,
+          guestName: draft.guestName.trim() || authed.name,
+        });
+      }
+      const addressText = dineIn ? dineIn.tableLabel : composeDeliveryAddress(draft);
+      if (!dineIn && (!draft.phone.trim() || !addressText)) {
+        setError(t("menu.addressMissing"));
+        onCheckoutOpenChange(true);
+        return;
+      }
+      if (!addressText) {
+        setError(t("menu.addressMissing"));
+        onCheckoutOpenChange(true);
+        return;
+      }
+      if (visibleLines.length === 0) {
+        onCheckoutOpenChange(false);
+        setError(null);
+        return;
+      }
+
+      setPending(true);
+      setError(null);
+
+      const idempotencyKey = idempotencyKeyRef.current ?? nextIdempotencyKey();
+      idempotencyKeyRef.current = idempotencyKey;
+
       const response = await fetch("/api/orders/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({
           phone: draft.phone,
           addressText,
@@ -164,6 +186,7 @@ export function MenuPersistentCart({
           tableId: dineIn?.tableId ?? null,
           tableLabel: dineIn?.tableLabel ?? null,
           guestName: dineIn ? draft.guestName.trim() || null : null,
+          idempotencyKey,
         }),
       });
       const body = (await response.json()) as {
@@ -171,11 +194,15 @@ export function MenuPersistentCart({
         error?: string;
         orderNumber?: string;
         trackingToken?: string;
+        duplicate?: boolean;
       };
       if (!body.ok || !body.orderNumber || !body.trackingToken) {
+        // Keep the same key on conflict/busy so a user retry is still safe.
         setError(body.error ?? t("menu.placeFailed"));
         return;
       }
+      // Success (or safe replay) — rotate the key for the next distinct order.
+      idempotencyKeyRef.current = null;
       clear();
       setPlacedNumber(body.orderNumber);
       onCheckoutOpenChange(false);
@@ -186,8 +213,10 @@ export function MenuPersistentCart({
         }, 700);
       }
     } catch {
+      // Network drop: keep idempotencyKeyRef so a retry replays instead of duplicating.
       setError(t("menu.placeFailed"));
     } finally {
+      placingRef.current = false;
       setPending(false);
     }
   };

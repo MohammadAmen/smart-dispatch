@@ -7,8 +7,6 @@ import { isLocale } from "@/i18n/config";
 import { getPublicMenu } from "@/lib/stores/menu";
 import { resolveDineInFromParams } from "@/lib/stores/store-tables";
 
-export const dynamic = "force-dynamic";
-
 export default async function LocaleMenuStorePage({
   params,
   searchParams,

@@ -7,8 +7,6 @@ import { listLiveOffers } from "@/lib/stores/offers";
 import { listDirectoryStores } from "@/lib/stores/menu";
 import { listStoreTypes } from "@/lib/stores/store-types";
 
-export const dynamic = "force-dynamic";
-
 export default async function MenuPage({
   searchParams,
 }: {

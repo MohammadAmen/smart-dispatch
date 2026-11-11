@@ -33,6 +33,7 @@ export function PromoBanner({
       <MenuSafeImage
         src={offer.image}
         alt=""
+        priority
         className="absolute inset-0 size-full object-cover"
         fallback={
           <span className="absolute inset-0 bg-linear-to-br from-amber-100 via-orange-50 to-rose-100 dark:from-slate-800 dark:via-slate-900 dark:to-amber-950/40" />

@@ -1,3 +1,4 @@
+import { readMenuCache, writeMenuCache } from "@/lib/menu/session-cache";
 import type { DirectoryStore } from "@/lib/stores/types";
 
 export const MENU_STORES_KEY_PREFIX = "/api/menu/stores";
@@ -15,6 +16,8 @@ export async function fetchMenuStores(
   typeId: string,
   subCategoryId: string | null,
 ): Promise<DirectoryStore[]> {
+  const key = menuStoresKey(typeId, subCategoryId);
+  const cached = readMenuCache<DirectoryStore[]>(key);
   const params = new URLSearchParams({
     typeId: typeId.trim() || "all",
   });
@@ -22,12 +25,24 @@ export async function fetchMenuStores(
     params.set("subCategoryId", subCategoryId.trim());
   }
 
-  const response = await fetch(`${MENU_STORES_KEY_PREFIX}?${params.toString()}`, {
-    cache: "no-store",
-  });
-  const body = (await response.json()) as { ok?: boolean; stores?: DirectoryStore[] };
-  if (!body.ok || !Array.isArray(body.stores)) {
-    throw new Error("Could not load stores.");
+  try {
+    const response = await fetch(`${MENU_STORES_KEY_PREFIX}?${params.toString()}`, {
+      // Browser HTTP cache + SWR — avoid forcing a cold network every tap.
+      cache: "default",
+    });
+    const body = (await response.json()) as { ok?: boolean; stores?: DirectoryStore[] };
+    if (!body.ok || !Array.isArray(body.stores)) {
+      if (cached) {
+        return cached;
+      }
+      throw new Error("Could not load stores.");
+    }
+    writeMenuCache(key, body.stores);
+    return body.stores;
+  } catch (error) {
+    if (cached) {
+      return cached;
+    }
+    throw error;
   }
-  return body.stores;
 }

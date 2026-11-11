@@ -3,41 +3,34 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { BeevLoader } from "@/components/brand/beev-loader";
-import { useLocale } from "@/components/providers/locale-provider";
 import { MENU_NAV_START_EVENT } from "@/lib/menu/chrome-events";
 
-const MIN_VISIBLE_MS = 360;
-const MAX_VISIBLE_MS = 4200;
+const HIDE_AFTER_MS = 420;
 
-/** Soft route transition loader for menu tab switches. */
+/**
+ * Slim top progress for tab switches — never a full-screen takeover.
+ * Hidden quickly once the route settles; skipped when navigation is instant.
+ */
 export function MenuTabLoader(): ReactNode {
-  const { t } = useLocale();
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const pending = useRef(false);
-  const shownAt = useRef(0);
-  const maxTimer = useRef<number | null>(null);
+  const hideTimer = useRef<number | null>(null);
 
   useEffect(() => {
     const onStart = (): void => {
       pending.current = true;
-      shownAt.current = Date.now();
       setVisible(true);
-      if (maxTimer.current != null) {
-        window.clearTimeout(maxTimer.current);
+      if (hideTimer.current != null) {
+        window.clearTimeout(hideTimer.current);
+        hideTimer.current = null;
       }
-      maxTimer.current = window.setTimeout(() => {
-        pending.current = false;
-        setVisible(false);
-        maxTimer.current = null;
-      }, MAX_VISIBLE_MS);
     };
     window.addEventListener(MENU_NAV_START_EVENT, onStart);
     return () => {
       window.removeEventListener(MENU_NAV_START_EVENT, onStart);
-      if (maxTimer.current != null) {
-        window.clearTimeout(maxTimer.current);
+      if (hideTimer.current != null) {
+        window.clearTimeout(hideTimer.current);
       }
     };
   }, []);
@@ -46,22 +39,37 @@ export function MenuTabLoader(): ReactNode {
     if (!pending.current) {
       return;
     }
-    const elapsed = Date.now() - shownAt.current;
-    const wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
-    const timer = window.setTimeout(() => {
+    hideTimer.current = window.setTimeout(() => {
       pending.current = false;
       setVisible(false);
-      if (maxTimer.current != null) {
-        window.clearTimeout(maxTimer.current);
-        maxTimer.current = null;
+      hideTimer.current = null;
+    }, HIDE_AFTER_MS);
+    return () => {
+      if (hideTimer.current != null) {
+        window.clearTimeout(hideTimer.current);
       }
-    }, wait);
-    return () => window.clearTimeout(timer);
+    };
   }, [pathname]);
 
   if (!visible) {
     return null;
   }
 
-  return <BeevLoader variant="overlay" label={t("common.loading")} />;
+  return (
+    <div
+      className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-[2px] overflow-hidden"
+      aria-hidden
+    >
+      <div className="menu-tab-progress h-full w-1/3 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.85)]" />
+      <style>{`
+        @keyframes menu-tab-progress-slide {
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(320%); }
+        }
+        .menu-tab-progress {
+          animation: menu-tab-progress-slide 0.9s ease-in-out infinite;
+        }
+      `}</style>
+    </div>
+  );
 }
