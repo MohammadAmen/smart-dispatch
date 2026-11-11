@@ -17,7 +17,10 @@ function parseCoord(value: number | null | undefined): number | null {
 }
 
 /**
- * Unified sub-categories visible for a main store-type near the user.
+ * Unified sub-categories for a store sector.
+ * The admin catalog for that sector is always listed. Store links (for filtering)
+ * come from the same active stores the home directory shows — distance only
+ * changes sort, it does not hide the catalog.
  * Unlinked store categories still appear as name-based fallback pills.
  */
 export async function listNearbySubCategories(input: {
@@ -26,7 +29,11 @@ export async function listNearbySubCategories(input: {
   lng?: number | null;
   radiusKm?: number;
 }): Promise<SubCategoriesFeed> {
-  await ensureGlobalCategoriesReady();
+  try {
+    await ensureGlobalCategoriesReady();
+  } catch (error) {
+    console.error("[sub-categories] seed skipped", error);
+  }
 
   const rawMain = input.mainCategoryId.trim();
   const isAll = !rawMain || rawMain === "all" || rawMain === "ALL";
@@ -35,6 +42,22 @@ export async function listNearbySubCategories(input: {
   const userLat = parseCoord(input.lat);
   const userLng = parseCoord(input.lng);
   const radius = input.radiusKm ?? SUB_CATEGORY_GEO_RADIUS_KM;
+
+  const defined = await prisma.globalCategory.findMany({
+    where: {
+      active: true,
+      ...(isAll ? {} : { storeTypeId: mainCategoryId }),
+    },
+    select: {
+      id: true,
+      name: true,
+      icon: true,
+      imageUrl: true,
+      isOther: true,
+      sortOrder: true,
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
 
   const stores = await prisma.store.findMany({
     where: {
@@ -48,49 +71,51 @@ export async function listNearbySubCategories(input: {
     },
   });
 
-  const nearbyIds = stores
-    .filter((store) => {
-      if (userLat == null || userLng == null) {
-        return true;
-      }
-      if (store.latitude == null || store.longitude == null) {
-        return true;
-      }
-      const km = calculateDistance(userLat, userLng, store.latitude, store.longitude);
-      return Number.isFinite(km) && km <= radius;
-    })
-    .map((store) => store.id);
+  const nearbyIds = new Set(
+    stores
+      .filter((store) => {
+        if (userLat == null || userLng == null) {
+          return true;
+        }
+        if (store.latitude == null || store.longitude == null) {
+          return true;
+        }
+        const km = calculateDistance(userLat, userLng, store.latitude, store.longitude);
+        return Number.isFinite(km) && km <= radius;
+      })
+      .map((store) => store.id),
+  );
 
-  if (nearbyIds.length === 0) {
-    return { mainCategoryId, items: [] };
-  }
-
-  const categories = await prisma.category.findMany({
-    where: {
-      storeId: { in: nearbyIds },
-      active: true,
-      products: { some: { available: true } },
-    },
-    select: {
-      id: true,
-      name: true,
-      icon: true,
-      imageUrl: true,
-      storeId: true,
-      globalCategoryId: true,
-      globalCategory: {
-        select: {
-          id: true,
-          name: true,
-          icon: true,
-          imageUrl: true,
-          isOther: true,
-          sortOrder: true,
-          active: true,
-        },
-      },
-    },
-  });
+  const storeIds = stores.map((store) => store.id);
+  const categories =
+    storeIds.length === 0
+      ? []
+      : await prisma.category.findMany({
+          where: {
+            storeId: { in: storeIds },
+            active: true,
+            products: { some: { available: true } },
+          },
+          select: {
+            id: true,
+            name: true,
+            icon: true,
+            imageUrl: true,
+            storeId: true,
+            globalCategoryId: true,
+            globalCategory: {
+              select: {
+                id: true,
+                name: true,
+                icon: true,
+                imageUrl: true,
+                isOther: true,
+                sortOrder: true,
+                active: true,
+              },
+            },
+          },
+        });
 
   const globalBuckets = new Map<
     string,
@@ -102,8 +127,22 @@ export async function listNearbySubCategories(input: {
       isOther: boolean;
       sortOrder: number;
       storeIds: Set<string>;
+      nearbyCount: number;
     }
   >();
+
+  for (const global of defined) {
+    globalBuckets.set(global.id, {
+      id: global.id,
+      name: global.name,
+      icon: global.icon || "📦",
+      imageUrl: global.imageUrl,
+      isOther: global.isOther,
+      sortOrder: global.sortOrder,
+      storeIds: new Set(),
+      nearbyCount: 0,
+    });
+  }
 
   const fallbackBuckets = new Map<
     string,
@@ -122,6 +161,12 @@ export async function listNearbySubCategories(input: {
       const current = globalBuckets.get(global.id);
       if (current) {
         current.storeIds.add(category.storeId);
+        if (!current.imageUrl && category.imageUrl) {
+          current.imageUrl = category.imageUrl;
+        }
+        if (nearbyIds.has(category.storeId)) {
+          current.nearbyCount += 1;
+        }
         continue;
       }
       globalBuckets.set(global.id, {
@@ -132,6 +177,7 @@ export async function listNearbySubCategories(input: {
         isOther: global.isOther,
         sortOrder: global.sortOrder,
         storeIds: new Set([category.storeId]),
+        nearbyCount: nearbyIds.has(category.storeId) ? 1 : 0,
       });
       continue;
     }
@@ -156,6 +202,10 @@ export async function listNearbySubCategories(input: {
     });
   }
 
+  const globalNames = new Set(
+    [...globalBuckets.values()].map((item) => item.name.trim().toLowerCase()),
+  );
+
   const globals: PublicSubCategory[] = [...globalBuckets.values()]
     .sort((left, right) => {
       if (left.isOther !== right.isOther) {
@@ -163,6 +213,9 @@ export async function listNearbySubCategories(input: {
       }
       if (left.sortOrder !== right.sortOrder) {
         return left.sortOrder - right.sortOrder;
+      }
+      if (left.nearbyCount !== right.nearbyCount) {
+        return right.nearbyCount - left.nearbyCount;
       }
       return right.storeIds.size - left.storeIds.size;
     })
@@ -178,6 +231,7 @@ export async function listNearbySubCategories(input: {
     }));
 
   const fallbacks: PublicSubCategory[] = [...fallbackBuckets.values()]
+    .filter((item) => !globalNames.has(item.name.trim().toLowerCase()))
     .sort((left, right) => right.storeIds.size - left.storeIds.size || left.name.localeCompare(right.name, "ar"))
     .map((item) => ({
       id: item.id,

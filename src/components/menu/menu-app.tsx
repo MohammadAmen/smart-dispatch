@@ -529,9 +529,9 @@ export function MenuApp({
           </div>
           )}
         </div>
-        <div className="relative -mt-12 px-4">
-          <div className="flex items-end gap-3">
-            <div className="relative size-[4.75rem] shrink-0 overflow-hidden rounded-full bg-background shadow-[0_12px_32px_-12px_color-mix(in_oklch,var(--primary)_35%,transparent)] ring-4 ring-background">
+        <div className="relative px-4">
+          <div className="flex items-start gap-3">
+            <div className="relative -mt-10 size-[4.75rem] shrink-0 overflow-hidden rounded-full bg-background shadow-[0_12px_32px_-12px_color-mix(in_oklch,var(--primary)_35%,transparent)] ring-4 ring-background">
               <MenuSafeImage
                 src={store.logoUrl}
                 alt={store.name}
@@ -543,8 +543,8 @@ export function MenuApp({
                 }
               />
             </div>
-            <div className="min-w-0 flex-1 pb-1">
-              <h1 className="truncate font-heading text-xl font-semibold tracking-tight">{store.name}</h1>
+            <div className="min-w-0 flex-1 pt-2">
+              <h1 className="truncate font-heading text-xl font-semibold tracking-tight text-foreground">{store.name}</h1>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                 <span>{store.storeType.name}</span>
                 <span className="inline-flex items-center gap-1 font-semibold text-foreground">

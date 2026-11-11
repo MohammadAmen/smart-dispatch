@@ -136,7 +136,9 @@ export function StoreDiscoveryApp({
   }, [draft.latitude, draft.longitude, hydrated, locate]);
 
   const selectedSubCategoryId = subCategory?.id ?? null;
-  const storeIdsFilter = subCategory?.storeIds ?? null;
+  // Empty links must not blank the directory — only a real store set filters.
+  const storeIdsFilter =
+    subCategory && subCategory.storeIds.length > 0 ? subCategory.storeIds : null;
   const debouncedStoreIds = useDebouncedValue(storeIdsFilter, 160);
 
   // One cached fetch per main type — type + sub filters apply client-side immediately.
@@ -324,14 +326,14 @@ export function StoreDiscoveryApp({
           category={typeId}
           lat={draft.latitude}
           lng={draft.longitude}
-          subCategoryId={selectedSubCategoryId}
+          subCategoryId={storeIdsFilter ? selectedSubCategoryId : null}
         />
       ) : null}
 
       {burnActive ? (
         <BurnDealsSection
           categoryType={typeId}
-          subCategoryId={selectedSubCategoryId}
+          subCategoryId={storeIdsFilter ? selectedSubCategoryId : null}
         />
       ) : (
       <main className="space-y-3 px-4 pb-32">
